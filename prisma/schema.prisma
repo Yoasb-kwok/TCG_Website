@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum TournamentStatus {
+  DRAFT
+  OPEN
+  FULL
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+/** 後台可管理的標籤類型 */
+enum TaxonomyKind {
+  SET_CODE
+  RARITY
+  CARD_NUMBER
+  CARD_CATEGORY
+  POKEMON_ATTRIBUTE
+  PRODUCT_TYPE
+}
+
+model TaxonomyOption {
+  id          String       @id @default(uuid())
+  kind        TaxonomyKind
+  /** 儲存值（如 M3、RR、012） */
+  value       String
+  /** 顯示標籤 */
+  label       String
+  sortIndex   Int          @default(0)
+  /** 卡號可掛在系列底下（parentValue = 系列編號） */
+  parentValue String?
+  /** 系列固定卡號後綴（SET_CODE 用，如 063 → 001/063） */
+  cardSuffix  String?
+  active      Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([kind, value, parentValue])
+  @@index([kind, sortIndex])
+  @@index([kind, parentValue])
+}
+
+model User {
+  id            String                  @id @default(uuid())
+  email         String                  @unique
+  name          String?
+  phone         String?
+  passwordHash  String?
+  role          UserRole                @default(USER)
+  orders        Order[]
+  registrations TournamentRegistration[]
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+}
+
+model Product {
+  id             String        @id @default(uuid())
+  name           String
+  slug           String        @unique
+  description    String?
+  /** 對應標籤管理 PRODUCT_TYPE 的 value（如 SINGLE、BOOSTER_PACK、GIFT_BOX） */
+  type           String
+  cardSet        String?
+  cardNumber     String?
+  rarity         String?
+  /** 系列編號：M1L、M3、M2A、SV3 等 */
+  setCode        String?
+  /** 稀有度分類：MUR、SAR、SR、AR、RR、R_SHINY、R、ITEM 等 */
+  rarityTier     String?
+  /** 卡牌類型：寶可夢、訓練家、物品、能量、場地 */
+  cardCategory   String?
+  setSortIndex   Int           @default(999)
+  raritySortIndex Int          @default(99)
+  /** 屬性：草、火、水、雷等（寶可夢卡） */
+  pokemonType    String?
+  language       String        @default("zh-HK")
+  externalCardId String?
+  variants       ProductVariant[]
+  images         Image[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([cardSet])
+  @@index([rarity])
+  @@index([setCode])
+  @@index([rarityTier])
+  @@index([setSortIndex])
+  @@index([raritySortIndex])
+  @@index([pokemonType])
+  @@index([type])
+}
+
+model ProductVariant {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  condition String
+  isFoil    Boolean @default(false)
+  price     Float
+  stock     Int     @default(0)
+  sku       String  @unique
+  orderItems OrderItem[]
+
+  @@index([productId])
+  @@index([stock])
+}
+
+model Image {
+  id        String  @id @default(uuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  alt       String?
+  sortOrder Int     @default(0)
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  userId          String?
+  user            User?       @relation(fields: [userId], references: [id])
+  email           String
+  status          OrderStatus @default(PENDING)
+  stripeSessionId String?     @unique
+  totalAmount     Float
+  currency        String      @default("hkd")
+  items           OrderItem[]
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model OrderItem {
+  id        String         @id @default(uuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int
+  unitPrice Float
+}
+
+model Tournament {
+  id           String                   @id @default(uuid())
+  title        String
+  slug         String                   @unique
+  description  String?
+  format       String
+  maxPlayers   Int
+  entryFee     Float                    @default(0)
+  prizePool    String?
+  location     String
+  startsAt     DateTime
+  registrationDeadline DateTime
+  status       TournamentStatus         @default(OPEN)
+  registrations TournamentRegistration[]
+  createdAt    DateTime                 @default(now())
+  updatedAt    DateTime                 @updatedAt
+}
+
+model TournamentRegistration {
+  id           String     @id @default(uuid())
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  userId       String?
+  user         User?      @relation(fields: [userId], references: [id])
+  playerName   String
+  email        String
+  phone        String?
+  createdAt    DateTime   @default(now())
+
+  @@unique([tournamentId, email])
+}
