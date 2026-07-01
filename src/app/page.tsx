@@ -3,14 +3,16 @@ import { ArrowRight } from "lucide-react";
 import { HeroCarousel } from "@/components/layout/hero-carousel";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
-import { DEMO_PRODUCTS, DEMO_TOURNAMENTS } from "@/lib/demo-products";
+import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
+import { getHomeContent } from "@/lib/site-content";
 
-export default function HomePage() {
-  const featured = DEMO_PRODUCTS.slice(0, 4);
+export default async function HomePage() {
+  const homeContent = await getHomeContent();
+  const featured = homeContent.featuredProducts.slice(0, 4);
 
   return (
     <>
-      <HeroCarousel />
+      <HeroCarousel banners={homeContent.banners} />
 
       <section className="mx-auto max-w-7xl px-4 py-12 lg:px-6">
         <div className="mb-6 flex items-center justify-between">

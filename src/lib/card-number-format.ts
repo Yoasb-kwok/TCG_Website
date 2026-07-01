@@ -34,3 +34,19 @@ export function parseCardNumberIndex(cardNumber: string): number | null {
   if (!m) return null;
   return Number.parseInt(m[1], 10);
 }
+
+/** 保留卡號前綴，替換 / 後的系列後綴（001/080 + 083 → 001/083） */
+export function replaceCardNumberSuffix(
+  cardNumber: string,
+  newSuffix: string,
+): string | null {
+  const m = cardNumber.trim().match(/^(\d+)\/\d+$/);
+  if (!m) return null;
+  const cleanSuffix = newSuffix.replace(/^\//, "").trim();
+  if (!cleanSuffix) return null;
+  return `${m[1]}/${cleanSuffix}`;
+}
+
+export function cardNumberLabel(cardNumber: string): string {
+  return `#${cardNumber}`;
+}

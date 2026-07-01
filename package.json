@@ -12,6 +12,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed-admin": "tsx prisma/seed-admin.ts",
+    "db:seed-content": "tsx prisma/seed-site-content.ts",
     "db:clear": "tsx prisma/clear-db.ts",
     "db:seed-taxonomy": "tsx prisma/seed-taxonomy.ts",
     "db:push": "prisma db push"

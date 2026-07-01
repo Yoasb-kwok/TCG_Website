@@ -1,9 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
-import { Minus, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useSession } from "next-auth/react";
+import { CreditCard, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -13,8 +15,25 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import {
+  calculateShipping,
+  FREE_SHIPPING_THRESHOLD,
+  SHIPPING_FEE,
+} from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/providers/cart-provider";
+
+async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Promise<T> {
+  const text = await res.text();
+  if (!text) return {} as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(
+      res.ok ? "伺服器回應格式錯誤" : `請求失敗（${res.status}）`,
+    );
+  }
+}
 
 export function CartSheet() {
   const {
@@ -26,12 +45,41 @@ export function CartSheet() {
     removeItem,
     clearCart,
   } = useCart();
+  const { data: session } = useSession();
   const [email, setEmail] = useState("");
+  const [pickup, setPickup] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stripeReady, setStripeReady] = useState<boolean | null>(null);
+  const [stripeMessage, setStripeMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (session?.user?.email && !email) {
+      setEmail(session.user.email);
+    }
+  }, [session?.user?.email, email]);
+
+  useEffect(() => {
+    void fetch("/api/checkout")
+      .then((res) => res.json())
+      .then((data: { ready?: boolean; message?: string }) => {
+        setStripeReady(Boolean(data.ready));
+        setStripeMessage(data.message ?? null);
+      })
+      .catch(() => {
+        setStripeReady(false);
+        setStripeMessage("無法連接結帳服務");
+      });
+  }, []);
+
+  const shippingFee = useMemo(
+    () => calculateShipping(subtotal, pickup),
+    [subtotal, pickup],
+  );
+  const total = subtotal + shippingFee;
 
   const handleCheckout = async () => {
-    if (!email || items.length === 0) return;
+    if (!email || items.length === 0 || !stripeReady) return;
     setLoading(true);
     setError(null);
 
@@ -40,7 +88,8 @@ export function CartSheet() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: email.trim(),
+          pickup,
           items: items.map((i) => ({
             variantId: i.variantId,
             quantity: i.quantity,
@@ -48,15 +97,18 @@ export function CartSheet() {
         }),
       });
 
-      const data = (await res.json()) as { url?: string; error?: string };
+      const data = await parseJsonResponse<{ url?: string; error?: string }>(res);
       if (!res.ok) throw new Error(data.error ?? "結帳失敗");
 
       if (data.url) {
+        sessionStorage.setItem("tcg-checkout-pending", "1");
         window.location.href = data.url;
+        return;
       }
+
+      throw new Error("無法取得 Stripe 結帳連結");
     } catch (err) {
       setError(err instanceof Error ? err.message : "結帳失敗");
-    } finally {
       setLoading(false);
     }
   };
@@ -133,13 +185,46 @@ export function CartSheet() {
 
         {items.length > 0 && (
           <div className="border-t border-border pt-4">
-            <div className="mb-4 flex justify-between text-sm">
-              <span className="text-muted-foreground">小計</span>
-              <span className="font-semibold">{formatPrice(subtotal)}</span>
+            <div className="mb-3 space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">小計</span>
+                <span>{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">運費</span>
+                <span>
+                  {pickup
+                    ? "門市自取 · 免費"
+                    : shippingFee === 0
+                      ? "免運費"
+                      : formatPrice(shippingFee)}
+                </span>
+              </div>
+              {!pickup && subtotal < FREE_SHIPPING_THRESHOLD && (
+                <p className="text-xs text-muted-foreground">
+                  未滿 {formatPrice(FREE_SHIPPING_THRESHOLD)} 加收 {formatPrice(SHIPPING_FEE)} 運費；滿額免運
+                </p>
+              )}
+              <Separator className="my-2" />
+              <div className="flex justify-between font-semibold">
+                <span>應付總額</span>
+                <span>{formatPrice(total)}</span>
+              </div>
+            </div>
+
+            <div className="mb-4 flex items-center gap-2">
+              <Checkbox
+                id="pickup"
+                checked={pickup}
+                onCheckedChange={(checked) => setPickup(Boolean(checked))}
+              />
+              <Label htmlFor="pickup" className="text-sm font-normal">
+                門市自取（免運費）
+              </Label>
             </div>
 
             <div className="mb-4 space-y-2">
-              <Label htmlFor="checkout-email">電郵</Label>
+              <Label htmlFor="checkout-email">電郵（收訂單確認）</Label>
               <Input
                 id="checkout-email"
                 type="email"
@@ -147,18 +232,30 @@ export function CartSheet() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="border-border bg-background"
+                autoComplete="email"
               />
             </div>
+
+            {stripeReady === false && (
+              <p className="mb-2 rounded-md border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-200">
+                {stripeMessage ??
+                  "Stripe 尚未設定。請在 .env 加入 STRIPE_SECRET_KEY 後重啟 server。"}
+              </p>
+            )}
 
             {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
 
             <Button
-              className="w-full"
-              disabled={loading || !email}
-              onClick={handleCheckout}
+              className="w-full gap-2"
+              disabled={loading || !email || stripeReady !== true}
+              onClick={() => void handleCheckout()}
             >
-              {loading ? "處理中..." : "Stripe 結帳"}
+              <CreditCard className="h-4 w-4" />
+              {loading ? "前往 Stripe..." : "安全結帳"}
             </Button>
+            <p className="mt-2 text-center text-[11px] text-muted-foreground">
+              由 Stripe 安全處理 · 支援信用卡及 Apple Pay
+            </p>
             <Button
               variant="ghost"
               className="mt-2 w-full text-muted-foreground"

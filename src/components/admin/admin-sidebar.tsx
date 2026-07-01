@@ -9,6 +9,7 @@ import {
   Receipt,
   Tags,
   Trophy,
+  FilePenLine,
   LogOut,
   ExternalLink,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const LINKS = [
   { href: "/admin", label: "總覽", icon: LayoutDashboard, exact: true },
   { href: "/admin/taxonomy", label: "標籤管理", icon: Tags },
   { href: "/admin/products", label: "商品上架", icon: Package },
+  { href: "/admin/content", label: "網站內容", icon: FilePenLine },
   { href: "/admin/orders", label: "交易紀錄", icon: Receipt },
   { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },
 ];

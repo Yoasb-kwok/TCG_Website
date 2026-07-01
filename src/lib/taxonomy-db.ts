@@ -1,4 +1,4 @@
-import { generateCardNumberRange } from "@/lib/card-number-format";
+import { generateCardNumberRange, replaceCardNumberSuffix, cardNumberLabel } from "@/lib/card-number-format";
 import { DEFAULT_TAXONOMY_ROWS } from "@/lib/taxonomy-defaults";
 import type { TaxonomyKind, TaxonomyOptionDto } from "@/lib/taxonomy-types";
 import type { PrismaClient } from "@/generated/prisma/client";
@@ -206,6 +206,7 @@ export async function updateTaxonomyOption(
   }>,
 ) {
   const prisma = getPrisma();
+  const existing = await taxonomy(prisma).findUnique({ where: { id } });
   const row = await taxonomy(prisma).update({
     where: { id },
     data: {
@@ -220,7 +221,61 @@ export async function updateTaxonomyOption(
       ...(data.active !== undefined ? { active: data.active } : {}),
     },
   });
+
+  if (
+    existing?.kind === "SET_CODE" &&
+    data.cardSuffix !== undefined &&
+    existing.value
+  ) {
+    const newSuffix = data.cardSuffix?.replace(/^\//, "").trim() || null;
+    if (newSuffix && newSuffix !== existing.cardSuffix) {
+      await syncCardNumbersToSuffix(existing.value, newSuffix);
+    }
+  }
+
   return mapRow(row);
+}
+
+export async function syncCardNumbersToSuffix(setCode: string, newSuffix: string) {
+  const clean = newSuffix.replace(/^\//, "").trim();
+  if (!clean) return { cardNumbers: 0, products: 0 };
+
+  const prisma = getPrisma();
+  const tx = taxonomy(prisma);
+
+  const cardNumbers = await tx.findMany({
+    where: { kind: "CARD_NUMBER", parentValue: setCode.trim() },
+  });
+
+  let cardNumberUpdates = 0;
+  for (const row of cardNumbers) {
+    const updated = replaceCardNumberSuffix(row.value, clean);
+    if (!updated || updated === row.value) continue;
+    await tx.update({
+      where: { id: row.id },
+      data: { value: updated, label: cardNumberLabel(updated) },
+    });
+    cardNumberUpdates++;
+  }
+
+  const products = await prisma.product.findMany({
+    where: { setCode: setCode.trim(), cardNumber: { not: null } },
+    select: { id: true, cardNumber: true },
+  });
+
+  let productUpdates = 0;
+  for (const product of products) {
+    if (!product.cardNumber) continue;
+    const updated = replaceCardNumberSuffix(product.cardNumber, clean);
+    if (!updated || updated === product.cardNumber) continue;
+    await prisma.product.update({
+      where: { id: product.id },
+      data: { cardNumber: updated },
+    });
+    productUpdates++;
+  }
+
+  return { cardNumbers: cardNumberUpdates, products: productUpdates };
 }
 
 export async function saveSetCardSuffix(setCode: string, suffix: string) {
@@ -231,10 +286,16 @@ export async function saveSetCardSuffix(setCode: string, suffix: string) {
     where: { kind: "SET_CODE", value: setCode.trim() },
   });
   if (!setRow) throw new Error("找不到系列");
+
   const row = await taxonomy(prisma).update({
     where: { id: setRow.id },
     data: { cardSuffix: clean },
   });
+
+  if (setRow.cardSuffix !== clean) {
+    await syncCardNumbersToSuffix(setCode, clean);
+  }
+
   return mapRow(row);
 }
 

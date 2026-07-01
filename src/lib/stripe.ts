@@ -13,5 +13,8 @@ export function getStripe(): Stripe {
 }
 
 export function isStripeConfigured(): boolean {
-  return Boolean(process.env.STRIPE_SECRET_KEY);
+  const key = process.env.STRIPE_SECRET_KEY?.trim();
+  if (!key) return false;
+  if (key.includes("...")) return false;
+  return /^sk_(test|live)_/.test(key) && key.length > 24;
 }

@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { auth } from "@/auth";
+import {
+  calculateShipping,
+  toAbsoluteImageUrl,
+} from "@/lib/checkout";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
@@ -8,10 +13,22 @@ interface CheckoutItem {
   quantity: number;
 }
 
+export async function GET() {
+  return NextResponse.json({
+    ready: isStripeConfigured(),
+    message: isStripeConfigured()
+      ? undefined
+      : "請在 .env 設定有效的 STRIPE_SECRET_KEY（Stripe Dashboard → Developers → API keys）",
+  });
+}
+
 export async function POST(request: NextRequest) {
   if (!isStripeConfigured()) {
     return NextResponse.json(
-      { error: "Stripe 尚未設定，請在 .env 加入 STRIPE_SECRET_KEY" },
+      {
+        error:
+          "Stripe 尚未設定。請在 .env 加入有效的 STRIPE_SECRET_KEY，並重啟 dev server。",
+      },
       { status: 503 },
     );
   }
@@ -19,17 +36,24 @@ export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     items: CheckoutItem[];
     email: string;
+    pickup?: boolean;
   };
 
-  if (!body.email || !body.items?.length) {
-    return NextResponse.json({ error: "缺少 email 或商品" }, { status: 400 });
+  const email = body.email?.trim().toLowerCase();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "請輸入有效電郵" }, { status: 400 });
+  }
+  if (!body.items?.length) {
+    return NextResponse.json({ error: "購物車是空的" }, { status: 400 });
   }
 
   const stripe = getStripe();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const session = await auth();
+  const pickup = Boolean(body.pickup);
 
   const lineItems: Stripe.Checkout.SessionCreateParams["line_items"] = [];
-  let totalAmount = 0;
+  let subtotal = 0;
   const orderItems: { variantId: string; quantity: number; unitPrice: number }[] =
     [];
 
@@ -38,29 +62,38 @@ export async function POST(request: NextRequest) {
       const prisma = getPrisma();
       const variants = await prisma.productVariant.findMany({
         where: { id: { in: body.items.map((i) => i.variantId) } },
-        include: { product: { include: { images: true } } },
+        include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } } },
       });
 
+      if (variants.length !== body.items.length) {
+        const found = new Set(variants.map((v) => v.id));
+        const missing = body.items.filter((i) => !found.has(i.variantId));
+        throw new Error(`找不到商品，請重新加入購物車（${missing[0]?.variantId}）`);
+      }
+
       for (const item of body.items) {
-        const variant = variants.find((v) => v.id === item.variantId);
-        if (!variant) throw new Error(`找不到商品 ${item.variantId}`);
+        const variant = variants.find((v) => v.id === item.variantId)!;
         if (variant.stock < item.quantity) {
-          throw new Error(`${variant.product.name} 庫存不足`);
+          throw new Error(`${variant.product.name} 庫存不足（剩餘 ${variant.stock}）`);
         }
-        totalAmount += variant.price * item.quantity;
+        subtotal += variant.price * item.quantity;
         orderItems.push({
           variantId: variant.id,
           quantity: item.quantity,
           unitPrice: variant.price,
         });
+
+        const imageUrl = toAbsoluteImageUrl(
+          variant.product.images[0]?.url,
+          appUrl,
+        );
+
         lineItems.push({
           price_data: {
             currency: "hkd",
             product_data: {
               name: `${variant.product.name} (${variant.condition}${variant.isFoil ? " · 閃卡" : ""})`,
-              images: variant.product.images[0]?.url
-                ? [variant.product.images[0].url]
-                : undefined,
+              images: imageUrl ? [imageUrl] : undefined,
             },
             unit_amount: Math.round(variant.price * 100),
           },
@@ -75,7 +108,7 @@ export async function POST(request: NextRequest) {
           const variant = product.variants.find((v) => v.id === item.variantId);
           if (variant) {
             found = true;
-            totalAmount += variant.price * item.quantity;
+            subtotal += variant.price * item.quantity;
             orderItems.push({
               variantId: variant.id,
               quantity: item.quantity,
@@ -101,13 +134,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const shippingFee = calculateShipping(subtotal, pickup);
+    if (shippingFee > 0) {
+      lineItems.push({
+        price_data: {
+          currency: "hkd",
+          product_data: { name: "本地運費（順豐）" },
+          unit_amount: Math.round(shippingFee * 100),
+        },
+        quantity: 1,
+      });
+    }
+
+    const totalAmount = subtotal + shippingFee;
+
+    const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
-      customer_email: body.email,
+      customer_email: email,
       line_items: lineItems,
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/checkout/cancel`,
       metadata: {
+        pickup: pickup ? "1" : "0",
         variantIds: body.items.map((i) => i.variantId).join(","),
         quantities: body.items.map((i) => i.quantity).join(","),
       },
@@ -116,8 +164,9 @@ export async function POST(request: NextRequest) {
     if (isDatabaseConfigured()) {
       await getPrisma().order.create({
         data: {
-          email: body.email,
-          stripeSessionId: session.id,
+          userId: session?.user?.id,
+          email,
+          stripeSessionId: checkoutSession.id,
           totalAmount,
           currency: "hkd",
           status: "PENDING",
@@ -126,7 +175,11 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ url: session.url });
+    if (!checkoutSession.url) {
+      throw new Error("無法建立 Stripe 結帳連結");
+    }
+
+    return NextResponse.json({ url: checkoutSession.url });
   } catch (err) {
     const message = err instanceof Error ? err.message : "結帳失敗";
     return NextResponse.json({ error: message }, { status: 400 });

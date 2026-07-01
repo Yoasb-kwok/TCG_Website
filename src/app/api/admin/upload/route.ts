@@ -17,6 +17,8 @@ export async function POST(request: NextRequest) {
 
   const formData = await request.formData();
   const file = formData.get("file");
+  const folderRaw = formData.get("folder");
+  const folder = folderRaw === "banners" ? "banners" : "products";
 
   if (!file || !(file instanceof File)) {
     return NextResponse.json({ error: "請選擇圖片檔案" }, { status: 400 });
@@ -43,11 +45,11 @@ export async function POST(request: NextRequest) {
           : "jpg";
 
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const dir = path.join(process.cwd(), "public", "uploads", "products");
+  const dir = path.join(process.cwd(), "public", "uploads", folder);
   await mkdir(dir, { recursive: true });
 
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(dir, filename), buffer);
 
-  return NextResponse.json({ url: `/uploads/products/${filename}` });
+  return NextResponse.json({ url: `/uploads/${folder}/${filename}` });
 }
