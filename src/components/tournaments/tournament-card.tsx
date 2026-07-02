@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
 import { formatDate, formatPrice } from "@/lib/format";
 import type { TournamentItem } from "@/lib/types";
 
@@ -58,14 +63,11 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
 
       <CardFooter className="flex items-center justify-between border-t border-border pt-4">
         <span className="font-semibold">
-          {tournament.entryFee > 0
-            ? formatPrice(tournament.entryFee)
-            : "免費"}
+          {tournament.entryFee > 0 ? formatPrice(tournament.entryFee) : "免費"}
         </span>
         <Link
-          href={`/tournaments/${tournament.slug}`}
-          className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90 disabled:pointer-events-none disabled:opacity-50"
-          aria-disabled={!isOpen}
+          href={`/tournaments/${tournament.slug}/register`}
+          className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
         >
           {isOpen ? "立即報名" : "查看詳情"}
         </Link>
