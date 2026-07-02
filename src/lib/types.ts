@@ -85,3 +85,10 @@ export interface TournamentItem {
   status: string;
   registeredCount: number;
 }
+
+export interface RegistrationInput {
+  tournamentId: string;
+  playerName: string;
+  email: string;
+  phone?: string;
+}
