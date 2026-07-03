@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calendar, MapPin, Users } from "lucide-react";
+import { Calendar, Clock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -7,7 +7,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate, formatDuration, formatPrice } from "@/lib/format";
 import type { TournamentItem } from "@/lib/types";
 
 interface TournamentCardProps {
@@ -26,6 +26,9 @@ const STATUS_LABELS: Record<string, string> = {
 export function TournamentCard({ tournament }: TournamentCardProps) {
   const spotsLeft = tournament.maxPlayers - tournament.registeredCount;
   const isOpen = tournament.status === "OPEN" && spotsLeft > 0;
+  const isFull =
+    tournament.status === "FULL" ||
+    (tournament.status === "OPEN" && spotsLeft <= 0);
 
   return (
     <Card className="border-border bg-card text-foreground">
@@ -36,7 +39,9 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
             variant={isOpen ? "default" : "secondary"}
             className={isOpen ? "bg-green-600" : ""}
           >
-            {STATUS_LABELS[tournament.status] ?? tournament.status}
+            {isFull
+              ? "已滿"
+              : (STATUS_LABELS[tournament.status] ?? tournament.status)}
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">{tournament.format}</p>
@@ -52,6 +57,12 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
           <MapPin className="h-4 w-4 shrink-0" />
           {tournament.location}
         </div>
+        {tournament.durationMinutes > 0 && (
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 shrink-0" />
+            時長：{formatDuration(tournament.durationMinutes)}
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <Users className="h-4 w-4 shrink-0" />
           {tournament.registeredCount} / {tournament.maxPlayers} 人
