@@ -236,4 +236,5 @@ model TournamentRegistration {
   createdAt    DateTime   @default(now())
 
   @@unique([tournamentId, email])
+  @@unique([tournamentId, phone])
 }
