@@ -214,6 +214,7 @@ model Tournament {
   location     String
   startsAt     DateTime
   registrationDeadline DateTime
+  durationMinutes Int @default(120)
   status       TournamentStatus         @default(OPEN)
   registrations TournamentRegistration[]
   createdAt    DateTime                 @default(now())
@@ -229,6 +230,9 @@ model TournamentRegistration {
   playerName   String
   email        String
   phone        String?
+  /// null = 免費賽事（無需付款）；"PENDING" = 待付款；"PAID" = 已付款
+  paymentStatus String?
+  stripeSessionId String? @unique
   createdAt    DateTime   @default(now())
 
   @@unique([tournamentId, email])
