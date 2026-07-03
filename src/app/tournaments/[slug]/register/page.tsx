@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, CalendarPlus, MapPin, Users } from "lucide-react";
+import { ArrowLeft, Calendar, CalendarPlus, Clock, MapPin, Users, CreditCard, AlertTriangle, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
-import { formatDate, formatPrice, googleCalendarUrl } from "@/lib/format";
+import { formatDate, formatDuration, formatPrice, googleCalendarUrl } from "@/lib/format";
 import type { TournamentItem } from "@/lib/types";
 
 export default function RegisterPage() {
@@ -18,6 +18,7 @@ export default function RegisterPage() {
 
   const [tournament, setTournament] = useState<TournamentItem | null>(null);
   const [loadingTournament, setLoadingTournament] = useState(true);
+  const [cancelled, setCancelled] = useState(false);
   const [form, setForm] = useState({ playerName: "", email: "", phone: "" });
   const [status, setStatus] = useState<
     "idle" | "loading" | "success" | "error"
@@ -25,6 +26,12 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
+    // Check for cancelled payment redirect from Stripe
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("cancelled") === "1") {
+      setCancelled(true);
+    }
+
     async function load() {
       try {
         const base = process.env.NEXT_PUBLIC_APP_URL ?? "";
@@ -50,6 +57,8 @@ export default function RegisterPage() {
     load();
   }, [slug]);
 
+  const requiresPayment = Boolean(tournament && tournament.entryFee > 0);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -69,7 +78,7 @@ export default function RegisterPage() {
           tournamentId: tournament.id,
           playerName: form.playerName,
           email: form.email,
-          phone: form.phone || undefined,
+          phone: form.phone.trim(),
         }),
       });
 
@@ -81,6 +90,13 @@ export default function RegisterPage() {
         return;
       }
 
+      // Paid tournament: redirect to Stripe Checkout
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+
+      // Free tournament: show inline success
       setStatus("success");
     } catch {
       setError("網絡錯誤，請檢查連接後重試");
@@ -114,7 +130,7 @@ export default function RegisterPage() {
     );
   }
 
-  // Success state
+  // Success state (free tournaments only — paid goes through Stripe redirect)
   if (status === "success") {
     return (
       <div className="mx-auto max-w-3xl px-4 py-24 text-center lg:px-6">
@@ -143,6 +159,7 @@ export default function RegisterPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           {formatDate(tournament.startsAt)} · {tournament.location}
         </p>
+
         <div className="mt-8 flex items-center justify-center gap-4">
           <Button variant="outline" onClick={() => router.push("/tournaments")}>
             返回賽事列表
@@ -165,6 +182,7 @@ export default function RegisterPage() {
     location: tournament.location,
     description: tournament.description,
     format: tournament.format,
+    durationMinutes: tournament.durationMinutes,
   });
   const showCalendarButton = Boolean(calendarUrl) && !isPast && !isFinished;
 
@@ -181,6 +199,14 @@ export default function RegisterPage() {
 
       <h1 className="mt-4 text-3xl font-bold text-foreground">報名參賽</h1>
 
+      {/* Cancelled payment notice */}
+      {cancelled && (
+        <div className="mt-4 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+          <Info className="mt-0.5 h-5 w-5 shrink-0" />
+          <span>你已取消付款。報名尚未完成，可重新提交報名表單。</span>
+        </div>
+      )}
+
       {/* Tournament Summary Card */}
       <Card className="mt-6 border-border bg-card">
         <CardHeader className="pb-2">
@@ -196,6 +222,12 @@ export default function RegisterPage() {
             <MapPin className="h-4 w-4 shrink-0" />
             <span>地點：{tournament.location}</span>
           </div>
+          {tournament.durationMinutes > 0 && (
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Clock className="h-4 w-4 shrink-0" />
+              <span>時長：{formatDuration(tournament.durationMinutes)}</span>
+            </div>
+          )}
           <div className="flex items-center gap-3 text-muted-foreground">
             <Users className="h-4 w-4 shrink-0" />
             <span>
@@ -210,6 +242,16 @@ export default function RegisterPage() {
                 : "免費"}
             </span>
           </div>
+
+          {/* Payment method info for paid tournaments */}
+          {requiresPayment && (
+            <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                付款方式：信用卡 / Apple Pay / Google Pay（由 Stripe 安全處理）。提交後將跳轉至付款頁面。
+              </span>
+            </div>
+          )}
 
           {showCalendarButton && (
             <a
@@ -279,14 +321,12 @@ export default function RegisterPage() {
 
               <div>
                 <Label htmlFor="phone" className="mb-1.5 block">
-                  電話{" "}
-                  <span className="text-xs text-muted-foreground">
-                    （選填）
-                  </span>
+                  電話 <span className="text-red-400">*</span>
                 </Label>
                 <Input
                   id="phone"
                   type="tel"
+                  required
                   placeholder="9876 5432"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -294,6 +334,16 @@ export default function RegisterPage() {
               </div>
             </div>
           </div>
+
+          {/* No-refund warning (paid tournaments only) */}
+          {requiresPayment && (
+            <div className="flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+              <span>
+                報名一經確認，報名費概不退還（包括賽事取消或改期的情況）。
+              </span>
+            </div>
+          )}
 
           {error && (
             <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
@@ -304,9 +354,13 @@ export default function RegisterPage() {
           <Button
             type="submit"
             disabled={status === "loading"}
-            className="w-full bg-white text-black hover:bg-white/90"
+            className="w-full"
           >
-            {status === "loading" ? "報名中..." : "確認報名"}
+            {status === "loading"
+              ? "處理中..."
+              : requiresPayment
+                ? `確認報名並付款（${formatPrice(tournament.entryFee)}）`
+                : "確認報名"}
           </Button>
         </form>
       )}
