@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
+import { syncTournamentStatuses } from "@/lib/tournament-status";
 
 function slugify(title: string): string {
   return `${title}-${Date.now().toString(36)}`
@@ -18,6 +19,8 @@ export async function GET() {
     return NextResponse.json({ tournaments: [] });
   }
 
+  // Lazily advance statuses by Hong Kong time before listing for the admin.
+  await syncTournamentStatuses(getPrisma());
   const tournaments = await getPrisma().tournament.findMany({
     include: {
       _count: { select: { registrations: true } },
@@ -51,6 +54,7 @@ export async function POST(request: NextRequest) {
       location: body.location ?? "旺角店",
       startsAt: new Date(body.startsAt),
       registrationDeadline: new Date(body.registrationDeadline),
+      durationMinutes: body.durationMinutes ?? 120,
       status: body.status ?? "OPEN",
     },
   });
