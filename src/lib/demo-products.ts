@@ -205,7 +205,10 @@ export const DEMO_TOURNAMENTS = [
     prizePool: "優勝：補充包 x6 + 店舖點數",
     location: "旺角店",
     startsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    registrationDeadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    registrationDeadline: new Date(
+      Date.now() + 2 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    durationMinutes: 180,
     status: "OPEN",
     registeredCount: 18,
   },
@@ -220,7 +223,10 @@ export const DEMO_TOURNAMENTS = [
     prizePool: "參加即送卡套",
     location: "銅鑼灣店",
     startsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    registrationDeadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+    registrationDeadline: new Date(
+      Date.now() + 6 * 24 * 60 * 60 * 1000,
+    ).toISOString(),
+    durationMinutes: 120,
     status: "OPEN",
     registeredCount: 8,
   },
