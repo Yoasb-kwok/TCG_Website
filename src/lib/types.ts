@@ -82,13 +82,7 @@ export interface TournamentItem {
   location: string;
   startsAt: string;
   registrationDeadline: string;
+  durationMinutes: number;
   status: string;
   registeredCount: number;
-}
-
-export interface RegistrationInput {
-  tournamentId: string;
-  playerName: string;
-  email: string;
-  phone?: string;
 }
