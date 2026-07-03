@@ -31,8 +31,25 @@ export async function POST(request: NextRequest) {
 
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
-
     const prisma = getPrisma();
+
+    // ── Tournament registration payment ──────────────────────────
+    if (session.metadata?.type === "tournament_registration") {
+      const registration = await prisma.tournamentRegistration.findUnique({
+        where: { stripeSessionId: session.id },
+      });
+
+      if (registration && registration.paymentStatus === "PENDING") {
+        await prisma.tournamentRegistration.update({
+          where: { id: registration.id },
+          data: { paymentStatus: "PAID" },
+        });
+      }
+
+      return NextResponse.json({ received: true });
+    }
+
+    // ── Product order payment (existing flow) ────────────────────
     const order = await prisma.order.findUnique({
       where: { stripeSessionId: session.id },
       include: { items: true },
