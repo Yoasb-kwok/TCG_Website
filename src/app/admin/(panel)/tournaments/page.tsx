@@ -5,6 +5,13 @@ import { formatDate, formatDuration, formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { STORE } from "@/lib/constants";
 import { allowedTransitions } from "@/lib/tournament-status";
 
@@ -113,20 +120,22 @@ function TimeField({
     <div>
       <Label>{label}</Label>
       <div className="mt-1 flex gap-2">
-        <select
-          value={onList ? value : ""}
-          onChange={(e) => onChange(e.target.value)}
-          className="flex-1 rounded-lg border border-border bg-input px-2.5 py-1 text-sm text-foreground transition-colors outline-none dark:bg-input/30"
+        <Select
+          value={onList ? value : null}
+          onValueChange={(v) => onChange((v as string) ?? "")}
+          items={TIME_OPTIONS}
         >
-          <option value="" disabled>
-            請選擇時間
-          </option>
-          {TIME_OPTIONS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="flex-1 border-border bg-input dark:bg-input/30">
+            <SelectValue placeholder="請選擇時間" />
+          </SelectTrigger>
+          <SelectContent>
+            {TIME_OPTIONS.map((t) => (
+              <SelectItem key={t.value} value={t.value}>
+                {t.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
         <Input
           required
           value={value}
@@ -348,19 +357,24 @@ export default function AdminTournamentsPage() {
           />
           <div>
             <Label>預計時長</Label>
-            <select
+            <Select
               value={form.durationMinutes}
-              onChange={(e) =>
-                setForm({ ...form, durationMinutes: e.target.value })
+              onValueChange={(v) =>
+                setForm({ ...form, durationMinutes: (v as string) ?? "120" })
               }
-              className="mt-1 w-full rounded-lg border border-border bg-input px-2.5 py-1.5 text-sm text-foreground transition-colors outline-none dark:bg-input/30"
+              items={DURATION_OPTIONS}
             >
-              {DURATION_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="mt-1 w-full border-border bg-input dark:bg-input/30">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DURATION_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label>報名截止日期</Label>
