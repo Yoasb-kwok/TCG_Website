@@ -214,6 +214,19 @@ export default function AdminTournamentsPage() {
     if (res.ok) {
       setShowForm(false);
       load();
+    } else {
+      // Surface the server's friendly message (validation error, DB down,
+      // etc.). Falls back to a generic notice if the body isn't JSON.
+      let message = "建立賽事失敗，請重試";
+      try {
+        const data = await res.json();
+        if (typeof data?.error === "string" && data.error) {
+          message = data.error;
+        }
+      } catch {
+        // response wasn't JSON; keep the default message
+      }
+      alert(message);
     }
   };
 
