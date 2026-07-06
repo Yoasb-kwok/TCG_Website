@@ -194,6 +194,15 @@ export default function AdminTournamentsPage() {
       alert("請輸入正確的時間格式（HH:MM，例如 14:30）");
       return;
     }
+    // The registration deadline must not be later than the tournament start.
+    if (
+      new Date(
+        `${registrationDeadlineDate}T${registrationDeadlineTime}`,
+      ).getTime() > new Date(`${startsAtDate}T${startsAtTime}`).getTime()
+    ) {
+      alert("報名截止時間不能晚於比賽開始時間");
+      return;
+    }
     // Combine the local date + time into an ISO string on the client. Converting
     // here (via new Date().toISOString()) pins the admin's intended local time to a
     // precise instant, so a UTC production server stores the correct value.

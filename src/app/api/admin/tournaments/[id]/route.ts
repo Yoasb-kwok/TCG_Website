@@ -25,7 +25,7 @@ export async function PATCH(
 
   const existing = await getPrisma().tournament.findUnique({
     where: { id },
-    select: { status: true },
+    select: { status: true, startsAt: true },
   });
 
   if (!existing) {
@@ -48,6 +48,12 @@ export async function PATCH(
     if (Number.isNaN(d.getTime())) {
       return NextResponse.json(
         { error: "截止時間格式不正確" },
+        { status: 400 },
+      );
+    }
+    if (d > existing.startsAt) {
+      return NextResponse.json(
+        { error: "報名截止時間不能晚於比賽開始時間" },
         { status: 400 },
       );
     }

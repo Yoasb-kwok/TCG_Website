@@ -111,6 +111,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // A registration deadline after the start time makes no sense — reject it.
+  if (registrationDeadline > startsAt) {
+    return NextResponse.json(
+      { error: "報名截止時間不能晚於比賽開始時間" },
+      { status: 400 },
+    );
+  }
+
   // ── Persist ───────────────────────────────────────────────────────
   try {
     const tournament = await getPrisma().tournament.create({
