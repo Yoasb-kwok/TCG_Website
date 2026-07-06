@@ -18,7 +18,10 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const { status } = (await request.json()) as { status?: string };
+  const body = (await request.json()) as {
+    status?: string;
+    registrationDeadline?: string;
+  };
 
   const existing = await getPrisma().tournament.findUnique({
     where: { id },
@@ -26,31 +29,52 @@ export async function PATCH(
   });
 
   if (!existing) {
-    return NextResponse.json(
-      { error: "賽事不存在" },
-      { status: 404 },
-    );
+    return NextResponse.json({ error: "賽事不存在" }, { status: 404 });
   }
 
-  const allowed = allowedTransitions(existing.status);
-  if (!status || !allowed.includes(status)) {
-    return NextResponse.json(
-      { error: "無法變更為此狀態" },
-      { status: 400 },
-    );
+  const data: {
+    status?:
+      | "OPEN"
+      | "FULL"
+      | "IN_PROGRESS"
+      | "COMPLETED"
+      | "CANCELLED"
+      | "DRAFT";
+    registrationDeadline?: Date;
+  } = {};
+
+  if (body.registrationDeadline !== undefined) {
+    const d = new Date(body.registrationDeadline);
+    if (Number.isNaN(d.getTime())) {
+      return NextResponse.json(
+        { error: "截止時間格式不正確" },
+        { status: 400 },
+      );
+    }
+    data.registrationDeadline = d;
+  }
+
+  if (body.status !== undefined) {
+    const allowed = allowedTransitions(existing.status);
+    if (!allowed.includes(body.status)) {
+      return NextResponse.json({ error: "無法變更為此狀態" }, { status: 400 });
+    }
+    data.status = body.status as
+      | "OPEN"
+      | "FULL"
+      | "IN_PROGRESS"
+      | "COMPLETED"
+      | "CANCELLED"
+      | "DRAFT";
+  }
+
+  if (data.status === undefined && data.registrationDeadline === undefined) {
+    return NextResponse.json({ error: "沒有可更新的欄位" }, { status: 400 });
   }
 
   const tournament = await getPrisma().tournament.update({
     where: { id },
-    data: {
-      status: status as
-        | "OPEN"
-        | "FULL"
-        | "IN_PROGRESS"
-        | "COMPLETED"
-        | "CANCELLED"
-        | "DRAFT",
-    },
+    data,
     include: { _count: { select: { registrations: true } } },
   });
 

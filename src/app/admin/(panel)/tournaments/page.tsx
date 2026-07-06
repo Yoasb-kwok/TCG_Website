@@ -49,6 +49,21 @@ function isValidTime(t: string): boolean {
   return /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 }
 
+/** Split a stored UTC instant into the viewer's local YYYY-MM-DD for <input type=date>. */
+function toLocalDateInput(iso: string): string {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/** Split a stored UTC instant into the viewer's local HH:MM for the time field. */
+function toLocalTimeInput(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 function isOutsideHours(t: string): boolean {
   const [h, m] = t.split(":").map(Number);
   const min = h * 60 + m;
@@ -71,6 +86,7 @@ interface Tournament {
   entryFee: number;
   location: string;
   startsAt: string;
+  registrationDeadline: string;
   durationMinutes: number;
   status: string;
   _count: { registrations: number };
@@ -140,6 +156,7 @@ export default function AdminTournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [deadlineEdit, setDeadlineEdit] = useState({ date: "", time: "" });
   const [form, setForm] = useState({
     title: "",
     format: "Standard",
@@ -205,6 +222,22 @@ export default function AdminTournamentsPage() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
+    });
+    load();
+  };
+
+  const updateDeadline = async (id: string) => {
+    if (!isValidTime(deadlineEdit.time)) {
+      alert("請輸入正確的時間格式（HH:MM，例如 14:30）");
+      return;
+    }
+    const iso = new Date(
+      `${deadlineEdit.date}T${deadlineEdit.time}`,
+    ).toISOString();
+    await fetch(`/api/admin/tournaments/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ registrationDeadline: iso }),
     });
     load();
   };
@@ -346,7 +379,17 @@ export default function AdminTournamentsPage() {
           <div key={t.id} className="rounded-xl border border-border bg-card">
             <button
               type="button"
-              onClick={() => setExpanded(expanded === t.id ? null : t.id)}
+              onClick={() => {
+                if (expanded === t.id) {
+                  setExpanded(null);
+                } else {
+                  setExpanded(t.id);
+                  setDeadlineEdit({
+                    date: toLocalDateInput(t.registrationDeadline),
+                    time: toLocalTimeInput(t.registrationDeadline),
+                  });
+                }
+              }}
               className="flex w-full items-center justify-between p-5 text-left"
             >
               <div>
@@ -388,6 +431,43 @@ export default function AdminTournamentsPage() {
                       </option>
                     ))}
                   </select>
+                </div>
+                <div className="flex flex-wrap items-end gap-3 border-t border-border py-4">
+                  <div>
+                    <Label className="text-muted-foreground">
+                      報名截止日期
+                    </Label>
+                    <Input
+                      type="date"
+                      value={deadlineEdit.date}
+                      onChange={(e) =>
+                        setDeadlineEdit({
+                          ...deadlineEdit,
+                          date: e.target.value,
+                        })
+                      }
+                      className="mt-1 border-border bg-input text-foreground"
+                    />
+                  </div>
+                  <TimeField
+                    label="報名截止時間"
+                    value={deadlineEdit.time}
+                    onChange={(v) =>
+                      setDeadlineEdit({ ...deadlineEdit, time: v })
+                    }
+                  />
+                  <Button
+                    type="button"
+                    onClick={() => updateDeadline(t.id)}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    更新截止時間
+                  </Button>
+                  {new Date(t.registrationDeadline) < new Date() && (
+                    <span className="text-xs text-amber-500">
+                      目前已過截止時間
+                    </span>
+                  )}
                 </div>
                 {t.registrations.length === 0 ? (
                   <p className="py-4 text-sm text-muted-foreground/80">

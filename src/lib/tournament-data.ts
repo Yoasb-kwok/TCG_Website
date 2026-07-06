@@ -8,7 +8,7 @@
  */
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
-import { syncTournamentStatuses } from "@/lib/tournament-status";
+import { displayStatus, syncTournamentStatuses } from "@/lib/tournament-status";
 import type { TournamentItem } from "@/lib/types";
 
 /** Statuses visible on user-facing pages (DRAFT/CANCELLED/COMPLETED hidden). */
@@ -52,7 +52,12 @@ function mapToTournamentItem(t: TournamentRow): TournamentItem {
         ? t.registrationDeadline.toISOString()
         : t.registrationDeadline,
     durationMinutes: t.durationMinutes,
-    status: t.status,
+    status: displayStatus(
+      t.status,
+      t.startsAt,
+      t.durationMinutes,
+      t.registrationDeadline,
+    ),
     registeredCount: t._count?.registrations ?? t.registeredCount ?? 0,
   };
 }
@@ -90,7 +95,8 @@ export async function getTournamentBySlug(
 ): Promise<TournamentItem | null> {
   if (!isDatabaseConfigured()) {
     return (
-      (DEMO_TOURNAMENTS as TournamentItem[]).find((t) => t.slug === slug) ?? null
+      (DEMO_TOURNAMENTS as TournamentItem[]).find((t) => t.slug === slug) ??
+      null
     );
   }
 
@@ -104,7 +110,8 @@ export async function getTournamentBySlug(
   } catch (error) {
     console.error("getTournamentBySlug failed:", error);
     return (
-      (DEMO_TOURNAMENTS as TournamentItem[]).find((t) => t.slug === slug) ?? null
+      (DEMO_TOURNAMENTS as TournamentItem[]).find((t) => t.slug === slug) ??
+      null
     );
   }
 }

@@ -62,7 +62,10 @@ export async function POST(request: NextRequest) {
 
   const normalizedPhone = normalizePhone(phone.trim());
   if (!normalizedPhone) {
-    return NextResponse.json({ error: "請輸入有效的電話號碼" }, { status: 400 });
+    return NextResponse.json(
+      { error: "請輸入有效的電話號碼" },
+      { status: 400 },
+    );
   }
 
   const prisma = getPrisma();
@@ -88,6 +91,13 @@ export async function POST(request: NextRequest) {
         { error: "此賽事已不再接受報名" },
         { status: 400 },
       );
+    }
+
+    // Enforce the registration deadline. It is an absolute instant (pinned from
+    // the admin's local-time input), so comparing against now() is correct
+    // regardless of server timezone — same approach as effectiveStatus().
+    if (new Date(tournament.registrationDeadline) < new Date()) {
+      return NextResponse.json({ error: "報名已截止" }, { status: 400 });
     }
 
     if (tournament._count.registrations >= tournament.maxPlayers) {
@@ -149,8 +159,7 @@ export async function POST(request: NextRequest) {
       }
 
       const stripe = getStripe();
-      const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
       const checkoutSession = await stripe.checkout.sessions.create({
         mode: "payment",

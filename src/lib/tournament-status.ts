@@ -42,6 +42,39 @@ export function effectiveStatus(
 }
 
 /**
+ * Sentinel for the calculated "registration closed" state shown to users as
+ * 已截止. It is never persisted to the database — see {@link displayStatus}.
+ */
+export const DEADLINE_PASSED = "DEADLINE_PASSED";
+
+/**
+ * Calculated status shown to users. Layers the registration deadline on top of
+ * {@link effectiveStatus}: while a tournament is still in its pre-event window
+ * (OPEN/FULL) and the registration deadline has passed, it is shown as
+ * DEADLINE_PASSED (已截止). This value is *calculated*, never stored — so
+ * extending the deadline immediately reverts the display to OPEN with no
+ * status write needed.
+ */
+export function displayStatus(
+  status: string,
+  startsAt: Date | string,
+  durationMinutes: number,
+  registrationDeadline: Date | string,
+  now: Date = new Date(),
+): string {
+  const eff = effectiveStatus(status, startsAt, durationMinutes, now);
+  // The deadline only gates the pre-event registration window. Once the event
+  // is IN_PROGRESS/COMPLETED, or manually DRAFT/CANCELLED, it no longer applies.
+  if (
+    (eff === "OPEN" || eff === "FULL") &&
+    new Date(registrationDeadline) < now
+  ) {
+    return DEADLINE_PASSED;
+  }
+  return eff;
+}
+
+/**
  * Statuses an admin may move a tournament into, based on its current status.
  * The lifecycle (OPEN → IN_PROGRESS → COMPLETED) is driven automatically by
  * time; the admin's manual role is mainly to cancel (or un-cancel).

@@ -3,13 +3,29 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Calendar, CalendarPlus, Clock, MapPin, Users, CreditCard, AlertTriangle, Info } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  CalendarClock,
+  CalendarPlus,
+  Clock,
+  MapPin,
+  Users,
+  CreditCard,
+  AlertTriangle,
+  Info,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
-import { formatDate, formatDuration, formatPrice, googleCalendarUrl } from "@/lib/format";
+import {
+  formatDate,
+  formatDuration,
+  formatPrice,
+  googleCalendarUrl,
+} from "@/lib/format";
 import type { TournamentItem } from "@/lib/types";
 
 export default function RegisterPage() {
@@ -171,9 +187,17 @@ export default function RegisterPage() {
   }
 
   const spotsLeft = tournament.maxPlayers - tournament.registeredCount;
-  const isFull = spotsLeft <= 0 || tournament.status !== "OPEN";
+  // `status` is the calculated display status (may be DEADLINE_PASSED), so
+  // exclude it from the "not open" check — a closed-by-deadline tournament
+  // should still show its (locked) form, not the "full" gate.
+  const isFull =
+    spotsLeft <= 0 ||
+    (tournament.status !== "OPEN" && tournament.status !== "DEADLINE_PASSED");
 
   const isPast = new Date(tournament.startsAt) < new Date();
+  const deadlinePassed =
+    tournament.status === "DEADLINE_PASSED" ||
+    new Date(tournament.registrationDeadline) < new Date();
   const isFinished =
     tournament.status === "COMPLETED" || tournament.status === "CANCELLED";
   const calendarUrl = googleCalendarUrl({
@@ -234,6 +258,10 @@ export default function RegisterPage() {
               已報名 {tournament.registeredCount} / {tournament.maxPlayers} 人
             </span>
           </div>
+          <div className="flex items-center gap-3 text-muted-foreground">
+            <CalendarClock className="h-4 w-4 shrink-0" />
+            <span>報名截止：{formatDate(tournament.registrationDeadline)}</span>
+          </div>
           <div className="flex items-center justify-between border-t border-border pt-3">
             <span className="text-muted-foreground">報名費</span>
             <span className="text-lg font-semibold text-foreground">
@@ -248,7 +276,8 @@ export default function RegisterPage() {
             <div className="flex items-start gap-2 rounded-lg border border-border bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
               <CreditCard className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                付款方式：信用卡 / Apple Pay / Google Pay（由 Stripe 安全處理）。提交後將跳轉至付款頁面。
+                付款方式：信用卡 / Apple Pay / Google Pay（由 Stripe
+                安全處理）。提交後將跳轉至付款頁面。
               </span>
             </div>
           )}
@@ -351,16 +380,24 @@ export default function RegisterPage() {
             </div>
           )}
 
+          {deadlinePassed && (
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+              報名已截止，此賽事已不再接受報名。
+            </div>
+          )}
+
           <Button
             type="submit"
-            disabled={status === "loading"}
+            disabled={status === "loading" || deadlinePassed}
             className="w-full"
           >
-            {status === "loading"
-              ? "處理中..."
-              : requiresPayment
-                ? `確認報名並付款（${formatPrice(tournament.entryFee)}）`
-                : "確認報名"}
+            {deadlinePassed
+              ? "已截止"
+              : status === "loading"
+                ? "處理中..."
+                : requiresPayment
+                  ? `確認報名並付款（${formatPrice(tournament.entryFee)}）`
+                  : "確認報名"}
           </Button>
         </form>
       )}

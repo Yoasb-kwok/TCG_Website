@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calendar, Clock, MapPin, Users } from "lucide-react";
+import { Calendar, CalendarClock, Clock, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -21,6 +21,7 @@ const STATUS_LABELS: Record<string, string> = {
   COMPLETED: "已結束",
   DRAFT: "草稿",
   CANCELLED: "已取消",
+  DEADLINE_PASSED: "已截止",
 };
 
 export function TournamentCard({ tournament }: TournamentCardProps) {
@@ -67,6 +68,10 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
           <Users className="h-4 w-4 shrink-0" />
           {tournament.registeredCount} / {tournament.maxPlayers} 人
         </div>
+        <div className="flex items-center gap-2">
+          <CalendarClock className="h-4 w-4 shrink-0" />
+          報名截止：{formatDate(tournament.registrationDeadline)}
+        </div>
         {tournament.prizePool && (
           <p className="text-muted-foreground">獎品：{tournament.prizePool}</p>
         )}
@@ -76,12 +81,21 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
         <span className="font-semibold">
           {tournament.entryFee > 0 ? formatPrice(tournament.entryFee) : "免費"}
         </span>
-        <Link
-          href={`/tournaments/${tournament.slug}/register`}
-          className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
-        >
-          {isOpen ? "立即報名" : "查看詳情"}
-        </Link>
+        {tournament.status === "DEADLINE_PASSED" ? (
+          <span
+            aria-disabled="true"
+            className="inline-flex h-8 cursor-not-allowed items-center justify-center rounded-lg bg-white/40 px-3 text-sm font-medium text-black/40"
+          >
+            已截止
+          </span>
+        ) : (
+          <Link
+            href={`/tournaments/${tournament.slug}/register`}
+            className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
+          >
+            {isOpen ? "立即報名" : "查看詳情"}
+          </Link>
+        )}
       </CardFooter>
     </Card>
   );
