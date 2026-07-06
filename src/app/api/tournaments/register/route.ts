@@ -146,7 +146,14 @@ export async function POST(request: NextRequest) {
 
     const requiresPayment = tournament.entryFee > 0;
 
-    // ── Paid tournament: create Stripe Checkout Session ──────────────
+    // ── Paid tournament: create the Stripe Checkout Session first. The actual
+    //    registration row is written inside a locked transaction below so that
+    //    capacity can't be over-booked by a concurrent request sneaking in
+    //    between the capacity check and the insert (TOCTOU). If that race is
+    //    lost, this Checkout Session is simply abandoned — unpaid sessions
+    //    auto-expire and never charge anyone.
+    let stripeSessionId: string | undefined;
+    let checkoutUrl: string | undefined;
     if (requiresPayment) {
       if (!isStripeConfigured()) {
         return NextResponse.json(
@@ -187,36 +194,66 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // Create registration as PENDING — webhook marks it PAID on payment.
-      await prisma.tournamentRegistration.create({
-        data: {
-          tournamentId,
-          playerName: playerName.trim(),
-          email: email.trim(),
-          phone: normalizedPhone,
-          paymentStatus: "PENDING",
-          stripeSessionId: checkoutSession.id,
-        },
-      });
-
       if (!checkoutSession.url) {
         throw new Error("無法建立付款連結");
       }
-
-      return NextResponse.json({ url: checkoutSession.url });
+      stripeSessionId = checkoutSession.id;
+      checkoutUrl = checkoutSession.url;
     }
 
-    // ── Free tournament: create registration directly ────────────────
-    const registration = await prisma.tournamentRegistration.create({
-      data: {
-        tournamentId,
-        playerName: playerName.trim(),
-        email: email.trim(),
-        phone: normalizedPhone,
-      },
+    // Registration row to write. Paid tournaments start PENDING; the webhook
+    // flips them to PAID once payment succeeds.
+    const registrationData = {
+      tournamentId,
+      playerName: playerName.trim(),
+      email: email.trim(),
+      phone: normalizedPhone,
+      ...(requiresPayment ? { paymentStatus: "PENDING", stripeSessionId } : {}),
+    };
+
+    // ── Write the registration atomically. Locking the tournament row for the
+    //    duration serializes concurrent registrations for the same event, so
+    //    the authoritative capacity re-check and the FULL flip can't be beaten
+    //    by a parallel request (the classic TOCTOU over-booking bug). Email and
+    //    phone uniqueness are additionally enforced by DB unique constraints,
+    //    surfaced as P2002 in the catch below.
+    const outcome = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "Tournament" WHERE id = ${tournamentId} FOR UPDATE`;
+
+      const count = await tx.tournamentRegistration.count({
+        where: { tournamentId },
+      });
+      if (count >= tournament.maxPlayers) {
+        return { error: "FULL" as const };
+      }
+
+      const registration = await tx.tournamentRegistration.create({
+        data: registrationData,
+      });
+
+      // Flip to FULL once the last slot is taken.
+      if (count + 1 >= tournament.maxPlayers) {
+        await tx.tournament.update({
+          where: { id: tournamentId },
+          data: { status: "FULL" },
+        });
+      }
+
+      return { registration };
     });
 
-    return NextResponse.json({ registration }, { status: 201 });
+    if ("error" in outcome) {
+      return NextResponse.json({ error: "名額已滿" }, { status: 400 });
+    }
+
+    if (requiresPayment && checkoutUrl) {
+      return NextResponse.json({ url: checkoutUrl });
+    }
+
+    return NextResponse.json(
+      { registration: outcome.registration },
+      { status: 201 },
+    );
   } catch (error: unknown) {
     console.error("Registration error:", error);
 
