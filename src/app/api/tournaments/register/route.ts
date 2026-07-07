@@ -67,6 +67,12 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
+  if (!/^\d{8}$/.test(normalizedPhone)) {
+    return NextResponse.json(
+      { error: "電話號碼必須為 8 位數字" },
+      { status: 400 },
+    );
+  }
 
   const prisma = getPrisma();
 

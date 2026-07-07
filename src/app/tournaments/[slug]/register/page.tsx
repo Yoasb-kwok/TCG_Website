@@ -29,7 +29,17 @@ import {
 import type { TournamentItem } from "@/lib/types";
 
 export default function RegisterPage() {
-  const { slug } = useParams<{ slug: string }>();
+  const { slug: rawSlug } = useParams<{ slug: string }>();
+  // Next.js 16 passes dynamic params through `encodeURIComponent`, so non-ASCII
+  // slugs (e.g. Chinese tournament names) arrive percent-encoded here while
+  // the values returned by the API are decoded. Decode so the lookup matches.
+  const slug = (() => {
+    try {
+      return decodeURIComponent(rawSlug);
+    } catch {
+      return rawSlug;
+    }
+  })();
   const router = useRouter();
 
   const [tournament, setTournament] = useState<TournamentItem | null>(null);
@@ -65,8 +75,7 @@ export default function RegisterPage() {
         // Fall through to demo data
       }
       const found = DEMO_TOURNAMENTS.find((t) => t.slug === slug) as
-        | TournamentItem
-        | undefined;
+        TournamentItem | undefined;
       setTournament(found ?? null);
       setLoadingTournament(false);
     }
@@ -75,11 +84,21 @@ export default function RegisterPage() {
 
   const requiresPayment = Boolean(tournament && tournament.entryFee > 0);
 
+  // Hong Kong phone numbers are exactly 8 digits. Normalize the same way the
+  // server does (strip spaces, hyphens, parentheses) before counting digits.
+  const phoneDigits = form.phone.replace(/[\s\-()]/g, "");
+  const phoneInvalid = phoneDigits.length > 0 && !/^\d{8}$/.test(phoneDigits);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!tournament?.id) {
       setError("賽事資料錯誤，請重新載入頁面");
+      return;
+    }
+
+    if (!/^\d{8}$/.test(phoneDigits)) {
+      setError("電話號碼必須為 8 位數字");
       return;
     }
 
@@ -360,6 +379,11 @@ export default function RegisterPage() {
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
+                {phoneInvalid && (
+                  <p className="mt-1 text-xs text-destructive">
+                    電話號碼必須為 8 位數字（目前 {phoneDigits.length} 位）
+                  </p>
+                )}
               </div>
             </div>
           </div>
