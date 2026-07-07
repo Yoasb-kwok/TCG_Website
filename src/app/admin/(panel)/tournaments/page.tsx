@@ -14,6 +14,9 @@ import {
 } from "@/components/ui/select";
 import { STORE } from "@/lib/constants";
 import { allowedTransitions } from "@/lib/tournament-status";
+import { DayPicker } from "react-day-picker";
+import { zhTW } from "date-fns/locale";
+import "react-day-picker/style.css";
 
 /** Full day, 15-minute steps: 00:00 → 23:45. Value is 24-hour "HH:MM" (matches new Date(`${date}T${time}`)). */
 const TIME_OPTIONS: { value: string; label: string }[] = (() => {
@@ -175,7 +178,21 @@ export default function AdminTournamentsPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [showBatchForm, setShowBatchForm] = useState(false);
+  const [selectedDates, setSelectedDates] = useState<Date[] | undefined>();
   const [deadlineEdit, setDeadlineEdit] = useState({ date: "", time: "" });
+  const [batchForm, setBatchForm] = useState({
+    title: "",
+    format: "Standard",
+    maxPlayers: "32",
+    entryFee: "80",
+    location: "門市",
+    startTime: "",
+    durationMinutes: "120",
+    daysBeforeDeadline: "3",
+    prizePool: "",
+    description: "",
+  });
   const [form, setForm] = useState({
     title: "",
     format: "Standard",
@@ -258,6 +275,73 @@ export default function AdminTournamentsPage() {
     }
   };
 
+  const createBatch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!batchForm.startTime || !isValidTime(batchForm.startTime)) {
+      alert("請輸入正確的比賽時間（HH:MM）");
+      return;
+    }
+    if (!selectedDates || selectedDates.length === 0) {
+      alert("請至少選擇一個比賽日期");
+      return;
+    }
+    // Sort + format selected dates as YYYY-MM-DD for the API.
+    const dates = [...selectedDates]
+      .sort((a, b) => a.getTime() - b.getTime())
+      .map((d) => {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, "0");
+        const day = String(d.getDate()).padStart(2, "0");
+        return `${y}-${m}-${day}`;
+      });
+
+    const res = await fetch("/api/admin/tournaments/batch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: batchForm.title,
+        description: batchForm.description,
+        format: batchForm.format,
+        location: batchForm.location,
+        prizePool: batchForm.prizePool,
+        startTime: batchForm.startTime,
+        dates,
+        maxPlayers: Number(batchForm.maxPlayers),
+        entryFee: Number(batchForm.entryFee),
+        durationMinutes: Number(batchForm.durationMinutes),
+        daysBeforeDeadline: Number(batchForm.daysBeforeDeadline),
+      }),
+    });
+    if (res.ok) {
+      setShowBatchForm(false);
+      setSelectedDates(undefined);
+      setBatchForm({
+        title: "",
+        format: "Standard",
+        maxPlayers: "32",
+        entryFee: "80",
+        location: "門市",
+        startTime: "",
+        durationMinutes: "120",
+        daysBeforeDeadline: "3",
+        prizePool: "",
+        description: "",
+      });
+      load();
+    } else {
+      let message = "批次建立賽事失敗，請重試";
+      try {
+        const data = await res.json();
+        if (typeof data?.error === "string" && data.error) {
+          message = data.error;
+        }
+      } catch {
+        // response wasn't JSON
+      }
+      alert(message);
+    }
+  };
+
   const updateStatus = async (id: string, status: string) => {
     await fetch(`/api/admin/tournaments/${id}`, {
       method: "PATCH",
@@ -315,12 +399,26 @@ export default function AdminTournamentsPage() {
             賽事管理及報名名單
           </p>
         </div>
-        <Button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {showForm ? "取消" : "新增賽事"}
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => {
+              setShowForm(!showForm);
+              setShowBatchForm(false);
+            }}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {showForm ? "取消" : "新增賽事"}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setShowBatchForm(!showBatchForm);
+              setShowForm(false);
+            }}
+          >
+            {showBatchForm ? "取消" : "批次建立賽事"}
+          </Button>
+        </div>
       </div>
 
       {showForm && (
@@ -440,6 +538,185 @@ export default function AdminTournamentsPage() {
             className="sm:col-span-2 bg-primary text-primary-foreground"
           >
             建立賽事
+          </Button>
+        </form>
+      )}
+
+      {showBatchForm && (
+        <form
+          onSubmit={createBatch}
+          className="mt-6 grid gap-4 rounded-xl border border-border bg-card p-6 sm:grid-cols-2"
+        >
+          <div className="sm:col-span-2">
+            <h2 className="text-lg font-semibold text-foreground">
+              批次建立賽事
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              填寫共用資料，選擇多個日期，一次建立多場賽事。
+            </p>
+          </div>
+
+          <div className="sm:col-span-2">
+            <Label>賽事名稱</Label>
+            <Input
+              required
+              value={batchForm.title}
+              onChange={(e) =>
+                setBatchForm({ ...batchForm, title: e.target.value })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              每場將自動加上編號（#1、#2…）
+            </p>
+          </div>
+
+          <div>
+            <Label>賽制</Label>
+            <Input
+              value={batchForm.format}
+              onChange={(e) =>
+                setBatchForm({ ...batchForm, format: e.target.value })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+          </div>
+          <div>
+            <Label>名額</Label>
+            <Input
+              type="number"
+              value={batchForm.maxPlayers}
+              onChange={(e) =>
+                setBatchForm({ ...batchForm, maxPlayers: e.target.value })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+          </div>
+          <div>
+            <Label>報名費 (HKD)</Label>
+            <Input
+              type="number"
+              value={batchForm.entryFee}
+              onChange={(e) =>
+                setBatchForm({ ...batchForm, entryFee: e.target.value })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+          </div>
+          <div>
+            <Label>地點</Label>
+            <Input
+              value={batchForm.location}
+              onChange={(e) =>
+                setBatchForm({ ...batchForm, location: e.target.value })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+          </div>
+
+          <TimeField
+            label="比賽時間"
+            value={batchForm.startTime}
+            onChange={(v) => setBatchForm({ ...batchForm, startTime: v })}
+          />
+
+          <div>
+            <Label>預計時長</Label>
+            <Select
+              value={batchForm.durationMinutes}
+              onValueChange={(v) =>
+                setBatchForm({
+                  ...batchForm,
+                  durationMinutes: (v as string) ?? "120",
+                })
+              }
+              items={DURATION_OPTIONS}
+            >
+              <SelectTrigger className="mt-1 w-full border-border bg-input dark:bg-input/30">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent
+                className="max-h-72"
+                alignItemWithTrigger={false}
+                collisionAvoidance={{
+                  side: "shift",
+                  fallbackAxisSide: "none",
+                }}
+              >
+                {DURATION_OPTIONS.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label>報名截止前（天數）</Label>
+            <Input
+              type="number"
+              min="0"
+              required
+              value={batchForm.daysBeforeDeadline}
+              onChange={(e) =>
+                setBatchForm({
+                  ...batchForm,
+                  daysBeforeDeadline: e.target.value,
+                })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+            <p className="mt-1 text-xs text-muted-foreground">
+              報名截止時間 = 比賽時間 − 此天數
+            </p>
+          </div>
+
+          <div className="sm:col-span-2">
+            <Label>獎品（選填）</Label>
+            <Input
+              value={batchForm.prizePool}
+              onChange={(e) =>
+                setBatchForm({ ...batchForm, prizePool: e.target.value })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>描述（選填）</Label>
+            <Input
+              value={batchForm.description}
+              onChange={(e) =>
+                setBatchForm({ ...batchForm, description: e.target.value })
+              }
+              className="mt-1 border-border bg-input text-foreground"
+            />
+          </div>
+
+          <div className="sm:col-span-2">
+            <Label>選擇比賽日期（可多選）</Label>
+            <div className="mt-2 flex flex-wrap justify-start rounded-lg border border-border bg-background p-4">
+              <DayPicker
+                mode="multiple"
+                selected={selectedDates}
+                onSelect={setSelectedDates}
+                locale={zhTW}
+                disabled={{ before: new Date() }}
+              />
+            </div>
+            {selectedDates && selectedDates.length > 0 && (
+              <p className="mt-2 text-sm text-muted-foreground">
+                已選 {selectedDates.length} 個日期，將建立{" "}
+                {selectedDates.length} 場賽事
+              </p>
+            )}
+          </div>
+
+          <Button
+            type="submit"
+            className="sm:col-span-2 bg-primary text-primary-foreground"
+          >
+            批次建立 {selectedDates?.length ?? 0} 場賽事
           </Button>
         </form>
       )}
