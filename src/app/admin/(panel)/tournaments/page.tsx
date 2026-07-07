@@ -48,8 +48,8 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "CANCELLED", label: "已取消" },
 ];
 
-/** Normal operating window. Times outside this are allowed but flagged with a warning. */
-const OPENS_MIN = 0; // 12:00 AM
+/** Normal operating window (store hours: 12:00 noon – 10:00 PM). Times outside this are allowed but flagged with a warning. */
+const OPENS_MIN = 12 * 60; // 12:00 PM (noon)
 const CLOSES_MIN = 22 * 60; // 10:00 PM
 
 function isValidTime(t: string): boolean {
@@ -107,13 +107,19 @@ function TimeField({
   label,
   value,
   onChange,
+  showHoursWarning = true,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
+  showHoursWarning?: boolean;
 }) {
   const legal = value === "" || isValidTime(value);
-  const outside = value !== "" && isValidTime(value) && isOutsideHours(value);
+  const outside =
+    showHoursWarning &&
+    value !== "" &&
+    isValidTime(value) &&
+    isOutsideHours(value);
   const onList = TIME_OPTIONS.some((t) => t.value === value);
 
   return (
@@ -128,7 +134,11 @@ function TimeField({
           <SelectTrigger className="flex-1 border-border bg-input dark:bg-input/30">
             <SelectValue placeholder="請選擇時間" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent
+            className="max-h-72"
+            alignItemWithTrigger={false}
+            collisionAvoidance={{ side: "shift", fallbackAxisSide: "none" }}
+          >
             {TIME_OPTIONS.map((t) => (
               <SelectItem key={t.value} value={t.value}>
                 {t.label}
@@ -154,7 +164,7 @@ function TimeField({
       )}
       {outside && (
         <p className="mt-1 text-xs text-amber-500">
-          ⚠ 此時間不在一般時段（12:00am–10:00pm）內，請確認
+          ⚠ 此時間不在一般營業時段（中午 12:00 – 晚上 10:00）內，請確認
         </p>
       )}
     </div>
@@ -257,20 +267,43 @@ export default function AdminTournamentsPage() {
     load();
   };
 
-  const updateDeadline = async (id: string) => {
+  const updateDeadline = async (id: string, startsAt: string) => {
     if (!isValidTime(deadlineEdit.time)) {
       alert("請輸入正確的時間格式（HH:MM，例如 14:30）");
       return;
     }
-    const iso = new Date(
-      `${deadlineEdit.date}T${deadlineEdit.time}`,
-    ).toISOString();
-    await fetch(`/api/admin/tournaments/${id}`, {
+    if (!deadlineEdit.date) {
+      alert("請選擇截止日期");
+      return;
+    }
+    const newDeadline = new Date(`${deadlineEdit.date}T${deadlineEdit.time}`);
+    // The registration deadline must not be later than the tournament start.
+    if (newDeadline.getTime() > new Date(startsAt).getTime()) {
+      alert("報名截止時間不能晚於比賽開始時間");
+      return;
+    }
+    const iso = newDeadline.toISOString();
+    const res = await fetch(`/api/admin/tournaments/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ registrationDeadline: iso }),
     });
-    load();
+    if (res.ok) {
+      load();
+    } else {
+      // Surface the server's friendly message (validation error, DB down,
+      // etc.). Falls back to a generic notice if the body isn't JSON.
+      let message = "更新截止時間失敗，請重試";
+      try {
+        const data = await res.json();
+        if (typeof data?.error === "string" && data.error) {
+          message = data.error;
+        }
+      } catch {
+        // response wasn't JSON; keep the default message
+      }
+      alert(message);
+    }
   };
 
   return (
@@ -392,6 +425,7 @@ export default function AdminTournamentsPage() {
             label="報名截止時間"
             value={form.registrationDeadlineTime}
             onChange={(v) => setForm({ ...form, registrationDeadlineTime: v })}
+            showHoursWarning={false}
           />
           <div className="sm:col-span-2">
             <Label>獎品（選填）</Label>
@@ -491,10 +525,11 @@ export default function AdminTournamentsPage() {
                     onChange={(v) =>
                       setDeadlineEdit({ ...deadlineEdit, time: v })
                     }
+                    showHoursWarning={false}
                   />
                   <Button
                     type="button"
-                    onClick={() => updateDeadline(t.id)}
+                    onClick={() => updateDeadline(t.id, t.startsAt)}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
                     更新截止時間
