@@ -49,6 +49,7 @@ export default async function TournamentsPage() {
           tournaments={tournaments}
           initialMonth={initialMonth}
           todayKey={todayKey}
+          now={Date.now()}
         />
       </div>
     </div>

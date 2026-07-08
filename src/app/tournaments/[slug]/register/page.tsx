@@ -9,6 +9,7 @@ import {
   CalendarClock,
   CalendarPlus,
   Clock,
+  Gift,
   MapPin,
   Users,
   CreditCard,
@@ -277,6 +278,12 @@ export default function RegisterPage() {
             <CalendarClock className="h-4 w-4 shrink-0" />
             <span>報名截止：{formatDate(tournament.registrationDeadline)}</span>
           </div>
+          {tournament.prizePool && (
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Gift className="h-4 w-4 shrink-0" />
+              <span>獎品：{tournament.prizePool}</span>
+            </div>
+          )}
           <div className="flex items-center justify-between border-t border-border pt-3">
             <span className="text-muted-foreground">報名費</span>
             <span className="text-lg font-semibold text-foreground">

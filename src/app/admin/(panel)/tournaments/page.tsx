@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatDuration, formatPrice } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,12 @@ import {
 import { STORE } from "@/lib/constants";
 import { allowedTransitions } from "@/lib/tournament-status";
 import { statusBadgeClass, statusLabel } from "@/lib/tournament-ui";
+import {
+  DEFAULT_FILTERS,
+  filterTournaments,
+  type TournamentFilterState,
+} from "@/lib/tournament-filters";
+import { TournamentFilters } from "@/components/tournaments/tournament-filters";
 import { Badge } from "@/components/ui/badge";
 import { DayPicker } from "react-day-picker";
 import { zhTW } from "date-fns/locale";
@@ -51,6 +57,16 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: "IN_PROGRESS", label: statusLabel("IN_PROGRESS") },
   { value: "COMPLETED", label: statusLabel("COMPLETED") },
   { value: "CANCELLED", label: statusLabel("CANCELLED") },
+];
+
+/** Statuses available in the admin filter dropdown (includes DEADLINE_PASSED). */
+const ADMIN_STATUSES = [
+  "OPEN",
+  "FULL",
+  "IN_PROGRESS",
+  "DEADLINE_PASSED",
+  "COMPLETED",
+  "CANCELLED",
 ];
 
 /** Normal operating window (store hours: 12:00 noon – 10:00 PM). Times outside this are allowed but flagged with a warning. */
@@ -96,6 +112,7 @@ interface Tournament {
   format: string;
   maxPlayers: number;
   entryFee: number;
+  prizePool: string | null;
   location: string;
   startsAt: string;
   registrationDeadline: string;
@@ -208,6 +225,8 @@ export default function AdminTournamentsPage() {
     durationMinutes: "120",
     prizePool: "",
   });
+  const [adminFilters, setAdminFilters] =
+    useState<TournamentFilterState>(DEFAULT_FILTERS);
 
   const load = async () => {
     const res = await fetch("/api/admin/tournaments");
@@ -218,6 +237,11 @@ export default function AdminTournamentsPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const filteredTournaments = useMemo(
+    () => filterTournaments(tournaments, adminFilters, Date.now()),
+    [tournaments, adminFilters],
+  );
 
   const createTournament = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -724,7 +748,12 @@ export default function AdminTournamentsPage() {
       )}
 
       <div className="mt-8 space-y-4">
-        {tournaments.map((t) => (
+        <TournamentFilters
+          filters={adminFilters}
+          onChange={setAdminFilters}
+          statuses={ADMIN_STATUSES}
+        />
+        {filteredTournaments.map((t) => (
           <div key={t.id} className="rounded-xl border border-border bg-card">
             <button
               type="button"
@@ -865,11 +894,15 @@ export default function AdminTournamentsPage() {
             )}
           </div>
         ))}
-        {tournaments.length === 0 && (
+        {tournaments.length === 0 ? (
           <p className="py-12 text-center text-muted-foreground/80">
             尚無賽事，點擊「新增賽事」建立
           </p>
-        )}
+        ) : filteredTournaments.length === 0 ? (
+          <p className="py-12 text-center text-muted-foreground/80">
+            沒有符合篩選條件的賽事
+          </p>
+        ) : null}
       </div>
     </div>
   );

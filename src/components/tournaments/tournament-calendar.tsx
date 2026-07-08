@@ -17,6 +17,7 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
   ChevronRight,
+  Gift,
   MapPin,
   Users,
 } from "lucide-react";
@@ -444,6 +445,12 @@ export function TournamentCalendar({
                   {detailTournament.registeredCount} /{" "}
                   {detailTournament.maxPlayers} 人
                 </div>
+                {detailTournament.prizePool && (
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    {detailTournament.prizePool}
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-between pt-2">
