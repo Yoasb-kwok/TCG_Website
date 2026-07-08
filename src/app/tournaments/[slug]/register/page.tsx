@@ -206,17 +206,13 @@ export default function RegisterPage() {
   }
 
   const spotsLeft = tournament.maxPlayers - tournament.registeredCount;
-  // `status` is the calculated display status (may be DEADLINE_PASSED), so
-  // exclude it from the "not open" check — a closed-by-deadline tournament
-  // should still show its (locked) form, not the "full" gate.
-  const isFull =
-    spotsLeft <= 0 ||
-    (tournament.status !== "OPEN" && tournament.status !== "DEADLINE_PASSED");
+  const isFull = spotsLeft <= 0 || tournament.status === "FULL";
+  const isCancelled = tournament.status === "CANCELLED";
+  const deadlinePassed = new Date(tournament.registrationDeadline) < new Date();
+  const canRegister =
+    tournament.status === "OPEN" && !isFull && !deadlinePassed;
 
   const isPast = new Date(tournament.startsAt) < new Date();
-  const deadlinePassed =
-    tournament.status === "DEADLINE_PASSED" ||
-    new Date(tournament.registrationDeadline) < new Date();
   const isFinished =
     tournament.status === "COMPLETED" || tournament.status === "CANCELLED";
   const calendarUrl = googleCalendarUrl({
@@ -330,6 +326,34 @@ export default function RegisterPage() {
             查看其他賽事
           </Button>
         </div>
+      ) : isCancelled ? (
+        <div className="mt-8 rounded-xl border border-border bg-card p-8 text-center">
+          <p className="text-lg font-medium text-foreground">賽事已取消</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            此賽事已不再接受報名
+          </p>
+          <Button
+            className="mt-6"
+            variant="outline"
+            onClick={() => router.push("/tournaments")}
+          >
+            查看其他賽事
+          </Button>
+        </div>
+      ) : !canRegister ? (
+        <div className="mt-8 rounded-xl border border-border bg-card p-8 text-center">
+          <p className="text-lg font-medium text-foreground">報名已截止</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            此賽事已不再接受報名
+          </p>
+          <Button
+            className="mt-6"
+            variant="outline"
+            onClick={() => router.push("/tournaments")}
+          >
+            查看其他賽事
+          </Button>
+        </div>
       ) : (
         <form onSubmit={handleSubmit} className="mt-8 space-y-5">
           <div className="rounded-xl border border-border bg-card p-6">
@@ -404,24 +428,16 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {deadlinePassed && (
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
-              報名已截止，此賽事已不再接受報名。
-            </div>
-          )}
-
           <Button
             type="submit"
-            disabled={status === "loading" || deadlinePassed}
+            disabled={status === "loading"}
             className="w-full"
           >
-            {deadlinePassed
-              ? "已截止"
-              : status === "loading"
-                ? "處理中..."
-                : requiresPayment
-                  ? `確認報名並付款（${formatPrice(tournament.entryFee)}）`
-                  : "確認報名"}
+            {status === "loading"
+              ? "處理中..."
+              : requiresPayment
+                ? `確認報名並付款（${formatPrice(tournament.entryFee)}）`
+                : "確認報名"}
           </Button>
         </form>
       )}

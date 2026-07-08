@@ -14,6 +14,8 @@ import {
 } from "@/components/ui/select";
 import { STORE } from "@/lib/constants";
 import { allowedTransitions } from "@/lib/tournament-status";
+import { statusBadgeClass, statusLabel } from "@/lib/tournament-ui";
+import { Badge } from "@/components/ui/badge";
 import { DayPicker } from "react-day-picker";
 import { zhTW } from "date-fns/locale";
 import "react-day-picker/style.css";
@@ -44,11 +46,11 @@ const DURATION_OPTIONS: { value: string; label: string }[] = (() => {
 
 /** 管理員可手動設定的賽事狀態。 */
 const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "OPEN", label: "報名中" },
-  { value: "FULL", label: "已滿" },
-  { value: "IN_PROGRESS", label: "進行中" },
-  { value: "COMPLETED", label: "已結束" },
-  { value: "CANCELLED", label: "已取消" },
+  { value: "OPEN", label: statusLabel("OPEN") },
+  { value: "FULL", label: statusLabel("FULL") },
+  { value: "IN_PROGRESS", label: statusLabel("IN_PROGRESS") },
+  { value: "COMPLETED", label: statusLabel("COMPLETED") },
+  { value: "CANCELLED", label: statusLabel("CANCELLED") },
 ];
 
 /** Normal operating window (store hours: 12:00 noon – 10:00 PM). Times outside this are allowed but flagged with a warning. */
@@ -740,7 +742,15 @@ export default function AdminTournamentsPage() {
               className="flex w-full items-center justify-between p-5 text-left"
             >
               <div>
-                <p className="font-semibold text-foreground">{t.title}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-foreground">{t.title}</p>
+                  <Badge
+                    variant="secondary"
+                    className={statusBadgeClass(t.status)}
+                  >
+                    {statusLabel(t.status)}
+                  </Badge>
+                </div>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {formatDate(t.startsAt)} · {t.location} · {t.format}
                   {t.durationMinutes

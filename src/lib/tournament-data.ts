@@ -11,8 +11,14 @@ import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { displayStatus, syncTournamentStatuses } from "@/lib/tournament-status";
 import type { TournamentItem } from "@/lib/types";
 
-/** Statuses visible on user-facing pages (DRAFT/CANCELLED/COMPLETED hidden). */
-const PUBLISHED_STATUSES = ["OPEN", "FULL", "IN_PROGRESS"] as const;
+/** Statuses visible on user-facing pages (DRAFT hidden). */
+const PUBLISHED_STATUSES = [
+  "OPEN",
+  "FULL",
+  "IN_PROGRESS",
+  "CANCELLED",
+  "COMPLETED",
+] as const;
 
 /** A raw tournament row, including the registration count from `_count`. */
 type TournamentRow = {
