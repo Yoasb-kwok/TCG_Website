@@ -59,6 +59,19 @@ export async function POST(request: NextRequest) {
   if (!title) {
     return NextResponse.json({ error: "請輸入賽事名稱" }, { status: 400 });
   }
+  // Batch appends " #N" suffix (up to ~5 chars for 999 dates).
+  if (title.length > 245) {
+    return NextResponse.json(
+      { error: "賽事名稱不能超過 245 字（批次建立會加上編號）" },
+      { status: 400 },
+    );
+  }
+
+  const format =
+    typeof body.format === "string" ? body.format.trim() : "Standard";
+  if (format.length > 250) {
+    return NextResponse.json({ error: "賽制不能超過 250 字" }, { status: 400 });
+  }
 
   const maxPlayers = Number(body.maxPlayers ?? 32);
   if (!Number.isInteger(maxPlayers) || maxPlayers < 1) {
@@ -137,7 +150,7 @@ export async function POST(request: NextRequest) {
       title: numberedTitle,
       slug: slugify(numberedTitle),
       description: body.description,
-      format: body.format ?? "Standard",
+      format,
       maxPlayers,
       entryFee,
       prizePool: body.prizePool,

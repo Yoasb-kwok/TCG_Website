@@ -501,6 +501,7 @@ export default function AdminTournamentsPage() {
             <Label>賽事名稱</Label>
             <Input
               required
+              maxLength={250}
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
               className="mt-1 border-border bg-input text-foreground"
@@ -509,6 +510,7 @@ export default function AdminTournamentsPage() {
           <div>
             <Label>賽制</Label>
             <Input
+              maxLength={250}
               value={form.format}
               onChange={(e) => setForm({ ...form, format: e.target.value })}
               className="mt-1 border-border bg-input text-foreground"
@@ -631,6 +633,7 @@ export default function AdminTournamentsPage() {
             <Label>賽事名稱</Label>
             <Input
               required
+              maxLength={250}
               value={batchForm.title}
               onChange={(e) =>
                 setBatchForm({ ...batchForm, title: e.target.value })
@@ -645,6 +648,7 @@ export default function AdminTournamentsPage() {
           <div>
             <Label>賽制</Label>
             <Input
+              maxLength={250}
               value={batchForm.format}
               onChange={(e) =>
                 setBatchForm({ ...batchForm, format: e.target.value })

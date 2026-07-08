@@ -204,10 +204,10 @@ model OrderItem {
 
 model Tournament {
   id           String                   @id @default(uuid())
-  title        String
+  title        String                   @db.VarChar(250)
   slug         String                   @unique
   description  String?
-  format       String
+  format       String                   @db.VarChar(250)
   maxPlayers   Int
   entryFee     Float                    @default(0)
   prizePool    String?
