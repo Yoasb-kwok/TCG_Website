@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { formatDate, formatDuration, formatPrice } from "@/lib/format";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -22,13 +23,6 @@ import {
 } from "@/lib/tournament-filters";
 import { TournamentFilters } from "@/components/tournaments/tournament-filters";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { DayPicker } from "react-day-picker";
 import { zhTW } from "date-fns/locale";
 import "react-day-picker/style.css";
@@ -236,15 +230,6 @@ export default function AdminTournamentsPage() {
   const [adminFilters, setAdminFilters] =
     useState<TournamentFilterState>(DEFAULT_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [showBin, setShowBin] = useState(false);
-  const [trashedTournaments, setTrashedTournaments] = useState<Tournament[]>(
-    [],
-  );
-  const [binSelectedIds, setBinSelectedIds] = useState<Set<string>>(new Set());
-  const [confirmDelete, setConfirmDelete] = useState<{
-    ids: string[];
-    all: boolean;
-  } | null>(null);
 
   const load = async () => {
     const res = await fetch("/api/admin/tournaments");
@@ -260,12 +245,6 @@ export default function AdminTournamentsPage() {
     () => filterTournaments(tournaments, adminFilters, Date.now()),
     [tournaments, adminFilters],
   );
-
-  const loadTrash = async () => {
-    const res = await fetch("/api/admin/tournaments/trash");
-    const data = await res.json();
-    setTrashedTournaments(data.tournaments ?? []);
-  };
 
   const toggleSelect = (id: string) => {
     setSelectedIds((prev) => {
@@ -300,31 +279,6 @@ export default function AdminTournamentsPage() {
     if (res.ok) {
       setSelectedIds(new Set());
       load();
-    }
-  };
-
-  const restoreSelected = async (ids: string[]) => {
-    const res = await fetch("/api/admin/tournaments/restore", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids }),
-    });
-    if (res.ok) {
-      setBinSelectedIds(new Set());
-      loadTrash();
-    }
-  };
-
-  const permanentlyDelete = async (ids: string[], all: boolean) => {
-    const res = await fetch("/api/admin/tournaments/bin", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(all ? { all: true } : { ids }),
-    });
-    if (res.ok) {
-      setBinSelectedIds(new Set());
-      setConfirmDelete(null);
-      loadTrash();
     }
   };
 
@@ -529,15 +483,12 @@ export default function AdminTournamentsPage() {
           >
             {showBatchForm ? "取消" : "批次建立賽事"}
           </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setShowBin(true);
-              loadTrash();
-            }}
+          <Link
+            href="/admin/tournaments/bin"
+            className={buttonVariants({ variant: "outline" })}
           >
             回收站
-          </Button>
+          </Link>
         </div>
       </div>
 
@@ -1039,214 +990,6 @@ export default function AdminTournamentsPage() {
           </p>
         ) : null}
       </div>
-
-      {/* 回收站 Dialog */}
-      <Dialog open={showBin} onOpenChange={setShowBin}>
-        <DialogContent className="max-h-[80vh] max-w-2xl overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>回收站</DialogTitle>
-            <DialogDescription>
-              已刪除的賽事。可還原或永久刪除。永久刪除後無法復原，相關報名紀錄將一併刪除。
-            </DialogDescription>
-          </DialogHeader>
-
-          {trashedTournaments.length === 0 ? (
-            <p className="py-8 text-center text-muted-foreground/80">
-              回收站是空的
-            </p>
-          ) : (
-            <>
-              <div className="mb-4 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={
-                      binSelectedIds.size > 0 &&
-                      binSelectedIds.size === trashedTournaments.length
-                    }
-                    onChange={() => {
-                      if (binSelectedIds.size === trashedTournaments.length) {
-                        setBinSelectedIds(new Set());
-                      } else {
-                        setBinSelectedIds(
-                          new Set(trashedTournaments.map((t) => t.id)),
-                        );
-                      }
-                    }}
-                    className="h-4 w-4"
-                  />
-                  <span className="text-sm text-muted-foreground">全選</span>
-                </div>
-                <div className="flex gap-2">
-                  {binSelectedIds.size > 0 && (
-                    <>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => restoreSelected([...binSelectedIds])}
-                      >
-                        還原 ({binSelectedIds.size})
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-destructive text-destructive hover:bg-destructive/10"
-                        onClick={() =>
-                          setConfirmDelete({
-                            ids: [...binSelectedIds],
-                            all: false,
-                          })
-                        }
-                      >
-                        永久刪除 ({binSelectedIds.size})
-                      </Button>
-                    </>
-                  )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                    onClick={() => setConfirmDelete({ ids: [], all: true })}
-                  >
-                    清空回收站
-                  </Button>
-                </div>
-              </div>
-
-              {trashedTournaments.map((t) => (
-                <div
-                  key={t.id}
-                  className="flex items-center gap-3 border-t border-border py-3"
-                >
-                  <input
-                    type="checkbox"
-                    checked={binSelectedIds.has(t.id)}
-                    onChange={() => {
-                      setBinSelectedIds((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(t.id)) next.delete(t.id);
-                        else next.add(t.id);
-                        return next;
-                      });
-                    }}
-                    className="h-4 w-4 shrink-0"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground">{t.title}</p>
-                      <Badge
-                        variant="secondary"
-                        className={statusBadgeClass(t.status)}
-                      >
-                        {statusLabel(t.status)}
-                      </Badge>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {formatDate(t.startsAt)} · {t._count.registrations} 報名
-                      {t.deletedAt
-                        ? ` · 刪除於 ${formatDate(t.deletedAt)}`
-                        : ""}
-                    </p>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => restoreSelected([t.id])}
-                  >
-                    還原
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                    onClick={() =>
-                      setConfirmDelete({ ids: [t.id], all: false })
-                    }
-                  >
-                    永久刪除
-                  </Button>
-                </div>
-              ))}
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* 永久刪除確認 Dialog */}
-      <Dialog
-        open={confirmDelete !== null}
-        onOpenChange={(open) => {
-          if (!open) setConfirmDelete(null);
-        }}
-      >
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-destructive">
-              ⚠ 確認永久刪除
-            </DialogTitle>
-            <DialogDescription>
-              永久刪除後將無法復原，所有相關報名紀錄將一併刪除。
-            </DialogDescription>
-          </DialogHeader>
-          {confirmDelete && (
-            <div className="space-y-3">
-              {(confirmDelete.all
-                ? trashedTournaments
-                : trashedTournaments.filter((t) =>
-                    confirmDelete.ids.includes(t.id),
-                  )
-              ).map((t) => {
-                const isLive =
-                  t.status !== "CANCELLED" && t.status !== "COMPLETED";
-                return (
-                  <div
-                    key={t.id}
-                    className="rounded-lg border border-border p-3"
-                  >
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-foreground">{t.title}</p>
-                      <Badge
-                        variant="secondary"
-                        className={statusBadgeClass(t.status)}
-                      >
-                        {statusLabel(t.status)}
-                      </Badge>
-                    </div>
-                    {t._count.registrations > 0 && (
-                      <p className="mt-1 text-xs text-amber-500">
-                        此賽事有 {t._count.registrations} 報名紀錄，將一併刪除
-                      </p>
-                    )}
-                    {isLive && (
-                      <p className="mt-1 text-sm font-bold text-destructive">
-                        ⚠ 此賽事狀態為「
-                        {statusLabel(t.status)}
-                        」，仍為進行中之賽事，請確認是否真的要刪除！
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
-              <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmDelete(null)}
-                >
-                  取消
-                </Button>
-                <Button
-                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={() =>
-                    permanentlyDelete(confirmDelete.ids, confirmDelete.all)
-                  }
-                >
-                  確認永久刪除
-                </Button>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
