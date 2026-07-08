@@ -105,7 +105,7 @@ export async function syncTournamentStatuses(
 ): Promise<void> {
   try {
     const tournaments = await prisma.tournament.findMany({
-      where: { status: { notIn: ["DRAFT", "CANCELLED"] } },
+      where: { status: { notIn: ["DRAFT", "CANCELLED"] }, deletedAt: null },
       select: { id: true, status: true, startsAt: true, durationMinutes: true },
     });
 

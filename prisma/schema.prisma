@@ -219,6 +219,7 @@ model Tournament {
   registrations TournamentRegistration[]
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
+  deletedAt    DateTime?
 }
 
 model TournamentRegistration {

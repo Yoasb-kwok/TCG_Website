@@ -32,6 +32,7 @@ export async function GET() {
   // Lazily advance statuses by Hong Kong time before listing for the admin.
   await syncTournamentStatuses(getPrisma());
   const tournaments = await getPrisma().tournament.findMany({
+    where: { deletedAt: null },
     include: {
       _count: { select: { registrations: true } },
       registrations: { orderBy: { createdAt: "desc" } },

@@ -81,7 +81,7 @@ export async function getPublishedTournaments(): Promise<TournamentItem[]> {
   try {
     await syncTournamentStatuses(getPrisma());
     const tournaments = await getPrisma().tournament.findMany({
-      where: { status: { in: [...PUBLISHED_STATUSES] } },
+      where: { status: { in: [...PUBLISHED_STATUSES] }, deletedAt: null },
       include: { _count: { select: { registrations: true } } },
       orderBy: { startsAt: "asc" },
     });
@@ -109,7 +109,7 @@ export async function getTournamentBySlug(
   try {
     await syncTournamentStatuses(getPrisma());
     const tournament = await getPrisma().tournament.findFirst({
-      where: { slug, status: { in: [...PUBLISHED_STATUSES] } },
+      where: { slug, status: { in: [...PUBLISHED_STATUSES] }, deletedAt: null },
       include: { _count: { select: { registrations: true } } },
     });
     return tournament ? mapToTournamentItem(tournament) : null;

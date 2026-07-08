@@ -25,21 +25,23 @@ export async function PATCH(
 
   const existing = await getPrisma().tournament.findUnique({
     where: { id },
-    select: { status: true, startsAt: true },
+    select: { status: true, startsAt: true, deletedAt: true },
   });
 
   if (!existing) {
     return NextResponse.json({ error: "賽事不存在" }, { status: 404 });
   }
 
+  if (existing.deletedAt) {
+    return NextResponse.json(
+      { error: "此賽事已在回收站，無法修改" },
+      { status: 403 },
+    );
+  }
+
   const data: {
     status?:
-      | "OPEN"
-      | "FULL"
-      | "IN_PROGRESS"
-      | "COMPLETED"
-      | "CANCELLED"
-      | "DRAFT";
+      "OPEN" | "FULL" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DRAFT";
     registrationDeadline?: Date;
   } = {};
 
@@ -66,12 +68,7 @@ export async function PATCH(
       return NextResponse.json({ error: "無法變更為此狀態" }, { status: 400 });
     }
     data.status = body.status as
-      | "OPEN"
-      | "FULL"
-      | "IN_PROGRESS"
-      | "COMPLETED"
-      | "CANCELLED"
-      | "DRAFT";
+      "OPEN" | "FULL" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "DRAFT";
   }
 
   if (data.status === undefined && data.registrationDeadline === undefined) {

@@ -78,8 +78,8 @@ export async function POST(request: NextRequest) {
 
   try {
     // Check tournament exists and is open
-    const tournament = await prisma.tournament.findUnique({
-      where: { id: tournamentId },
+    const tournament = await prisma.tournament.findFirst({
+      where: { id: tournamentId, deletedAt: null },
       include: { _count: { select: { registrations: true } } },
     });
 
