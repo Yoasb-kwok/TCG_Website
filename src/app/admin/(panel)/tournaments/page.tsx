@@ -226,6 +226,7 @@ export default function AdminTournamentsPage() {
     registrationDeadlineTime: "",
     durationMinutes: "120",
     prizePool: "",
+    description: "",
   });
   const [adminFilters, setAdminFilters] =
     useState<TournamentFilterState>(DEFAULT_FILTERS);
@@ -603,6 +604,16 @@ export default function AdminTournamentsPage() {
             <Input
               value={form.prizePool}
               onChange={(e) => setForm({ ...form, prizePool: e.target.value })}
+              className="mt-1 border-border bg-input text-foreground"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Label>描述（選填）</Label>
+            <Input
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
               className="mt-1 border-border bg-input text-foreground"
             />
           </div>
