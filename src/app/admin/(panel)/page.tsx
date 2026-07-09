@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold">總覽</h1>
       <p className="mt-1 text-sm text-muted-foreground">TCGHK 商家後台</p>
 
@@ -80,7 +80,9 @@ export default function AdminDashboardPage() {
                 : "border-border bg-card"
             }`}
           >
-            <Icon className={`h-5 w-5 ${warn ? "text-amber-400" : "text-muted-foreground"}`} />
+            <Icon
+              className={`h-5 w-5 ${warn ? "text-amber-400" : "text-muted-foreground"}`}
+            />
             <p className="mt-4 text-2xl font-bold">{value}</p>
             <p className="mt-1 text-sm text-muted-foreground">{label}</p>
           </Link>

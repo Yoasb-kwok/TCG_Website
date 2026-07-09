@@ -55,9 +55,11 @@ export default function AdminOrdersPage() {
   };
 
   return (
-    <div className="p-8">
+    <div className="p-4 md:p-8">
       <h1 className="text-2xl font-bold">交易紀錄</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Stripe 訂單及付款狀態</p>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Stripe 訂單及付款狀態
+      </p>
 
       <select
         value={statusFilter}
@@ -76,7 +78,7 @@ export default function AdminOrdersPage() {
         {orders.map((order) => (
           <div
             key={order.id}
-            className="rounded-xl border border-border bg-card p-5"
+            className="rounded-xl border border-border bg-card p-3 sm:p-5"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -106,14 +108,17 @@ export default function AdminOrdersPage() {
               {order.items.map((item, i) => (
                 <li key={i}>
                   {item.variant.product.name} ({item.variant.condition}) ×
-                  {item.quantity} — {formatPrice(item.unitPrice * item.quantity)}
+                  {item.quantity} —{" "}
+                  {formatPrice(item.unitPrice * item.quantity)}
                 </li>
               ))}
             </ul>
           </div>
         ))}
         {orders.length === 0 && (
-          <p className="py-12 text-center text-muted-foreground/80">暫無訂單紀錄</p>
+          <p className="py-12 text-center text-muted-foreground/80">
+            暫無訂單紀錄
+          </p>
         )}
       </div>
     </div>
