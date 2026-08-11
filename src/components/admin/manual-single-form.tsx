@@ -122,10 +122,7 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
           isFoil,
         }),
       });
-      const data = (await res.json()) as {
-        error?: string;
-        product?: { name: string };
-      };
+      const data = (await res.json()) as { error?: string; product?: { name: string } };
       if (!res.ok) throw new Error(data.error ?? "上架失敗");
 
       setSuccess(`已上架：${data.product?.name ?? name}`);
@@ -142,15 +139,14 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
 
   return (
     <form
-      className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-6"
+      className="space-y-4 rounded-xl border border-border bg-card p-6"
       onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit();
       }}
     >
       <p className="text-xs text-muted-foreground">
-        自行填寫卡牌資料並上傳圖片，無需連接外部 API。欄位內按 Enter
-        可提交上架。
+        自行填寫卡牌資料並上傳圖片，無需連接外部 API。欄位內按 Enter 可提交上架。
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">

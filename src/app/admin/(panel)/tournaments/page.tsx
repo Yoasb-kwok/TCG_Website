@@ -226,7 +226,6 @@ export default function AdminTournamentsPage() {
     registrationDeadlineTime: "",
     durationMinutes: "120",
     prizePool: "",
-    description: "",
   });
   const [adminFilters, setAdminFilters] =
     useState<TournamentFilterState>(DEFAULT_FILTERS);
@@ -457,15 +456,15 @@ export default function AdminTournamentsPage() {
   };
 
   return (
-    <div className="p-4 md:p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="p-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">店賽報名</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             賽事管理及報名名單
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex gap-2">
           <Button
             onClick={() => {
               setShowForm(!showForm);
@@ -496,7 +495,7 @@ export default function AdminTournamentsPage() {
       {showForm && (
         <form
           onSubmit={createTournament}
-          className="mt-6 grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 md:p-6"
+          className="mt-6 grid gap-4 rounded-xl border border-border bg-card p-6 sm:grid-cols-2"
         >
           <div className="sm:col-span-2">
             <Label>賽事名稱</Label>
@@ -607,16 +606,6 @@ export default function AdminTournamentsPage() {
               className="mt-1 border-border bg-input text-foreground"
             />
           </div>
-          <div className="sm:col-span-2">
-            <Label>描述（選填）</Label>
-            <Input
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-              className="mt-1 border-border bg-input text-foreground"
-            />
-          </div>
           <Button
             type="submit"
             className="sm:col-span-2 bg-primary text-primary-foreground"
@@ -629,7 +618,7 @@ export default function AdminTournamentsPage() {
       {showBatchForm && (
         <form
           onSubmit={createBatch}
-          className="mt-6 grid gap-4 rounded-xl border border-border bg-card p-4 sm:grid-cols-2 md:p-6"
+          className="mt-6 grid gap-4 rounded-xl border border-border bg-card p-6 sm:grid-cols-2"
         >
           <div className="sm:col-span-2">
             <h2 className="text-lg font-semibold text-foreground">
@@ -839,7 +828,7 @@ export default function AdminTournamentsPage() {
         />
         {filteredTournaments.map((t) => (
           <div key={t.id} className="rounded-xl border border-border bg-card">
-            <div className="flex w-full items-center gap-2 p-3 sm:gap-3 sm:p-5">
+            <div className="flex w-full items-center gap-3 p-5">
               <input
                 type="checkbox"
                 checked={selectedIds.has(t.id)}
@@ -899,8 +888,8 @@ export default function AdminTournamentsPage() {
             </div>
 
             {expanded === t.id && (
-              <div className="border-t border-border px-3 pb-4 sm:px-5 sm:pb-5">
-                <div className="flex flex-wrap items-center gap-3 py-4">
+              <div className="border-t border-border px-5 pb-5">
+                <div className="flex items-center gap-3 py-4">
                   <span className="text-sm text-muted-foreground">
                     賽事狀態
                   </span>
@@ -962,36 +951,34 @@ export default function AdminTournamentsPage() {
                     暫無報名
                   </p>
                 ) : (
-                  <div className="mt-4 overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="text-left text-muted-foreground">
-                        <tr>
-                          <th className="pb-2">選手</th>
-                          <th className="pb-2">電郵</th>
-                          <th className="pb-2">電話</th>
-                          <th className="pb-2">報名時間</th>
+                  <table className="mt-4 w-full text-sm">
+                    <thead className="text-left text-muted-foreground">
+                      <tr>
+                        <th className="pb-2">選手</th>
+                        <th className="pb-2">電郵</th>
+                        <th className="pb-2">電話</th>
+                        <th className="pb-2">報名時間</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {t.registrations.map((r) => (
+                        <tr key={r.id} className="border-t border-border">
+                          <td className="py-2 text-foreground">
+                            {r.playerName}
+                          </td>
+                          <td className="py-2 text-muted-foreground">
+                            {r.email}
+                          </td>
+                          <td className="py-2 text-muted-foreground">
+                            {r.phone ?? "—"}
+                          </td>
+                          <td className="py-2 text-muted-foreground">
+                            {formatDate(r.createdAt)}
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {t.registrations.map((r) => (
-                          <tr key={r.id} className="border-t border-border">
-                            <td className="py-2 text-foreground">
-                              {r.playerName}
-                            </td>
-                            <td className="py-2 text-muted-foreground">
-                              {r.email}
-                            </td>
-                            <td className="py-2 text-muted-foreground">
-                              {r.phone ?? "—"}
-                            </td>
-                            <td className="py-2 text-muted-foreground">
-                              {formatDate(r.createdAt)}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 )}
               </div>
             )}

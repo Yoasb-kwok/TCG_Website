@@ -183,7 +183,7 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
 
       {tab === "sealed" ? (
         <form
-          className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-6"
+          className="space-y-4 rounded-xl border border-border bg-card p-6"
           onSubmit={(e) => {
             e.preventDefault();
             void handleSealedSubmit();
@@ -295,16 +295,12 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
             disabled={loading}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "上架卡盒/補充包"
-            )}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "上架卡盒/補充包"}
           </Button>
         </form>
       ) : (
         <form
-          className="space-y-4 rounded-xl border border-border bg-card p-4 md:p-6"
+          className="space-y-4 rounded-xl border border-border bg-card p-6"
           onSubmit={(e) => {
             e.preventDefault();
             void handleAccessorySubmit();
@@ -364,11 +360,7 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
             disabled={loading}
             className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            {loading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              "上架週邊"
-            )}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "上架週邊"}
           </Button>
         </form>
       )}

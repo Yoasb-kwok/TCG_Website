@@ -97,8 +97,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
     if (!suffix || !minNum.trim() || !maxNum.trim()) return null;
     const min = Number(minNum);
     const max = Number(maxNum);
-    if (!Number.isFinite(min) || !Number.isFinite(max) || min > max)
-      return null;
+    if (!Number.isFinite(min) || !Number.isFinite(max) || min > max) return null;
     const items = generateCardNumberRange(min, max, suffix);
     if (items.length === 0) return null;
     return {
@@ -246,11 +245,10 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
           kind: activeKind,
           value: value.trim(),
           label: label.trim(),
-          parentValue: activeKind === "CARD_NUMBER" ? parentSetCode : undefined,
+          parentValue:
+            activeKind === "CARD_NUMBER" ? parentSetCode : undefined,
           cardSuffix:
-            activeKind === "SET_CODE"
-              ? newSetCardSuffix.trim() || null
-              : undefined,
+            activeKind === "SET_CODE" ? newSetCardSuffix.trim() || null : undefined,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -285,7 +283,9 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
         body: JSON.stringify({
           value: editValue.trim(),
           label: editLabel.trim(),
-          ...(activeKind === "CARD_NUMBER" ? { parentValue: editParent } : {}),
+          ...(activeKind === "CARD_NUMBER"
+            ? { parentValue: editParent }
+            : {}),
           ...(activeKind === "SET_CODE"
             ? { cardSuffix: editCardSuffix.trim() || null }
             : {}),
@@ -308,9 +308,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
     setBusy(true);
     setLocalError(null);
     try {
-      const res = await fetch(`/api/admin/taxonomy/${id}`, {
-        method: "DELETE",
-      });
+      const res = await fetch(`/api/admin/taxonomy/${id}`, { method: "DELETE" });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(data.error ?? "刪除失敗");
       if (editingId === id) cancelEdit();
@@ -452,18 +450,14 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
               void handleBatchGenerate();
             }}
           >
-            <h3 className="text-sm font-medium text-foreground">
-              批次產生卡號
-            </h3>
+            <h3 className="text-sm font-medium text-foreground">批次產生卡號</h3>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
-              每個系列固定「/」後面的數字（如
-              063）。輸入最小～最大編號，系統自動產生 001/063～092/063。
+              每個系列固定「/」後面的數字（如 063）。輸入最小～最大編號，系統自動產生
+              001/063～092/063。
             </p>
 
             <div>
-              <Label className="text-xs text-muted-foreground">
-                所屬系列 *
-              </Label>
+              <Label className="text-xs text-muted-foreground">所屬系列 *</Label>
               <select
                 ref={parentSelectRef}
                 value={parentSetCode}
@@ -499,9 +493,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
 
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <Label className="text-xs text-muted-foreground">
-                  最小編號 *
-                </Label>
+                <Label className="text-xs text-muted-foreground">最小編號 *</Label>
                 <Input
                   ref={minNumInputRef}
                   type="number"
@@ -513,9 +505,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">
-                  最大編號 *
-                </Label>
+                <Label className="text-xs text-muted-foreground">最大編號 *</Label>
                 <Input
                   type="number"
                   min={0}
@@ -570,9 +560,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">
-                  顯示標籤 *
-                </Label>
+                <Label className="text-xs text-muted-foreground">顯示標籤 *</Label>
                 <Input
                   ref={labelInputRef}
                   value={label}
@@ -610,9 +598,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
               <Plus className="mr-2 h-4 w-4" />
               新增
             </Button>
-            <p className="text-[10px] text-muted-foreground">
-              在欄位內按 Enter 可快速新增
-            </p>
+            <p className="text-[10px] text-muted-foreground">在欄位內按 Enter 可快速新增</p>
           </form>
         )}
 
@@ -645,10 +631,8 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
 
           <div
             className={cn(
-              "overflow-x-auto rounded-lg border border-border",
-              isPage
-                ? "max-h-[calc(100vh-320px)] overflow-y-auto"
-                : "max-h-96 overflow-y-auto",
+              "overflow-hidden rounded-lg border border-border",
+              isPage ? "max-h-[calc(100vh-320px)] overflow-y-auto" : "max-h-96 overflow-y-auto",
             )}
           >
             {loading && (
@@ -662,7 +646,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
               </p>
             )}
             {!loading && items.length > 0 && (
-              <table className="w-full min-w-[480px] text-left text-sm">
+              <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 bg-muted/80 text-xs text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 font-medium">排序</th>
@@ -718,9 +702,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
                               </div>
                               {activeKind === "SET_CODE" && (
                                 <div className="flex min-w-[88px] flex-1 items-center gap-1">
-                                  <span className="text-sm text-muted-foreground">
-                                    /
-                                  </span>
+                                  <span className="text-sm text-muted-foreground">/</span>
                                   <Input
                                     value={editCardSuffix}
                                     onChange={(e) =>
@@ -736,13 +718,8 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
                               {activeKind === "CARD_NUMBER" && (
                                 <select
                                   value={editParent}
-                                  onChange={(e) =>
-                                    setEditParent(e.target.value)
-                                  }
-                                  className={cn(
-                                    "min-w-[100px] flex-1",
-                                    SEARCH_BAR_SELECT_CLASS,
-                                  )}
+                                  onChange={(e) => setEditParent(e.target.value)}
+                                  className={cn("min-w-[100px] flex-1", SEARCH_BAR_SELECT_CLASS)}
                                 >
                                   {activeSetOptions.map((s) => (
                                     <option key={s.id} value={s.value}>
@@ -787,9 +764,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
                                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                                 )}
                                 aria-label={item.active ? "停用" : "啟用"}
-                                title={
-                                  item.active ? "停用（隱藏）" : "啟用（顯示）"
-                                }
+                                title={item.active ? "停用（隱藏）" : "啟用（顯示）"}
                               >
                                 {item.active ? (
                                   <Eye className="h-4 w-4" />
@@ -878,9 +853,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
                                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                                 )}
                                 aria-label={item.active ? "停用" : "啟用"}
-                                title={
-                                  item.active ? "停用（隱藏）" : "啟用（顯示）"
-                                }
+                                title={item.active ? "停用（隱藏）" : "啟用（顯示）"}
                               >
                                 {item.active ? (
                                   <Eye className="h-4 w-4" />

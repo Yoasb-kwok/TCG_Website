@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { allowedTransitions } from "@/lib/tournament-status";
+import { sendTournamentCancellation } from "@/lib/email";
 
 export async function PATCH(
   request: NextRequest,
@@ -80,6 +81,25 @@ export async function PATCH(
     data,
     include: { _count: { select: { registrations: true } } },
   });
+
+  // ── Send cancellation email if status changed to CANCELLED ──────
+  if (data.status === "CANCELLED") {
+    const prisma = getPrisma();
+    const registrations = await prisma.tournamentRegistration.findMany({
+      where: { tournamentId: id },
+      select: { email: true, playerName: true },
+    });
+
+    await sendTournamentCancellation({
+      registrations,
+      tournamentTitle: tournament.title,
+      startsAt: new Intl.DateTimeFormat("zh-HK", {
+        dateStyle: "full",
+        timeStyle: "short",
+      }).format(new Date(tournament.startsAt)),
+      location: tournament.location,
+    });
+  }
 
   return NextResponse.json({ tournament });
 }

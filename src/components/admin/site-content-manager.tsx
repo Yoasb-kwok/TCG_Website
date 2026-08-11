@@ -49,9 +49,7 @@ const EMPTY_BANNER: BannerFormItem = {
   active: true,
 };
 
-async function parseJsonResponse<T = Record<string, unknown>>(
-  res: Response,
-): Promise<T> {
+async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Promise<T> {
   const text = await res.text();
   if (!text) return {} as T;
   try {
@@ -66,25 +64,17 @@ async function parseJsonResponse<T = Record<string, unknown>>(
 }
 
 export function SiteContentManager() {
-  const [activeTab, setActiveTab] = useState<"home" | "featured" | "about">(
-    "home",
-  );
+  const [activeTab, setActiveTab] = useState<"home" | "featured" | "about">("home");
   const [banners, setBanners] = useState<BannerFormItem[]>([]);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<
-    FeaturedProductOption[]
-  >([]);
-  const [featuredPreview, setFeaturedPreview] = useState<
-    FeaturedProductOption[]
-  >([]);
+  const [featuredProducts, setFeaturedProducts] = useState<FeaturedProductOption[]>([]);
+  const [featuredPreview, setFeaturedPreview] = useState<FeaturedProductOption[]>([]);
   const [featuredAuto, setFeaturedAuto] = useState(true);
   const [bannersUsingDefaults, setBannersUsingDefaults] = useState(false);
   const [aboutFallback, setAboutFallback] = useState(false);
   const bannerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [productSearch, setProductSearch] = useState("");
-  const [productResults, setProductResults] = useState<FeaturedProductOption[]>(
-    [],
-  );
+  const [productResults, setProductResults] = useState<FeaturedProductOption[]>([]);
 
   const [pageTitle, setPageTitle] = useState("");
   const [pageSubtitle, setPageSubtitle] = useState("");
@@ -102,10 +92,7 @@ export function SiteContentManager() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const featuredSet = useMemo(
-    () => new Set(featuredProductIds),
-    [featuredProductIds],
-  );
+  const featuredSet = useMemo(() => new Set(featuredProductIds), [featuredProductIds]);
 
   const loadContent = async () => {
     setLoading(true);
@@ -144,16 +131,12 @@ export function SiteContentManager() {
       if (!homeRes.ok) throw new Error(homeData.error ?? "讀取首頁內容失敗");
       if (!aboutRes.ok) throw new Error(aboutData.error ?? "讀取關於我們失敗");
 
-      setBanners(
-        (homeData.banners ?? []).map((item: BannerFormItem) => ({ ...item })),
-      );
+      setBanners((homeData.banners ?? []).map((item: BannerFormItem) => ({ ...item })));
       setFeaturedProductIds(homeData.featuredProductIds ?? []);
       setFeaturedProducts(homeData.featuredProducts ?? []);
       setFeaturedPreview(homeData.featuredPreview ?? []);
       setFeaturedAuto(Boolean(homeData.featuredAuto));
-      setBannersUsingDefaults(
-        Boolean(homeData.bannersUsingDefaults ?? homeData.fallback),
-      );
+      setBannersUsingDefaults(Boolean(homeData.bannersUsingDefaults ?? homeData.fallback));
 
       setPageTitle(aboutData.pageTitle ?? "");
       setPageSubtitle(aboutData.pageSubtitle ?? "");
@@ -185,14 +168,10 @@ export function SiteContentManager() {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(
-          `/api/admin/products?search=${encodeURIComponent(keyword)}`,
-        );
+        const res = await fetch(`/api/admin/products?search=${encodeURIComponent(keyword)}`);
         const data = await parseJsonResponse(res);
         if (!res.ok) return;
-        setProductResults(
-          (data.products as FeaturedProductOption[] | undefined) ?? [],
-        );
+        setProductResults((data.products as FeaturedProductOption[] | undefined) ?? []);
       } catch {
         // ignore search errors
       }
@@ -216,11 +195,7 @@ export function SiteContentManager() {
     const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
     const data = await parseJsonResponse<{ error?: string; url?: string }>(res);
     if (!res.ok) throw new Error(data.error ?? "上傳失敗");
-    setBanners((prev) =>
-      prev.map((item, i) =>
-        i === index ? { ...item, image: data.url ?? "" } : item,
-      ),
-    );
+    setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, image: data.url ?? "" } : item)));
   };
 
   const saveHome = async () => {
@@ -325,8 +300,7 @@ export function SiteContentManager() {
     }
   };
 
-  if (loading)
-    return <div className="text-sm text-muted-foreground">載入中...</div>;
+  if (loading) return <div className="text-sm text-muted-foreground">載入中...</div>;
 
   return (
     <div className="space-y-4">
@@ -372,8 +346,7 @@ export function SiteContentManager() {
 
       {bannersUsingDefaults && activeTab === "home" && (
         <p className="rounded-md border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-200">
-          Banner
-          尚未儲存至資料庫，前台目前顯示預設內容。編輯後按「儲存首頁內容」即可同步。
+          Banner 尚未儲存至資料庫，前台目前顯示預設內容。編輯後按「儲存首頁內容」即可同步。
         </p>
       )}
       {aboutFallback && activeTab === "about" && (
@@ -382,107 +355,31 @@ export function SiteContentManager() {
         </p>
       )}
 
-      {error && (
-        <p className="rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-400">
-          {error}
-        </p>
-      )}
-      {message && (
-        <p className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-400">
-          {message}
-        </p>
-      )}
+      {error && <p className="rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-400">{error}</p>}
+      {message && <p className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-400">{message}</p>}
 
       {activeTab === "home" && (
         <div className="space-y-3">
           {banners.map((banner, index) => (
-            <div
-              key={`${banner.id || "new"}-${index}`}
-              className="rounded-lg border border-border p-4"
-            >
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-medium text-foreground">
-                  Banner #{index + 1}
-                </p>
+            <div key={`${banner.id || "new"}-${index}`} className="rounded-lg border border-border p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-medium text-foreground">Banner #{index + 1}</p>
                 <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setBanners((prev) => moveItem(prev, index, -1))
-                    }
-                  >
-                    上移
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setBanners((prev) => moveItem(prev, index, 1))
-                    }
-                  >
-                    下移
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setBanners((prev) => prev.filter((_, i) => i !== index))
-                    }
-                  >
+                  <Button type="button" variant="outline" size="sm" onClick={() => setBanners((prev) => moveItem(prev, index, -1))}>上移</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setBanners((prev) => moveItem(prev, index, 1))}>下移</Button>
+                  <Button type="button" variant="outline" size="sm" onClick={() => setBanners((prev) => prev.filter((_, i) => i !== index))}>
                     <Trash2 className="mr-1 h-4 w-4" /> 刪除
                   </Button>
                 </div>
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Input
-                  value={banner.title}
-                  onValueChange={(v) =>
-                    setBanners((prev) =>
-                      prev.map((item, i) =>
-                        i === index ? { ...item, title: v } : item,
-                      ),
-                    )
-                  }
-                  placeholder="標題"
-                />
-                <Input
-                  value={banner.subtitle}
-                  onValueChange={(v) =>
-                    setBanners((prev) =>
-                      prev.map((item, i) =>
-                        i === index ? { ...item, subtitle: v } : item,
-                      ),
-                    )
-                  }
-                  placeholder="副標題"
-                />
-                <Input
-                  value={banner.href}
-                  onValueChange={(v) =>
-                    setBanners((prev) =>
-                      prev.map((item, i) =>
-                        i === index ? { ...item, href: v } : item,
-                      ),
-                    )
-                  }
-                  placeholder="連結，例如 /products"
-                />
+                <Input value={banner.title} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, title: v } : item)))} placeholder="標題" />
+                <Input value={banner.subtitle} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, subtitle: v } : item)))} placeholder="副標題" />
+                <Input value={banner.href} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, href: v } : item)))} placeholder="連結，例如 /products" />
                 <select
                   value={banner.gradient}
-                  onChange={(e) =>
-                    setBanners((prev) =>
-                      prev.map((item, i) =>
-                        i === index
-                          ? { ...item, gradient: e.target.value }
-                          : item,
-                      ),
-                    )
-                  }
+                  onChange={(e) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, gradient: e.target.value } : item)))}
                   className="h-10 rounded-lg border border-input bg-transparent px-3 text-sm"
                 >
                   {DEFAULT_GRADIENTS.map((option) => (
@@ -491,18 +388,7 @@ export function SiteContentManager() {
                     </option>
                   ))}
                 </select>
-                <Input
-                  value={banner.image}
-                  onValueChange={(v) =>
-                    setBanners((prev) =>
-                      prev.map((item, i) =>
-                        i === index ? { ...item, image: v } : item,
-                      ),
-                    )
-                  }
-                  placeholder="圖片網址"
-                  className="md:col-span-2"
-                />
+                <Input value={banner.image} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, image: v } : item)))} placeholder="圖片網址" className="md:col-span-2" />
                 <div className="md:col-span-2 flex flex-wrap items-center gap-3">
                   <input
                     ref={(el) => {
@@ -517,9 +403,7 @@ export function SiteContentManager() {
                       try {
                         await uploadBannerImage(file, index);
                       } catch (err) {
-                        setError(
-                          err instanceof Error ? err.message : "上傳失敗",
-                        );
+                        setError(err instanceof Error ? err.message : "上傳失敗");
                       } finally {
                         e.currentTarget.value = "";
                       }
@@ -538,13 +422,7 @@ export function SiteContentManager() {
                     <Checkbox
                       checked={banner.active}
                       onCheckedChange={(checked) =>
-                        setBanners((prev) =>
-                          prev.map((item, i) =>
-                            i === index
-                              ? { ...item, active: Boolean(checked) }
-                              : item,
-                          ),
-                        )
+                        setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, active: Boolean(checked) } : item)))
                       }
                     />
                     <span className="text-sm">啟用</span>
@@ -552,13 +430,7 @@ export function SiteContentManager() {
                 </div>
                 {banner.image && (
                   <div className="relative h-24 w-64 overflow-hidden rounded border border-border">
-                    <Image
-                      src={banner.image}
-                      alt={banner.title || "banner"}
-                      fill
-                      className="object-cover"
-                      unoptimized
-                    />
+                    <Image src={banner.image} alt={banner.title || "banner"} fill className="object-cover" unoptimized />
                   </div>
                 )}
               </div>
@@ -566,20 +438,10 @@ export function SiteContentManager() {
           ))}
 
           <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                setBanners((prev) => [...prev, { ...EMPTY_BANNER }])
-              }
-            >
+            <Button type="button" variant="outline" onClick={() => setBanners((prev) => [...prev, { ...EMPTY_BANNER }])}>
               <Plus className="mr-1 h-4 w-4" /> 新增 Banner
             </Button>
-            <Button
-              type="button"
-              onClick={() => void saveHome()}
-              disabled={saving}
-            >
+            <Button type="button" onClick={() => void saveHome()} disabled={saving}>
               儲存首頁內容
             </Button>
           </div>
@@ -597,24 +459,15 @@ export function SiteContentManager() {
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
                 {featuredPreview.map((product) => (
-                  <div
-                    key={product.id}
-                    className="rounded-lg border border-border p-3 text-sm"
-                  >
+                  <div key={product.id} className="rounded-lg border border-border p-3 text-sm">
                     <p className="font-medium line-clamp-2">{product.name}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {product.variants[0]
-                        ? `HK$${product.variants[0].price}`
-                        : "未設定價格"}
+                      {product.variants[0] ? `HK$${product.variants[0].price}` : "未設定價格"}
                     </p>
                   </div>
                 ))}
               </div>
-              <Button
-                type="button"
-                onClick={() => void saveFeaturedPreview()}
-                disabled={saving}
-              >
+              <Button type="button" onClick={() => void saveFeaturedPreview()} disabled={saving}>
                 將以上預覽商品儲存至資料庫
               </Button>
             </div>
@@ -628,30 +481,20 @@ export function SiteContentManager() {
           />
           <div className="grid gap-3 md:grid-cols-2">
             {productResults.map((product) => (
-              <div
-                key={product.id}
-                className="flex items-center justify-between rounded-lg border border-border p-3"
-              >
+              <div key={product.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <p className="text-sm font-medium">{product.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {product.variants[0]
-                      ? `HK$${product.variants[0].price}`
-                      : "未設定價格"}
+                    {product.variants[0] ? `HK$${product.variants[0].price}` : "未設定價格"}
                   </p>
                 </div>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  disabled={
-                    featuredSet.has(product.id) ||
-                    featuredProductIds.length >= 8
-                  }
+                  disabled={featuredSet.has(product.id) || featuredProductIds.length >= 8}
                   onClick={() =>
-                    setFeaturedProductIds((prev) =>
-                      prev.includes(product.id) ? prev : [...prev, product.id],
-                    )
+                    setFeaturedProductIds((prev) => (prev.includes(product.id) ? prev : [...prev, product.id]))
                   }
                 >
                   加入
@@ -661,67 +504,21 @@ export function SiteContentManager() {
           </div>
 
           <div className="space-y-2 rounded-lg border border-border p-4">
-            <p className="text-sm font-medium">
-              目前熱門商品（{featuredProductIds.length}/8）
-            </p>
+            <p className="text-sm font-medium">目前熱門商品（{featuredProductIds.length}/8）</p>
             {featuredProductIds.map((productId, index) => {
-              const product = featuredProducts.find(
-                (item) => item.id === productId,
-              );
+              const product = featuredProducts.find((item) => item.id === productId);
               return (
-                <div
-                  key={productId}
-                  className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border p-2 text-sm"
-                >
-                  <span className="min-w-0 flex-1 truncate">
-                    {product?.name ?? productId}
-                  </span>
+                <div key={productId} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
+                  <span>{product?.name ?? productId}</span>
                   <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFeaturedProductIds((prev) =>
-                          moveItem(prev, index, -1),
-                        )
-                      }
-                    >
-                      上移
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFeaturedProductIds((prev) =>
-                          moveItem(prev, index, 1),
-                        )
-                      }
-                    >
-                      下移
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setFeaturedProductIds((prev) =>
-                          prev.filter((id) => id !== productId),
-                        )
-                      }
-                    >
-                      移除
-                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setFeaturedProductIds((prev) => moveItem(prev, index, -1))}>上移</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setFeaturedProductIds((prev) => moveItem(prev, index, 1))}>下移</Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setFeaturedProductIds((prev) => prev.filter((id) => id !== productId))}>移除</Button>
                   </div>
                 </div>
               );
             })}
-            <Button
-              type="button"
-              onClick={() => void saveHome()}
-              disabled={saving}
-            >
+            <Button type="button" onClick={() => void saveHome()} disabled={saving}>
               儲存熱門商品
             </Button>
           </div>
@@ -730,16 +527,8 @@ export function SiteContentManager() {
 
       {activeTab === "about" && (
         <div className="space-y-3">
-          <Input
-            value={pageTitle}
-            onValueChange={setPageTitle}
-            placeholder="頁面標題"
-          />
-          <Input
-            value={pageSubtitle}
-            onValueChange={setPageSubtitle}
-            placeholder="頁面副標題"
-          />
+          <Input value={pageTitle} onValueChange={setPageTitle} placeholder="頁面標題" />
+          <Input value={pageSubtitle} onValueChange={setPageSubtitle} placeholder="頁面副標題" />
 
           <div className="rounded-lg border border-border p-4">
             <div className="mb-2 flex items-center justify-between">
@@ -760,48 +549,24 @@ export function SiteContentManager() {
             </div>
             <div className="space-y-3">
               {sections.map((section, index) => (
-                <div
-                  key={section.id || index}
-                  className="rounded-md border border-border p-3"
-                >
+                <div key={section.id || index} className="rounded-md border border-border p-3">
                   <div className="mb-2 flex items-center justify-between">
-                    <p className="text-xs text-muted-foreground">
-                      區塊 #{index + 1}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setSections((prev) =>
-                          prev.filter((_, i) => i !== index),
-                        )
-                      }
-                    >
+                    <p className="text-xs text-muted-foreground">區塊 #{index + 1}</p>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setSections((prev) => prev.filter((_, i) => i !== index))}>
                       <Trash2 className="mr-1 h-4 w-4" /> 刪除
                     </Button>
                   </div>
                   <Input
                     value={section.title}
                     onValueChange={(v) =>
-                      setSections((prev) =>
-                        prev.map((item, i) =>
-                          i === index ? { ...item, title: v } : item,
-                        ),
-                      )
+                      setSections((prev) => prev.map((item, i) => (i === index ? { ...item, title: v } : item)))
                     }
                     placeholder="區塊標題"
                   />
                   <textarea
                     value={section.body}
                     onChange={(e) =>
-                      setSections((prev) =>
-                        prev.map((item, i) =>
-                          i === index
-                            ? { ...item, body: e.target.value }
-                            : item,
-                        ),
-                      )
+                      setSections((prev) => prev.map((item, i) => (i === index ? { ...item, body: e.target.value } : item)))
                     }
                     rows={5}
                     className="mt-2 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm"
@@ -812,31 +577,11 @@ export function SiteContentManager() {
             </div>
           </div>
 
-          <Input
-            value={storeAddressZh}
-            onValueChange={setStoreAddressZh}
-            placeholder="中文地址"
-          />
-          <Input
-            value={storeAddressEn}
-            onValueChange={setStoreAddressEn}
-            placeholder="英文地址"
-          />
-          <Input
-            value={storeHours}
-            onValueChange={setStoreHours}
-            placeholder="營業時間"
-          />
-          <Input
-            value={storeMtr}
-            onValueChange={setStoreMtr}
-            placeholder="地鐵資訊"
-          />
-          <Input
-            value={mapEmbedUrl}
-            onValueChange={setMapEmbedUrl}
-            placeholder="Google map iframe src 或完整 iframe 字串"
-          />
+          <Input value={storeAddressZh} onValueChange={setStoreAddressZh} placeholder="中文地址" />
+          <Input value={storeAddressEn} onValueChange={setStoreAddressEn} placeholder="英文地址" />
+          <Input value={storeHours} onValueChange={setStoreHours} placeholder="營業時間" />
+          <Input value={storeMtr} onValueChange={setStoreMtr} placeholder="地鐵資訊" />
+          <Input value={mapEmbedUrl} onValueChange={setMapEmbedUrl} placeholder="Google map iframe src 或完整 iframe 字串" />
           <textarea
             value={contactBody}
             onChange={(e) => setContactBody(e.target.value)}
@@ -845,17 +590,10 @@ export function SiteContentManager() {
             placeholder="聯絡我們內容"
           />
           <div className="flex items-center gap-2">
-            <Checkbox
-              checked={showStoreInfo}
-              onCheckedChange={(checked) => setShowStoreInfo(Boolean(checked))}
-            />
+            <Checkbox checked={showStoreInfo} onCheckedChange={(checked) => setShowStoreInfo(Boolean(checked))} />
             <span className="text-sm">顯示門市資訊與地圖</span>
           </div>
-          <Button
-            type="button"
-            onClick={() => void saveAbout()}
-            disabled={saving}
-          >
+          <Button type="button" onClick={() => void saveAbout()} disabled={saving}>
             儲存關於我們
           </Button>
         </div>

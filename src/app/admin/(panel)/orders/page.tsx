@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MessageCircle } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/format";
 import { SEARCH_BAR_SELECT_CLASS } from "@/lib/search-bar-styles";
+import { SITE_BRAND } from "@/lib/constants";
 
 interface OrderItem {
   quantity: number;
@@ -54,12 +56,34 @@ export default function AdminOrdersPage() {
     load();
   };
 
+  const whatsappLink = (order: Order) => {
+    const phone = process.env.NEXT_PUBLIC_SHOP_WHATSAPP_NUMBER;
+    if (!phone) return null;
+
+    const itemLines = order.items
+      .map(
+        (i) =>
+          `• ${i.variant.product.name} (${i.variant.condition}) ×${i.quantity}`,
+      )
+      .join("\n");
+
+    const message = [
+      `${SITE_BRAND} 新訂單通知`,
+      `訂單編號：${order.id.slice(0, 8).toUpperCase()}`,
+      `顧客電郵：${order.email}`,
+      `總計：${formatPrice(order.totalAmount)}`,
+      ``,
+      `訂單內容：`,
+      itemLines,
+    ].join("\n");
+
+    return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  };
+
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-8">
       <h1 className="text-2xl font-bold">交易紀錄</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Stripe 訂單及付款狀態
-      </p>
+      <p className="mt-1 text-sm text-muted-foreground">Stripe 訂單及付款狀態</p>
 
       <select
         value={statusFilter}
@@ -78,7 +102,7 @@ export default function AdminOrdersPage() {
         {orders.map((order) => (
           <div
             key={order.id}
-            className="rounded-xl border border-border bg-card p-3 sm:p-5"
+            className="rounded-xl border border-border bg-card p-5"
           >
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
@@ -87,7 +111,7 @@ export default function AdminOrdersPage() {
                   {formatDate(order.createdAt)} · {order.id.slice(0, 8)}...
                 </p>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-col items-end gap-3">
                 <p className="text-lg font-semibold">
                   {formatPrice(order.totalAmount)}
                 </p>
@@ -102,23 +126,31 @@ export default function AdminOrdersPage() {
                     </option>
                   ))}
                 </select>
+                {whatsappLink(order) && (
+                  <a
+                    href={whatsappLink(order)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-green-500 px-3 py-1 text-xs font-medium text-green-600 transition hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-950"
+                  >
+                    <MessageCircle className="h-3.5 w-3.5" />
+                    轉發 WhatsApp
+                  </a>
+                )}
               </div>
             </div>
             <ul className="mt-4 space-y-1 border-t border-border pt-4 text-sm text-muted-foreground">
               {order.items.map((item, i) => (
                 <li key={i}>
                   {item.variant.product.name} ({item.variant.condition}) ×
-                  {item.quantity} —{" "}
-                  {formatPrice(item.unitPrice * item.quantity)}
+                  {item.quantity} — {formatPrice(item.unitPrice * item.quantity)}
                 </li>
               ))}
             </ul>
           </div>
         ))}
         {orders.length === 0 && (
-          <p className="py-12 text-center text-muted-foreground/80">
-            暫無訂單紀錄
-          </p>
+          <p className="py-12 text-center text-muted-foreground/80">暫無訂單紀錄</p>
         )}
       </div>
     </div>

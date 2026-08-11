@@ -93,7 +93,7 @@ export default function BinPage() {
   };
 
   return (
-    <div className="p-4 md:p-8">
+    <div className="p-8">
       {/* Header */}
       <Link
         href="/admin/tournaments"
@@ -113,7 +113,7 @@ export default function BinPage() {
 
       {/* Toolbar */}
       {trashed.length > 0 && (
-        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="mt-6 flex items-center justify-between gap-2">
           <div className="flex items-center gap-3">
             <input
               type="checkbox"
@@ -131,7 +131,7 @@ export default function BinPage() {
             />
             <span className="text-sm text-muted-foreground">全選</span>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             {selectedIds.size > 0 && (
               <>
                 <Button
@@ -175,50 +175,46 @@ export default function BinPage() {
           trashed.map((t) => (
             <div
               key={t.id}
-              className="flex flex-col gap-3 rounded-xl border border-border bg-card p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4"
+              className="flex items-center gap-3 rounded-xl border border-border bg-card p-4"
             >
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(t.id)}
-                  onChange={() => toggleSelect(t.id)}
-                  className="h-4 w-4 shrink-0"
-                />
-                <div className="flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-medium text-foreground">{t.title}</p>
-                    <Badge
-                      variant="secondary"
-                      className={statusBadgeClass(t.status)}
-                    >
-                      {statusLabel(t.status)}
-                    </Badge>
-                  </div>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatDate(t.startsAt)} · {t.location} · {t.format}
-                    {" · "}
-                    {t._count.registrations} 報名
-                    {t.deletedAt ? ` · 刪除於 ${formatDate(t.deletedAt)}` : ""}
-                  </p>
+              <input
+                type="checkbox"
+                checked={selectedIds.has(t.id)}
+                onChange={() => toggleSelect(t.id)}
+                className="h-4 w-4 shrink-0"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-foreground">{t.title}</p>
+                  <Badge
+                    variant="secondary"
+                    className={statusBadgeClass(t.status)}
+                  >
+                    {statusLabel(t.status)}
+                  </Badge>
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatDate(t.startsAt)} · {t.location} · {t.format}
+                  {" · "}
+                  {t._count.registrations} 報名
+                  {t.deletedAt ? ` · 刪除於 ${formatDate(t.deletedAt)}` : ""}
+                </p>
               </div>
-              <div className="flex gap-2 sm:shrink-0">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => restoreSelected([t.id])}
-                >
-                  還原
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="border-destructive text-destructive hover:bg-destructive/10"
-                  onClick={() => setConfirmDelete({ ids: [t.id], all: false })}
-                >
-                  永久刪除
-                </Button>
-              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => restoreSelected([t.id])}
+              >
+                還原
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-destructive text-destructive hover:bg-destructive/10"
+                onClick={() => setConfirmDelete({ ids: [t.id], all: false })}
+              >
+                永久刪除
+              </Button>
             </div>
           ))
         )}
@@ -278,10 +274,7 @@ export default function BinPage() {
                 );
               })}
               <div className="flex justify-end gap-2 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setConfirmDelete(null)}
-                >
+                <Button variant="outline" onClick={() => setConfirmDelete(null)}>
                   取消
                 </Button>
                 <Button

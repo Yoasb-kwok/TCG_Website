@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
+import { sendOrderReceipt } from "@/lib/email";
+import { formatDate, formatPrice } from "@/lib/format";
 import type Stripe from "stripe";
 
 export async function POST(request: NextRequest) {
@@ -52,7 +54,15 @@ export async function POST(request: NextRequest) {
     // ── Product order payment (existing flow) ────────────────────
     const order = await prisma.order.findUnique({
       where: { stripeSessionId: session.id },
-      include: { items: true },
+      include: {
+        items: {
+          include: {
+            variant: {
+              include: { product: { include: { images: { take: 1 } } } },
+            },
+          },
+        },
+      },
     });
 
     if (order && order.status === "PENDING") {
@@ -68,6 +78,20 @@ export async function POST(request: NextRequest) {
           }),
         ),
       ]);
+
+      // ── Send order receipt email (non-blocking) ──────────────────
+      await sendOrderReceipt({
+        to: order.email,
+        orderId: order.id,
+        items: order.items.map((item) => ({
+          name: item.variant.product.name,
+          condition: item.variant.condition,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        })),
+        totalAmount: order.totalAmount,
+        orderDate: formatDate(order.createdAt),
+      });
     }
   }
 
