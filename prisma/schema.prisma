@@ -73,6 +73,37 @@ model User {
   updatedAt     DateTime                @updatedAt
 }
 
+/// 註冊時的 OTP 驗證記錄。帳號在 OTP 驗證後才建立。
+model EmailVerification {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  /// 6位數 OTP 驗證碼（bcrypt 雜湊）
+  code         String
+  /// 註冊表單提交的密碼雜湊
+  passwordHash String
+  name         String?
+  phone        String?
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([email, expiresAt])
+}
+
+/// 忘記密碼的 OTP 驗證記錄。
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  /// 6位數 OTP 驗證碼（bcrypt 雜湊）
+  code      String
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, expiresAt])
+}
+
 model Product {
   id             String        @id @default(uuid())
   name           String
