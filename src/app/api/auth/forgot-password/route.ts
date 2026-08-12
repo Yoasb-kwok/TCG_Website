@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   // Do NOT reveal whether the email is registered (anti-enumeration).
   const user = await prisma.user.findUnique({
     where: { email },
-    select: { id: true },
+    select: { id: true, name: true },
   });
 
   if (!user) {
@@ -87,7 +87,20 @@ export async function POST(request: NextRequest) {
   });
 
   // ── Send OTP email ──────────────────────────────────────────────
-  await sendOtpEmail({ to: email, code, purpose: "password-reset" });
+  const emailSent = await sendOtpEmail({
+    to: email,
+    code,
+    purpose: "password-reset",
+    name: user.name ?? undefined,
+  });
+
+  if (!emailSent) {
+    await prisma.passwordReset.delete({ where: { email } }).catch(() => {});
+    return NextResponse.json(
+      { error: "驗證碼發送失敗，請稍後再試或聯絡我們" },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({
     message: "如果此電郵已註冊，驗證碼已發送至您的電郵",

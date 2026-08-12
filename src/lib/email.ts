@@ -186,10 +186,11 @@ export async function sendOtpEmail(input: {
   to: string;
   code: string;
   purpose: "registration" | "password-reset";
-}): Promise<void> {
+  name?: string;
+}): Promise<boolean> {
   if (!getTransporter()) {
     console.log(`[email] SMTP 未設定，跳過 OTP 電郵 (${input.to})`);
-    return;
+    return false;
   }
 
   try {
@@ -199,15 +200,17 @@ export async function sendOtpEmail(input: {
       OtpVerificationEmail({
         code: input.code,
         purpose: input.purpose,
+        name: input.name,
       }),
     );
 
-    await sendViaSmtp({
+    return await sendViaSmtp({
       to: input.to,
       subject: `${SITE_BRAND} ${title} — ${input.code}`,
       html,
     });
   } catch (err) {
     console.error(`[email] OTP 電郵例外:`, err);
+    return false;
   }
 }

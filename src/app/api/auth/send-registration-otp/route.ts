@@ -117,7 +117,20 @@ export async function POST(request: NextRequest) {
   });
 
   // ── Send OTP email ──────────────────────────────────────────────
-  await sendOtpEmail({ to: email, code, purpose: "registration" });
+  const emailSent = await sendOtpEmail({
+    to: email,
+    code,
+    purpose: "registration",
+    name: name ?? undefined,
+  });
+
+  if (!emailSent) {
+    await prisma.emailVerification.delete({ where: { email } }).catch(() => {});
+    return NextResponse.json(
+      { error: "驗證碼發送失敗，請稍後再試或聯絡我們" },
+      { status: 502 },
+    );
+  }
 
   return NextResponse.json({
     message: "驗證碼已發送至您的電郵，請在 10 分鐘內輸入",

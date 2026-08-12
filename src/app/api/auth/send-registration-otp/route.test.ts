@@ -8,7 +8,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/email", () => ({
-  sendOtpEmail: vi.fn().mockResolvedValue(undefined),
+  sendOtpEmail: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -107,7 +107,7 @@ describe("POST /api/auth/send-registration-otp", () => {
     const mockFindUnique = vi.fn().mockResolvedValue(null);
     vi.mocked(getPrisma).mockReturnValue({
       user: { findUnique: mockFindUnique },
-      emailVerification: { upsert: mockUpsert },
+      emailVerification: { upsert: mockUpsert, delete: vi.fn().mockResolvedValue({}) },
     } as never);
 
     const req = makeRequest({

@@ -7,7 +7,7 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/email", () => ({
-  sendOtpEmail: vi.fn().mockResolvedValue(undefined),
+  sendOtpEmail: vi.fn().mockResolvedValue(true),
 }));
 
 vi.mock("@/lib/rate-limit", () => ({
@@ -85,7 +85,7 @@ describe("POST /api/auth/forgot-password", () => {
     const mockUpsert = vi.fn().mockResolvedValue({});
     vi.mocked(getPrisma).mockReturnValue({
       user: { findUnique: mockFindUnique },
-      passwordReset: { upsert: mockUpsert },
+      passwordReset: { upsert: mockUpsert, delete: vi.fn().mockResolvedValue({}) },
     } as never);
 
     const res = await POST(makeRequest({ email: "real@example.com" }));
