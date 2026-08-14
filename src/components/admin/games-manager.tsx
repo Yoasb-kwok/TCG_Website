@@ -164,24 +164,6 @@ export function GamesManager() {
                 placeholder="如：One Piece"
               />
             </div>
-            <div>
-              <Label htmlFor="game-slug">Slug（URL 路徑）</Label>
-              <Input
-                id="game-slug"
-                value={formSlug}
-                onChange={(e) => setFormSlug(e.target.value)}
-                placeholder="如：one-piece"
-              />
-            </div>
-            <div>
-              <Label htmlFor="game-order">排序</Label>
-              <Input
-                id="game-order"
-                type="number"
-                value={formOrder}
-                onChange={(e) => setFormOrder(e.target.value)}
-              />
-            </div>
             <div className="flex items-end gap-2">
               <input
                 id="game-active"
@@ -210,8 +192,6 @@ export function GamesManager() {
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground">
               <th className="pb-2 pr-4 font-medium">名稱</th>
-              <th className="pb-2 pr-4 font-medium">Slug</th>
-              <th className="pb-2 pr-4 font-medium">排序</th>
               <th className="pb-2 pr-4 font-medium">狀態</th>
               <th className="pb-2 font-medium">操作</th>
             </tr>
@@ -220,8 +200,6 @@ export function GamesManager() {
             {gameTypes.map((g) => (
               <tr key={g.id} className="border-b border-border/50">
                 <td className="py-2 pr-4 font-medium text-foreground">{g.name}</td>
-                <td className="py-2 pr-4 text-muted-foreground">{g.slug}</td>
-                <td className="py-2 pr-4 text-muted-foreground">{g.sortOrder}</td>
                 <td className="py-2 pr-4">
                   <span
                     className={`rounded px-2 py-0.5 text-xs ${

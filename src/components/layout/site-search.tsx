@@ -47,7 +47,19 @@ export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [gameTypes, setGameTypes] = useState<{ name: string; slug: string }[]>([]);
+  const [selectedGame, setSelectedGame] = useState("pokemon");
   const { filters, setFilters, activeCount } = useFilterContext();
+
+  useEffect(() => {
+    fetch("/api/games")
+      .then((res) => res.json())
+      .then((data: { name: string; slug: string }[]) => {
+        setGameTypes(data);
+        if (data[0]) setSelectedGame(data[0].slug);
+      })
+      .catch(() => setGameTypes([{ name: "Pokémon", slug: "pokemon" }]));
+  }, []);
 
   useEffect(() => {
     if (!expanded) {
@@ -73,7 +85,7 @@ export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
   const submit = () => {
     const q = query.trim();
     onClose();
-    router.push(`/products?search=${encodeURIComponent(q)}`);
+    router.push(`/products/${selectedGame}?search=${encodeURIComponent(q)}`);
   };
 
   if (!expanded) return null;
@@ -88,6 +100,21 @@ export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
             submit();
           }}
         >
+          <select
+            value={selectedGame}
+            onChange={(e) => setSelectedGame(e.target.value)}
+            className="shrink-0 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground"
+          >
+            {gameTypes.length === 0 ? (
+              <option value="pokemon">Pokémon</option>
+            ) : (
+              gameTypes.map((g) => (
+                <option key={g.slug} value={g.slug}>
+                  {g.name}
+                </option>
+              ))
+            )}
+          </select>
           <SearchInput
             ref={inputRef}
             value={query}

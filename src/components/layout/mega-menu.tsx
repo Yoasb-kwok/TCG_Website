@@ -2,14 +2,26 @@
 
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
-import { PRODUCT_CATEGORIES } from "@/lib/constants";
+
+interface GameTypeItem {
+  id: string;
+  name: string;
+  slug: string;
+}
 
 interface MegaMenuProps {
   open: boolean;
   onClose: () => void;
+  gameTypes: GameTypeItem[];
 }
 
-export function MegaMenu({ open, onClose }: MegaMenuProps) {
+const PRODUCT_TYPE_LINKS = [
+  { label: "單卡", type: "SINGLE" },
+  { label: "封盒 / 補充包", type: "SEALED_BOX" },
+  { label: "配件", type: "ACCESSORY" },
+];
+
+export function MegaMenu({ open, onClose, gameTypes }: MegaMenuProps) {
   if (!open) return null;
 
   return (
@@ -18,43 +30,29 @@ export function MegaMenu({ open, onClose }: MegaMenuProps) {
       onMouseLeave={onClose}
     >
       <div className="mx-auto flex max-w-7xl gap-8 px-6 py-6">
-        <div className="w-64 shrink-0 space-y-1">
-          {PRODUCT_CATEGORIES.map((cat) => (
-            <div key={cat.label}>
-              {"children" in cat ? (
-                <>
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    {cat.label}
-                  </p>
-                  {cat.children.map((child) => (
-                    <Link
-                      key={child.href}
-                      href={child.href}
-                      className="group flex items-center justify-between rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                      onClick={onClose}
-                    >
-                      {child.label}
-                      <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100" />
-                    </Link>
-                  ))}
-                </>
-              ) : (
+        <div className="flex flex-wrap gap-8">
+          {gameTypes.map((game) => (
+            <div key={game.id} className="w-48 shrink-0 space-y-1">
+              <Link
+                href={`/products/${game.slug}`}
+                className="mb-2 block text-xs font-semibold uppercase tracking-wider text-foreground hover:underline"
+                onClick={onClose}
+              >
+                {game.name}
+              </Link>
+              {PRODUCT_TYPE_LINKS.map((sub) => (
                 <Link
-                  href={cat.href}
-                  className="flex items-center justify-between rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                  key={sub.type}
+                  href={`/products/${game.slug}?type=${sub.type}`}
+                  className="group flex items-center justify-between rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
                   onClick={onClose}
                 >
-                  {cat.label}
-                  <ChevronRight className="h-3 w-3" />
+                  {sub.label}
+                  <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100" />
                 </Link>
-              )}
+              ))}
             </div>
           ))}
-        </div>
-        <div className="hidden flex-1 items-center justify-center rounded-lg border border-border bg-muted/50 p-8 md:flex">
-          <p className="text-center text-sm text-muted-foreground">
-            瀏覽 Pokémon TCG 單卡、封盒及配件
-          </p>
         </div>
       </div>
     </div>

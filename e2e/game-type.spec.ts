@@ -100,8 +100,8 @@ test.describe("Game Type System", () => {
     await page.waitForLoadState("networkidle");
 
     // Game tabs render client-side after fetching /api/games
-    // Wait for the nav element with game links to appear
-    const gameNav = page.locator('nav:has(a[href="/products/pokemon"])');
+    // Target the nav inside <main> (excludes the header nav which also has game links)
+    const gameNav = page.locator('main nav:has(a[href="/products/pokemon"])');
     await expect(gameNav).toBeVisible({ timeout: 15000 });
   });
 

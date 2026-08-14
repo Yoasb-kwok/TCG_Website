@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
   Globe,
@@ -21,13 +21,29 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { useCart } from "@/providers/cart-provider";
 import { NAV_ITEMS, SITE_BRAND } from "@/lib/constants";
 
+interface GameTypeLink {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export function SiteHeader() {
   const { data: session } = useSession();
   const { itemCount, setIsOpen } = useCart();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [gameTypes, setGameTypes] = useState<GameTypeLink[]>([]);
   const isAdmin = session?.user?.role === "ADMIN";
+
+  useEffect(() => {
+    fetch("/api/games")
+      .then((res) => res.json())
+      .then((data: GameTypeLink[]) => setGameTypes(data))
+      .catch(() => setGameTypes([{ id: "pokemon", name: "Pokémon", slug: "pokemon" }]));
+  }, []);
+
+  const staticNavItems = NAV_ITEMS.filter((item) => !item.hasMegaMenu);
 
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
@@ -96,30 +112,26 @@ export function SiteHeader() {
 
       <nav className="hidden border-t border-border lg:block">
         <div className="mx-auto flex max-w-7xl gap-6 px-6 py-2">
-          {NAV_ITEMS.map((item) =>
-            item.hasMegaMenu ? (
-              <button
-                key={item.href}
-                type="button"
-                className="text-sm text-muted-foreground transition hover:text-foreground"
-                onMouseEnter={() => setMegaOpen(true)}
-              >
-                {item.label} ▾
-              </button>
-            ) : (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm text-muted-foreground transition hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
+          <button
+            type="button"
+            className="text-sm text-muted-foreground transition hover:text-foreground"
+            onMouseEnter={() => setMegaOpen(true)}
+          >
+            商品 ▾
+          </button>
+          {staticNavItems.map((item) => (
+            <Link
+              key={item.href}
+              href={item.href}
+              className="text-sm text-muted-foreground transition hover:text-foreground"
+            >
+              {item.label}
+            </Link>
+          ))}
         </div>
       </nav>
 
-      <MegaMenu open={megaOpen} onClose={() => setMegaOpen(false)} />
+      <MegaMenu open={megaOpen} onClose={() => setMegaOpen(false)} gameTypes={gameTypes} />
 
       {mobileOpen && (
         <div className="border-t border-border bg-background px-4 py-4 lg:hidden">
@@ -160,7 +172,24 @@ export function SiteHeader() {
               登入 / 註冊
             </Link>
           )}
-          {NAV_ITEMS.map((item) => (
+          {gameTypes.map((game) => (
+            <Link
+              key={game.id}
+              href={`/products/${game.slug}`}
+              className="block py-2 text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setMobileOpen(false)}
+            >
+              {game.name}
+            </Link>
+          ))}
+          <Link
+            href="/products"
+            className="block py-2 text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => setMobileOpen(false)}
+          >
+            全部商品
+          </Link>
+          {staticNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
