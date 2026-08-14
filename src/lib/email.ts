@@ -7,6 +7,8 @@ import {
 } from "@/emails/order-receipt";
 import { TournamentCancelledEmail } from "@/emails/tournament-cancelled";
 import { OtpVerificationEmail } from "@/emails/otp-verification";
+import { ReceiptEmail } from "@/emails/receipt";
+import type { ReceiptData } from "@/lib/transaction-types";
 
 let transporter: nodemailer.Transporter | null = null;
 
@@ -211,6 +213,42 @@ export async function sendOtpEmail(input: {
     });
   } catch (err) {
     console.error(`[email] OTP 電郵例外:`, err);
+    return false;
+  }
+}
+
+/**
+ * 發送統一交易收據電郵（ADR-003）。
+ * 使用 ReceiptEmail 模板，支援 ORDER 和 TOURNAMENT 兩種收據。
+ * 不會拋出例外。
+ */
+export async function sendTransactionReceipt(input: {
+  to: string;
+  receiptData: ReceiptData;
+}): Promise<boolean> {
+  if (!getTransporter()) {
+    console.log(
+      `[email] SMTP 未設定，跳過交易收據電郵 (${input.to})`,
+    );
+    return false;
+  }
+
+  try {
+    const html = await render(
+      ReceiptEmail({ data: input.receiptData }),
+    );
+
+    const subject = input.receiptData.type === "ORDER"
+      ? `${SITE_BRAND} 訂單收據`
+      : `${SITE_BRAND} 賽事收據`;
+
+    return await sendViaSmtp({
+      to: input.to,
+      subject,
+      html,
+    });
+  } catch (err) {
+    console.error(`[email] 交易收據電郵例外:`, err);
     return false;
   }
 }

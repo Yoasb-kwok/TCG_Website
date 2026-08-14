@@ -1,6 +1,7 @@
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { HERO_BANNERS, SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
+import { getSellableQuantity } from "@/lib/inventory";
 import type { ProductWithVariants } from "@/lib/types";
 
 export interface HomeBannerItem {
@@ -179,6 +180,34 @@ export async function getHomeContent(): Promise<HomeContent> {
       featuredAuto = true;
       const autoProducts = await fetchAutoFeaturedProducts();
       featuredProducts = autoProducts.length ? autoProducts : demoFeatured;
+    }
+
+    // ADR-005 Decision 6: Apply buffer zone to featured products on home page
+    // so customers see sellable quantity, not raw actual stock.
+    if (!featuredAuto || featuredProducts !== demoFeatured) {
+      const shopSetting = await prisma.shopSetting.findUnique({
+        where: { id: "default" },
+      });
+      const globalCritical = shopSetting?.defaultCriticalThreshold ?? 2;
+
+      featuredProducts = featuredProducts
+        .filter((p) =>
+          p.variants.some(
+            (v) => getSellableQuantity(v.stock, v.criticalThreshold ?? globalCritical) > 0,
+          ),
+        )
+        .map((p) => ({
+          ...p,
+          variants: p.variants.map((v) => ({
+            ...v,
+            stock: getSellableQuantity(v.stock, v.criticalThreshold ?? globalCritical),
+          })),
+        }));
+
+      // Fallback to demo if all featured products are out of sellable stock
+      if (featuredProducts.length === 0 && !featuredAuto) {
+        featuredProducts = demoFeatured;
+      }
     }
 
     return {

@@ -27,6 +27,7 @@ import {
   formatPrice,
   googleCalendarUrl,
 } from "@/lib/format";
+import { POINTS_RATE } from "@/lib/points-constants";
 import type { TournamentItem } from "@/lib/types";
 
 export default function RegisterPage() {
@@ -292,6 +293,12 @@ export default function RegisterPage() {
                 : "免費"}
             </span>
           </div>
+
+          {tournament.entryFee > 0 && (
+            <div className="flex items-center gap-2 text-xs text-amber-600">
+              <span>賺 {Math.floor(tournament.entryFee * POINTS_RATE)} 積分</span>
+            </div>
+          )}
 
           {/* Payment method info for paid tournaments */}
           {requiresPayment && (

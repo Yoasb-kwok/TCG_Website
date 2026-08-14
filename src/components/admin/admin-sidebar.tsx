@@ -13,6 +13,8 @@ import {
   LogOut,
   ExternalLink,
   Database,
+  Award,
+  Gamepad2,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SITE_BRAND } from "@/lib/constants";
@@ -20,10 +22,12 @@ import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/admin", label: "總覽", icon: LayoutDashboard, exact: true },
+  { href: "/admin/games", label: "遊戲管理", icon: Gamepad2 },
   { href: "/admin/taxonomy", label: "標籤管理", icon: Tags },
   { href: "/admin/products", label: "商品上架", icon: Package },
   { href: "/admin/content", label: "網站內容", icon: FilePenLine },
-  { href: "/admin/orders", label: "交易紀錄", icon: Receipt },
+  { href: "/admin/transactions", label: "交易管理", icon: Receipt },
+  { href: "/admin/points", label: "積分管理", icon: Award },
   { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },
   { href: "/admin/data", label: "資料備份", icon: Database },
 ];

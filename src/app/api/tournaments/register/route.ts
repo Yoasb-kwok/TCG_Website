@@ -183,6 +183,7 @@ export async function POST(request: NextRequest) {
               currency: "hkd",
               product_data: {
                 name: `${tournament.title} — 報名費`,
+                tax_code: "txcd_99999999",
               },
               unit_amount: Math.round(tournament.entryFee * 100),
             },

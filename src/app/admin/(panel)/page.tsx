@@ -21,7 +21,8 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     fetch("/api/admin/stats")
       .then((r) => r.json())
-      .then(setStats);
+      .then(setStats)
+      .catch(() => setStats(null));
   }, []);
 
   const cards = [

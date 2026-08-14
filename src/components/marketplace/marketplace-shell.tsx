@@ -13,10 +13,11 @@ import {
 } from "@/components/ui/sheet";
 import { FilterPanel } from "@/components/marketplace/filter-panel";
 import { ProductCard } from "@/components/marketplace/product-card";
+import { GameTabs } from "@/components/marketplace/game-tabs";
 import { useFilterContext } from "@/providers/filter-provider";
 import type { ProductsResponse } from "@/lib/types";
 
-export function MarketplaceShell() {
+export function MarketplaceShell({ gameTypeSlug }: { gameTypeSlug?: string }) {
   const searchParams = useSearchParams();
   const { filters, setFilters } = useFilterContext();
   const [data, setData] = useState<ProductsResponse | null>(null);
@@ -29,6 +30,7 @@ export function MarketplaceShell() {
     params.set("page", String(page));
     params.set("pageSize", "24");
 
+    if (gameTypeSlug) params.set("gameType", gameTypeSlug);
     if (filters.inStock) params.set("inStock", "true");
     if (filters.priceRange[0] > 0) params.set("minPrice", String(filters.priceRange[0]));
     if (filters.priceRange[1] < 5000) params.set("maxPrice", String(filters.priceRange[1]));
@@ -75,6 +77,8 @@ export function MarketplaceShell() {
             </p>
           )}
         </div>
+
+        <GameTabs activeSlug={gameTypeSlug} />
 
         <Sheet>
           <SheetTrigger

@@ -9,7 +9,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment after Prisma schema migrations that add/change model fields */
-const PRISMA_SCHEMA_VERSION = "20260708120000_tournament_soft_delete";
+const PRISMA_SCHEMA_VERSION = "20260815000000_game_type";
 
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL);

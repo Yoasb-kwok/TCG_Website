@@ -106,6 +106,8 @@ export async function listTaxonomyOptions(
   kind?: TaxonomyKind,
   parentValue?: string | null,
   activeOnly = true,
+  /// ADR-006: Filter by game type. Includes shared (null) + game-specific options.
+  gameTypeId?: string,
 ): Promise<TaxonomyOptionDto[]> {
   if (!isDatabaseConfigured()) return [];
   await ensureDefaultTaxonomy();
@@ -118,6 +120,9 @@ export async function listTaxonomyOptions(
         ? { parentValue: parentValue ?? null }
         : {}),
       ...(activeOnly ? { active: true } : {}),
+      ...(gameTypeId
+        ? { OR: [{ gameTypeId: null }, { gameTypeId }] }
+        : {}),
     },
     orderBy: [{ kind: "asc" }, { sortIndex: "asc" }, { label: "asc" }],
   });
@@ -127,8 +132,9 @@ export async function listTaxonomyOptions(
 
 export async function listTaxonomyGrouped(
   activeOnly = false,
+  gameTypeId?: string,
 ): Promise<Record<TaxonomyKind, TaxonomyOptionDto[]>> {
-  const all = await listTaxonomyOptions(undefined, undefined, activeOnly);
+  const all = await listTaxonomyOptions(undefined, undefined, activeOnly, gameTypeId);
   await ensureProductTypeTaxonomy();
 
   const grouped = {

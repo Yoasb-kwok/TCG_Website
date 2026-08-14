@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
+import { awardOrderPoints } from "@/lib/points";
 
 export async function PATCH(
   request: NextRequest,
@@ -21,6 +22,16 @@ export async function PATCH(
     data: { status: status as "PENDING" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELLED" },
     include: { items: { include: { variant: { include: { product: true } } } } },
   });
+
+  // ADR-004 Decision 5: Award points when admin manually sets status to PAID
+  // (idempotency guard in awardOrderPoints prevents double-award)
+  if (status === "PAID") {
+    const subtotal = order.items.reduce(
+      (s, i) => s + i.unitPrice * i.quantity,
+      0,
+    );
+    await awardOrderPoints(order.email, order.id, subtotal);
+  }
 
   return NextResponse.json({ order });
 }

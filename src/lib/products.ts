@@ -27,6 +27,8 @@ export interface ProductFilters {
   search?: string;
   language?: string;
   sort?: ProductSort;
+  /// ADR-006: Game type slug for scoping products (e.g. "pokemon", "one-piece")
+  gameType?: string;
 }
 
 function enrichProduct<T extends ProductWithVariants>(p: T): T {
@@ -255,6 +257,33 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
     }
 
     const prisma = getPrisma();
+
+    // ADR-006: Resolve game type slug to ID for filtering
+    let gameTypeId: string | undefined;
+    if (filters.gameType) {
+      const game = await prisma.gameType.findUnique({
+        where: { slug: filters.gameType },
+      });
+      if (!game) {
+        return {
+          products: [],
+          total: 0,
+          page,
+          pageSize,
+          totalPages: 0,
+          filters: { cardSets: [], rarities: [], pokemonTypes: [], setCodes: [], rarityTiers: [] },
+        };
+      }
+      gameTypeId = game.id;
+      where.gameTypeId = gameTypeId;
+    }
+
+    // ADR-005: Fetch global thresholds for buffer zone filtering
+    const shopSetting = await prisma.shopSetting.findUnique({
+      where: { id: "default" },
+    });
+    const globalCritical = shopSetting?.defaultCriticalThreshold ?? 2;
+
     let [products, total, allProducts] = await Promise.all([
       prisma.product.findMany({
         where,
@@ -279,7 +308,24 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
       }),
     ]);
 
-    let mapped = (products as ProductWithVariants[]).map(enrichProduct);
+    // ADR-005: Buffer zone — filter out products where ALL variants have sellable <= 0
+    // sellable = stock - (variant.criticalThreshold ?? globalCritical)
+    // Also replace stock with sellable quantity for customer-facing display
+    const bufferedProducts = (products as Array<{
+      id: string;
+      variants: Array<{ stock: number; criticalThreshold: number | null }>;
+    }>).filter((p) =>
+      p.variants.some((v) => v.stock - (v.criticalThreshold ?? globalCritical) > 0),
+    );
+
+    // Replace variant stock with sellable quantity (customer-facing)
+    for (const p of bufferedProducts) {
+      for (const v of p.variants) {
+        v.stock = Math.max(0, v.stock - (v.criticalThreshold ?? globalCritical));
+      }
+    }
+
+    let mapped = (bufferedProducts as unknown as ProductWithVariants[]).map(enrichProduct);
 
     if (sort === "priceAsc" || sort === "priceDesc") {
       mapped = sortProducts(mapped, sort);
