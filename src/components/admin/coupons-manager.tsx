@@ -28,10 +28,10 @@ function slugify(name: string): string {
 }
 
 const QUICK_FILLS = [
-  "20% off",
-  "HK$50 off",
-  "Buy 1 Get 1 Free",
-  "Free Shipping",
+  "8折",
+  "折價HK$50",
+  "買一送一",
+  "免運費",
 ];
 
 export function CouponsManager() {
