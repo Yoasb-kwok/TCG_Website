@@ -15,6 +15,7 @@ import {
   Database,
   Award,
   Gamepad2,
+  Ticket,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SITE_BRAND } from "@/lib/constants";
@@ -29,6 +30,7 @@ const LINKS = [
   { href: "/admin/transactions", label: "交易管理", icon: Receipt },
   { href: "/admin/points", label: "積分管理", icon: Award },
   { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },
+  { href: "/admin/coupons", label: "優惠券", icon: Ticket },
   { href: "/admin/data", label: "資料備份", icon: Database },
 ];
 
