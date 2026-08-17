@@ -92,6 +92,8 @@ model User {
   role          UserRole                @default(USER)
   orders        Order[]
   registrations TournamentRegistration[]
+  /// ADR-008 Decision 7: soft delete — deleted accounts cannot log in; email stays occupied
+  deletedAt     DateTime?
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
 }
@@ -117,7 +119,7 @@ model EmailVerification {
 model PasswordReset {
   id        String   @id @default(uuid())
   email     String   @unique
-  /// 6位數 OTP 驗證碼（bcrypt 雜湊）
+  /// 6位數 OTP 驗證碼
   code      String
   attempts  Int      @default(0)
   used      Boolean  @default(false)
@@ -125,6 +127,25 @@ model PasswordReset {
   createdAt DateTime @default(now())
 
   @@index([email, expiresAt])
+}
+
+/// ADR-008 Decision 2: admin-initiated email change transition record (kept for audit)
+model EmailChangeRequest {
+  id          String    @id @default(uuid())
+  /// one pending change per user
+  userId      String    @unique
+  oldEmail    String
+  newEmail    String
+  /// bcrypt hash of the 6-digit OTP (generated at login, state 2)
+  otpHash     String?
+  attempts    Int       @default(0)
+  expiresAt   DateTime?
+  /// PENDING → CONFIRMED | REVERSED
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+
+  @@index([status])
 }
 
 model Product {
