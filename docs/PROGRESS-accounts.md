@@ -117,6 +117,20 @@ psql "$DATABASE_URL" -f prisma/migrations/rollback/rollback-accounts.sql
 
 ---
 
+## Code Review Outcome (post-implementation, c102cbf..HEAD)
+
+**Fixed in `8459eff`:** verify page `res.ok`-before-`res.json()` convention; `GET /api/admin/accounts` 503 (was `[]`) when DB unconfigured; jwt callback mapping deduplicated (single source in `auth.config.ts`).
+
+**Known limitations — need decision:**
+
+1. **Audit trail vs `userId @unique`** — a second email change on the same account overwrites the prior CONFIRMED/REVERSED row (ADR Decision 2 says rows are kept as audit trail; the ADR's own schema sketch has `userId @unique`, creating the conflict). Fixing properly = drop unique constraint + query `findFirst(status=PENDING)` + new migration.
+2. **Wall gap for already-active sessions** — `emailChangePending` is set at login and on `session.update()` only; a user signed in on another device when the admin initiates keeps full access until their token refreshes. Edge middleware cannot query the DB. Mitigation option: node-runtime layout guard on protected pages.
+3. **No pagination** on `GET /api/admin/accounts` (ADR endpoint table mentioned "paginate"; small-shop scale makes it low priority).
+
+**Noted as acceptable:** send-reset duplicates forgot-password OTP block (behaviorally equivalent); error→status mapping by Chinese-substring match in routes (a typed DomainError would harden it); admin badge on dashboard (minor scope addition); export is POST while ADR table said GET (plan says POST — correct for body ids).
+
+---
+
 ## PR Description (draft)
 
 **Title:** feat: admin account management system (ADR-008)
