@@ -14,6 +14,12 @@ export interface ProductVariant {
   price: number;
   stock: number;
   sku: string;
+  // ADR-005 inventory fields (present on DB-backed products, absent on demo data)
+  bookedStock?: number;
+  reservedStock?: number;
+  reservedNote?: string | null;
+  lowThreshold?: number | null;
+  criticalThreshold?: number | null;
 }
 
 export interface ProductWithVariants {
@@ -82,6 +88,14 @@ export interface TournamentItem {
   location: string;
   startsAt: string;
   registrationDeadline: string;
+  durationMinutes: number;
   status: string;
   registeredCount: number;
+}
+
+export interface RegistrationInput {
+  tournamentId: string;
+  playerName: string;
+  email: string;
+  phone?: string;
 }

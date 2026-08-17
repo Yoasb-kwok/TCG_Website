@@ -65,6 +65,10 @@ export async function POST(request: NextRequest) {
         include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } } },
       });
 
+      // ADR-005: Fetch global critical threshold for buffer zone
+      const shopSetting = await prisma.shopSetting.findUnique({ where: { id: "default" } });
+      const globalCritical = shopSetting?.defaultCriticalThreshold ?? 2;
+
       if (variants.length !== body.items.length) {
         const found = new Set(variants.map((v) => v.id));
         const missing = body.items.filter((i) => !found.has(i.variantId));
@@ -73,8 +77,11 @@ export async function POST(request: NextRequest) {
 
       for (const item of body.items) {
         const variant = variants.find((v) => v.id === item.variantId)!;
-        if (variant.stock < item.quantity) {
-          throw new Error(`${variant.product.name} 庫存不足（剩餘 ${variant.stock}）`);
+        // ADR-005: Buffer zone — sellable = actual − effectiveCriticalThreshold
+        const effectiveCritical = variant.criticalThreshold ?? globalCritical;
+        const sellable = Math.max(0, variant.stock - effectiveCritical);
+        if (sellable < item.quantity) {
+          throw new Error(`${variant.product.name} 庫存不足（可售 ${sellable}）`);
         }
         subtotal += variant.price * item.quantity;
         orderItems.push({
@@ -150,6 +157,9 @@ export async function POST(request: NextRequest) {
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Physical goods / in-person events are ineligible for Managed Payments;
+      // MP is enabled by default on this account, so opt out per-session.
+      managed_payments: { enabled: false },
       customer_email: email,
       line_items: lineItems,
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,

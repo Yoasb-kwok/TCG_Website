@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
   const search = searchParams.get("search") ?? undefined;
   const language = searchParams.get("language") ?? undefined;
   const sort = (searchParams.get("sort") as ProductSort | null) ?? "newest";
+  const gameType = searchParams.get("gameType") ?? undefined;
 
   const setCodes = searchParams.getAll("setCode").filter(Boolean);
   const rarityTiers = searchParams.getAll("rarityTier").filter(Boolean);
@@ -36,6 +37,7 @@ export async function GET(request: NextRequest) {
     search,
     language,
     sort,
+    gameType,
   });
 
   return NextResponse.json(data);

@@ -11,8 +11,10 @@ import { Label } from "@/components/ui/label";
 import { FORM_FIELD_INPUT_CLASS } from "@/lib/search-bar-styles";
 import { SITE_BRAND } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { OtpInput } from "@/components/auth/otp-input";
 
 type Tab = "login" | "register";
+type Step = "credentials" | "otp";
 
 function resolveRedirect(
   role: "USER" | "ADMIN",
@@ -36,6 +38,9 @@ export function AuthForm() {
   const [phone, setPhone] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<Step>("credentials");
+  const [otp, setOtp] = useState("");
+  const [otpAttempt, setOtpAttempt] = useState(0);
 
   const callbackUrl = searchParams.get("callbackUrl");
   const urlError = searchParams.get("error");
@@ -77,12 +82,12 @@ export function AuthForm() {
     router.refresh();
   };
 
-  const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  // ── Registration OTP flow ──────────────────────────────────────
+
+  async function sendRegistrationOtp(): Promise<boolean> {
     setError(null);
 
-    const res = await fetch("/api/auth/register", {
+    const res = await fetch("/api/auth/send-registration-otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -96,11 +101,43 @@ export function AuthForm() {
     const data = (await res.json()) as { error?: string };
 
     if (!res.ok) {
-      setError(data.error ?? "註冊失敗");
+      setError(data.error ?? "發送驗證碼失敗");
+      return false;
+    }
+
+    return true;
+  }
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const success = await sendRegistrationOtp();
+    if (success) {
+      setStep("otp");
+    }
+    setLoading(false);
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    const res = await fetch("/api/auth/verify-registration", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), code: otp }),
+    });
+
+    const data = (await res.json()) as { error?: string };
+
+    if (!res.ok) {
+      setError(data.error ?? "驗證失敗");
       setLoading(false);
       return;
     }
 
+    // Auto-login — account was just created by the verify endpoint
     const signInResult = await signIn("credentials", {
       email: email.trim(),
       password,
@@ -110,6 +147,7 @@ export function AuthForm() {
     if (signInResult?.error) {
       setError("註冊成功，請改用登入");
       setTab("login");
+      setStep("credentials");
       setLoading(false);
       return;
     }
@@ -118,6 +156,14 @@ export function AuthForm() {
     const role = session?.user?.role ?? "USER";
     router.push(resolveRedirect(role, callbackUrl));
     router.refresh();
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    setOtp("");
+    setOtpAttempt((a) => a + 1);
+    await sendRegistrationOtp();
+    setLoading(false);
   };
 
   return (
@@ -131,6 +177,7 @@ export function AuthForm() {
           type="button"
           onClick={() => {
             setTab("login");
+            setStep("credentials");
             setError(null);
           }}
           className={cn(
@@ -146,6 +193,7 @@ export function AuthForm() {
           type="button"
           onClick={() => {
             setTab("register");
+            setStep("credentials");
             setError(null);
           }}
           className={cn(
@@ -167,82 +215,154 @@ export function AuthForm() {
         </p>
       </div>
 
-      <form
-        onSubmit={tab === "login" ? handleLogin : handleRegister}
-        className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6"
-      >
-        {tab === "register" && (
-          <div className="space-y-2">
-            <Label htmlFor="name">名稱（選填）</Label>
-            <Input
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className={FORM_FIELD_INPUT_CLASS}
-              autoComplete="name"
-            />
+      {tab === "register" && step === "otp" ? (
+        <form
+          onSubmit={handleVerifyOtp}
+          className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6"
+        >
+          <div className="space-y-1 text-center">
+            <p className="text-sm text-muted-foreground">
+              驗證碼已發送至{" "}
+              <strong className="text-foreground">{email}</strong>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              請輸入 6 位數驗證碼（10 分鐘內有效）
+            </p>
+            <p className="text-xs text-amber-600">
+              收不到？請檢查垃圾郵件匣
+            </p>
           </div>
-        )}
 
-        <div className="space-y-2">
-          <Label htmlFor="email">電郵</Label>
-          <Input
-            id="email"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={FORM_FIELD_INPUT_CLASS}
-            required
-            autoComplete="email"
-          />
-        </div>
+          <OtpInput key={otpAttempt} onChange={setOtp} disabled={loading} />
 
-        <div className="space-y-2">
-          <Label htmlFor="password">密碼</Label>
-          <Input
-            id="password"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={FORM_FIELD_INPUT_CLASS}
-            required
-            minLength={6}
-            autoComplete={tab === "login" ? "current-password" : "new-password"}
-          />
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={loading || otp.length !== 6}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                驗證中...
+              </>
+            ) : (
+              "驗證"
+            )}
+          </Button>
+
+          <div className="flex justify-between text-sm">
+            <button
+              type="button"
+              onClick={handleResendOtp}
+              disabled={loading}
+              className="text-pink-500 hover:text-pink-600 disabled:opacity-50"
+            >
+              重新發送
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setStep("credentials");
+                setError(null);
+              }}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              返回修改
+            </button>
+          </div>
+        </form>
+      ) : (
+        <form
+          onSubmit={tab === "login" ? handleLogin : handleRegister}
+          className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6"
+        >
           {tab === "register" && (
-            <p className="text-xs text-muted-foreground">至少 6 個字元</p>
+            <div className="space-y-2">
+              <Label htmlFor="name">名稱（選填）</Label>
+              <Input
+                id="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={FORM_FIELD_INPUT_CLASS}
+                autoComplete="name"
+              />
+            </div>
           )}
-        </div>
 
-        {tab === "register" && (
           <div className="space-y-2">
-            <Label htmlFor="phone">電話（選填）</Label>
+            <Label htmlFor="email">電郵</Label>
             <Input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className={FORM_FIELD_INPUT_CLASS}
-              autoComplete="tel"
+              required
+              autoComplete="email"
             />
           </div>
-        )}
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">密碼</Label>
+              {tab === "login" && (
+                <Link
+                  href="/forgot-password"
+                  className="text-xs text-pink-500 hover:text-pink-600"
+                >
+                  忘記密碼？
+                </Link>
+              )}
+            </div>
+            <Input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={FORM_FIELD_INPUT_CLASS}
+              required
+              minLength={6}
+              autoComplete={
+                tab === "login" ? "current-password" : "new-password"
+              }
+            />
+            {tab === "register" && (
+              <p className="text-xs text-muted-foreground">至少 6 個字元</p>
+            )}
+          </div>
 
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              處理中...
-            </>
-          ) : tab === "login" ? (
-            "登入"
-          ) : (
-            "註冊並登入"
+          {tab === "register" && (
+            <div className="space-y-2">
+              <Label htmlFor="phone">電話（選填）</Label>
+              <Input
+                id="phone"
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className={FORM_FIELD_INPUT_CLASS}
+                autoComplete="tel"
+              />
+            </div>
           )}
-        </Button>
-      </form>
+
+          {error && <p className="text-sm text-red-500">{error}</p>}
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                處理中...
+              </>
+            ) : tab === "login" ? (
+              "登入"
+            ) : (
+              "發送驗證碼"
+            )}
+          </Button>
+        </form>
+      )}
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
         <Link href="/" className="hover:text-foreground">

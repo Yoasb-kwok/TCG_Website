@@ -29,18 +29,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               name: true,
               role: true,
               passwordHash: true,
+              deletedAt: true,
             },
           });
           if (!user?.passwordHash) return null;
+          // ADR-008 Decision 7：軟刪除帳戶不可登入
+          if (user.deletedAt) return null;
 
           const valid = await verifyPassword(password, user.passwordHash);
           if (!valid) return null;
+
+          // ADR-008 Decision 4：登入時檢查是否有待驗證的電郵變更
+          const pending = await prisma.emailChangeRequest.findUnique({
+            where: { userId: user.id },
+          });
 
           return {
             id: user.id,
             email: user.email,
             name: user.name,
             role: user.role,
+            emailChangePending: pending?.status === "PENDING",
           };
         } catch {
           return null;
@@ -48,4 +57,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
+  callbacks: {
+    ...authConfig.callbacks,
+    async jwt(params) {
+      // 基礎映射（id/role/emailChangePending）統一在 auth.config.ts
+      const token = await authConfig.callbacks.jwt(params);
+
+      // ADR-008 Decision 4：驗證完成後 session.update() → 重新查詢待驗證狀態
+      if (params.trigger === "update" && token.id) {
+        try {
+          const prisma = getPrisma();
+          const req = await prisma.emailChangeRequest.findUnique({
+            where: { userId: token.id },
+          });
+          token.emailChangePending = req?.status === "PENDING";
+        } catch {
+          // DB 錯誤時保留現有旗標
+        }
+      }
+      return token;
+    },
+  },
 });

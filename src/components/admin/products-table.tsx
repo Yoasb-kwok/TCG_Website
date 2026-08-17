@@ -40,6 +40,8 @@ export interface AdminProduct {
     id: string;
     price: number;
     stock: number;
+    bookedStock: number;
+    reservedStock: number;
     condition: string;
     isFoil: boolean;
   }[];
@@ -65,7 +67,6 @@ export function ProductsTable() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkOpen, setBulkOpen] = useState(false);
   const [bulkPrice, setBulkPrice] = useState("");
-  const [bulkStock, setBulkStock] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<AdminProduct | null>(null);
@@ -179,16 +180,12 @@ export function ProductsTable() {
 
   const applyBulkEdit = async () => {
     const price = bulkPrice.trim() ? Number(bulkPrice) : undefined;
-    const stock = bulkStock.trim() ? Number(bulkStock) : undefined;
-    if (price == null && stock == null) {
-      setMessage("請至少填寫售價或庫存");
+    if (price == null) {
+      setMessage("請填寫售價");
       return;
     }
-    if (
-      (price != null && (Number.isNaN(price) || price < 0)) ||
-      (stock != null && (Number.isNaN(stock) || stock < 0 || !Number.isInteger(stock)))
-    ) {
-      setMessage("售價或庫存格式不正確");
+    if (Number.isNaN(price) || price < 0) {
+      setMessage("售價格式不正確");
       return;
     }
 
@@ -200,7 +197,6 @@ export function ProductsTable() {
       body: JSON.stringify({
         ids: Array.from(selected),
         price,
-        stock,
       }),
     });
     const data = (await res.json()) as {
@@ -214,7 +210,6 @@ export function ProductsTable() {
     }
     setBulkOpen(false);
     setBulkPrice("");
-    setBulkStock("");
     setMessage(`已更新 ${data.updated ?? 0} 項商品`);
     await load(page);
   };
@@ -361,7 +356,7 @@ export function ProductsTable() {
               <th className="p-3">稀有度</th>
               <th className="p-3">類型</th>
               <th className="p-3">售價</th>
-              <th className="p-3">庫存</th>
+              <th className="p-3">總庫存</th>
               <th className="p-3 w-20">操作</th>
             </tr>
           </thead>
@@ -425,16 +420,24 @@ export function ProductsTable() {
                     />
                   </td>
                   <td className="p-3">
-                    <Input
-                      type="number"
-                      defaultValue={v.stock}
-                      className={`h-8 w-16 border-border bg-background text-foreground ${
-                        v.stock <= 2 ? "border-amber-500/50" : ""
-                      }`}
-                      onBlur={(e) =>
-                        updateVariant(p.id, v.id, "stock", Number(e.target.value))
-                      }
-                    />
+                    <div className="flex flex-col">
+                      <span
+                        className={`text-sm font-medium ${
+                          v.stock + v.bookedStock + v.reservedStock <= 0
+                            ? "text-red-500"
+                            : v.stock <= 2
+                              ? "text-amber-500"
+                              : "text-foreground"
+                        }`}
+                      >
+                        {v.stock + v.bookedStock + v.reservedStock}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        實際 {v.stock}
+                        {v.bookedStock > 0 && ` · 入貨中 ${v.bookedStock}`}
+                        {v.reservedStock > 0 && ` · 預留 ${v.reservedStock}`}
+                      </span>
+                    </div>
                   </td>
                   <td className="p-3">
                     <div className="flex justify-end gap-1">
@@ -550,19 +553,9 @@ export function ProductsTable() {
                   className="border-border bg-background"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="bulk-stock">庫存</Label>
-                <Input
-                  id="bulk-stock"
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="留空則不變更"
-                  value={bulkStock}
-                  onChange={(e) => setBulkStock(e.target.value)}
-                  className="border-border bg-background"
-                />
-              </div>
+              <p className="text-xs text-muted-foreground">
+                庫存請至「庫存管理」分頁調整
+              </p>
               {selectedCount > 0 && bulkPrice && (
                 <p className="text-xs text-muted-foreground">
                   預覽：售價將設為 {formatPrice(Number(bulkPrice))}

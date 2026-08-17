@@ -14,21 +14,27 @@ const EMPTY: GroupedTaxonomy = {
   PRODUCT_TYPE: [],
 };
 
-export function usePublicTaxonomy() {
+export function usePublicTaxonomy(gameTypeSlug?: string) {
   const [grouped, setGrouped] = useState<GroupedTaxonomy>(EMPTY);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("/api/taxonomy?grouped=1")
+    const url = gameTypeSlug
+      ? `/api/taxonomy?grouped=1&gameType=${gameTypeSlug}`
+      : "/api/taxonomy?grouped=1";
+    fetch(url)
       .then((r) => r.json())
       .then((d: { grouped?: GroupedTaxonomy }) => {
         if (d.grouped) setGrouped(d.grouped);
       })
-      .catch(() => setGrouped(EMPTY));
-  }, []);
+      .catch(() => setGrouped(EMPTY))
+      .finally(() => setLoading(false));
+  }, [gameTypeSlug]);
 
   return useMemo(
     () => ({
       grouped,
+      loading,
       labelFor(kind: TaxonomyKind, value?: string | null) {
         if (!value) return "—";
         return grouped[kind]?.find((o) => o.value === value)?.label ?? value;
@@ -37,6 +43,6 @@ export function usePublicTaxonomy() {
         return grouped[kind] ?? [];
       },
     }),
-    [grouped],
+    [grouped, loading],
   );
 }

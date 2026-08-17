@@ -7,6 +7,9 @@ import {
 } from "@/lib/taxonomy-db";
 import { slugifyProduct } from "@/lib/product-slug";
 
+/// ADR-006: Default Pokémon game type ID (seeded in migration)
+const DEFAULT_GAME_TYPE_ID = "00000000-0000-0000-0000-000000000001";
+
 export interface ManualSingleInput {
   name: string;
   setCode: string;
@@ -19,6 +22,7 @@ export interface ManualSingleInput {
   description?: string;
   imageUrl: string;
   isFoil?: boolean;
+  gameTypeId?: string;
 }
 
 export interface ManualSealedInput {
@@ -29,6 +33,7 @@ export interface ManualSealedInput {
   stock: number;
   description?: string;
   imageUrl: string;
+  gameTypeId?: string;
 }
 
 export interface ManualAccessoryInput {
@@ -37,6 +42,7 @@ export interface ManualAccessoryInput {
   price: number;
   stock: number;
   imageUrl?: string;
+  gameTypeId?: string;
 }
 
 function buildSku(slug: string, suffix: string) {
@@ -76,6 +82,7 @@ export async function createManualSingle(input: ManualSingleInput) {
       slug,
       description,
       type: "SINGLE",
+      gameTypeId: input.gameTypeId ?? DEFAULT_GAME_TYPE_ID,
       cardSet: input.setCode,
       cardNumber: input.cardNumber ?? null,
       rarity: input.rarityTier,
@@ -131,6 +138,7 @@ export async function createManualSealed(input: ManualSealedInput) {
         input.description ??
         [setCode, typeLabel !== "—" ? typeLabel : null].filter(Boolean).join(" · "),
       type: input.type,
+      gameTypeId: input.gameTypeId ?? DEFAULT_GAME_TYPE_ID,
       cardSet: setCode,
       setCode,
       setSortIndex: setCode
@@ -169,6 +177,7 @@ export async function createManualAccessory(input: ManualAccessoryInput) {
       slug,
       description: input.description,
       type: "ACCESSORY",
+      gameTypeId: input.gameTypeId ?? DEFAULT_GAME_TYPE_ID,
       language: "zh-HK",
       images: input.imageUrl
         ? {

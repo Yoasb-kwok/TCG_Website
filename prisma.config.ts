@@ -9,6 +9,9 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Prefer the session pooler (DIRECT_URL, port 5432) for migrations/db push,
+    // because the transaction pooler (DATABASE_URL, port 6543) hangs on DDL.
+    // The runtime client (src/lib/prisma.ts) still uses DATABASE_URL independently.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

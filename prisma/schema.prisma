@@ -13,6 +13,25 @@ enum OrderStatus {
   SHIPPED
   COMPLETED
   CANCELLED
+  FAILED
+  NOT_REQUIRED
+}
+
+enum TransactionType {
+  ORDER
+  TOURNAMENT
+}
+
+enum BuyerType {
+  USER
+  GUEST
+}
+
+/// ADR-004: Reasons for point ledger entries
+enum PointReason {
+  ORDER_EARN
+  TOURNAMENT_EARN
+  ADMIN_ADJUST
 }
 
 enum TournamentStatus {
@@ -52,12 +71,16 @@ model TaxonomyOption {
   /** 系列固定卡號後綴（SET_CODE 用，如 063 → 001/063） */
   cardSuffix  String?
   active      Boolean      @default(true)
+  /// ADR-006: null = shared across all games (e.g. PRODUCT_TYPE); FK = game-specific
+  gameTypeId  String?
+  gameType    GameType?     @relation(fields: [gameTypeId], references: [id], onDelete: SetNull)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
   @@unique([kind, value, parentValue])
   @@index([kind, sortIndex])
   @@index([kind, parentValue])
+  @@index([gameTypeId])
 }
 
 model User {
@@ -69,8 +92,60 @@ model User {
   role          UserRole                @default(USER)
   orders        Order[]
   registrations TournamentRegistration[]
+  /// ADR-008 Decision 7: soft delete — deleted accounts cannot log in; email stays occupied
+  deletedAt     DateTime?
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
+}
+
+/// 註冊時的 OTP 驗證記錄。帳號在 OTP 驗證後才建立。
+model EmailVerification {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  /// 6位數 OTP 驗證碼（bcrypt 雜湊）
+  code         String
+  /// 註冊表單提交的密碼雜湊
+  passwordHash String
+  name         String?
+  phone        String?
+  attempts     Int      @default(0)
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  @@index([email, expiresAt])
+}
+
+/// 忘記密碼的 OTP 驗證記錄。
+model PasswordReset {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  /// 6位數 OTP 驗證碼
+  code      String
+  attempts  Int      @default(0)
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([email, expiresAt])
+}
+
+/// ADR-008 Decision 2: admin-initiated email change transition record (kept for audit)
+model EmailChangeRequest {
+  id          String    @id @default(uuid())
+  /// one pending change per user
+  userId      String    @unique
+  oldEmail    String
+  newEmail    String
+  /// bcrypt hash of the 6-digit OTP (generated at login, state 2)
+  otpHash     String?
+  attempts    Int       @default(0)
+  expiresAt   DateTime?
+  /// PENDING → CONFIRMED | REVERSED
+  status      String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  confirmedAt DateTime?
+
+  @@index([status])
 }
 
 model Product {
@@ -95,6 +170,9 @@ model Product {
   pokemonType    String?
   language       String        @default("zh-HK")
   externalCardId String?
+  /// ADR-006: Required FK — every product belongs to a game type
+  gameTypeId     String
+  gameType       GameType       @relation(fields: [gameTypeId], references: [id])
   variants       ProductVariant[]
   images         Image[]
   featuredEntries HomeFeaturedProduct[]
@@ -109,6 +187,7 @@ model Product {
   @@index([raritySortIndex])
   @@index([pokemonType])
   @@index([type])
+  @@index([gameTypeId])
 }
 
 model HomeBanner {
@@ -165,6 +244,14 @@ model ProductVariant {
   sku       String  @unique
   orderItems OrderItem[]
 
+  /// ADR-005: Inventory stocking system
+  bookedStock       Int     @default(0)
+  reservedStock     Int     @default(0)
+  reservedNote      String?
+  lowThreshold      Int?
+  criticalThreshold Int?
+  stockRecords      StockRecord[]
+
   @@index([productId])
   @@index([stock])
 }
@@ -204,20 +291,22 @@ model OrderItem {
 
 model Tournament {
   id           String                   @id @default(uuid())
-  title        String
+  title        String                   @db.VarChar(250)
   slug         String                   @unique
   description  String?
-  format       String
+  format       String                   @db.VarChar(250)
   maxPlayers   Int
   entryFee     Float                    @default(0)
   prizePool    String?
   location     String
   startsAt     DateTime
   registrationDeadline DateTime
+  durationMinutes Int @default(120)
   status       TournamentStatus         @default(OPEN)
   registrations TournamentRegistration[]
   createdAt    DateTime                 @default(now())
   updatedAt    DateTime                 @updatedAt
+  deletedAt    DateTime?
 }
 
 model TournamentRegistration {
@@ -229,7 +318,115 @@ model TournamentRegistration {
   playerName   String
   email        String
   phone        String?
+  /// null = 免費賽事（無需付款）；"PENDING" = 待付款；"PAID" = 已付款
+  paymentStatus String?
+  stripeSessionId String? @unique
   createdAt    DateTime   @default(now())
 
   @@unique([tournamentId, email])
+  @@unique([tournamentId, phone])
 }
+
+/// ADR-003: Unified financial ledger for all transactions (orders + tournaments)
+model Transaction {
+  id           String           @id @default(uuid())
+  type         TransactionType
+  referenceId  String
+  buyerType    BuyerType
+  email        String
+  customerName String?
+  description  String
+  amount       Float
+  status       OrderStatus      @default(PENDING)
+  remark       String?
+  receiptData  Json?
+  /// ADR-009: set when status enters a money-received status (PAID/SHIPPED/COMPLETED/NOT_REQUIRED)
+  paidAt       DateTime?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([type])
+  @@index([status])
+  @@index([buyerType])
+  @@index([createdAt])
+  @@index([email])
+  @@index([paidAt])
+}
+
+/// ADR-004: Email-keyed points ledger. Balance = SUM(delta) WHERE email = ?
+model PointLedger {
+  id          String      @id @default(uuid())
+  email       String
+  delta       Int
+  reason      PointReason
+  referenceId String?
+  note        String?
+  createdAt   DateTime    @default(now())
+
+  @@index([email])
+  @@index([email, createdAt])
+  @@index([referenceId, reason])
+}
+
+/// ADR-005: Stock booking/arrival state
+enum StockState {
+  BOOKED
+  ARRIVED
+}
+
+/// ADR-005: One row per variant per stocking event
+/// Denormalized fields survive product/variant deletion (onDelete: SetNull)
+model StockRecord {
+  id          String      @id @default(uuid())
+  variantId   String?
+  variant     ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+  quantity    Int
+  unitCost    Float
+  state       StockState  @default(BOOKED)
+  bookedAt    DateTime    @default(now())
+  arrivedAt   DateTime?
+  arrivalNote String?
+
+  /// Denormalized snapshot — survives variant deletion
+  productName      String
+  variantCondition String
+  variantIsFoil    Boolean  @default(false)
+
+  @@index([variantId])
+  @@index([state])
+}
+
+/// ADR-005: Global default thresholds (singleton)
+model ShopSetting {
+  id                       String   @id @default("default")
+  defaultLowThreshold      Int      @default(5)
+  defaultCriticalThreshold Int      @default(2)
+  updatedAt                DateTime @updatedAt
+}
+
+/// ADR-006: Game type — top-level grouping above products and taxonomy
+model GameType {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  sortOrder Int      @default(0)
+  isActive  Boolean  @default(true)
+  products        Product[]
+  taxonomyOptions TaxonomyOption[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// ADR-007: Coupon management — standalone record system
+model Coupon {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String
+  quantity    Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+/// ADR-006: Game type — top-level grouping above products and taxonomy

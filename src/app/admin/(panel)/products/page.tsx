@@ -4,10 +4,14 @@ import { useState } from "react";
 import { ManualSingleForm } from "@/components/admin/manual-single-form";
 import { SealedAccessoryForm } from "@/components/admin/sealed-accessory-form";
 import { ProductsTable } from "@/components/admin/products-table";
+import { InventoryDashboard } from "@/components/admin/inventory-dashboard";
+import { RecordDashboard } from "@/components/admin/record-dashboard";
 
 export default function AdminProductsPage() {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [activeTab, setActiveTab] = useState<"single" | "sealed" | "list">("single");
+  const [activeTab, setActiveTab] = useState<
+    "single" | "sealed" | "inventory" | "records" | "list"
+  >("single");
 
   const onUpdated = () => setRefreshKey((k) => k + 1);
 
@@ -23,7 +27,9 @@ export default function AdminProductsPage() {
           [
             ["single", "單卡上架"],
             ["sealed", "卡盒 / 週邊"],
-            ["list", "已上架商品"],
+            ["inventory", "庫存管理"],
+            ["records", "入貨記錄"],
+            ["list", "商品列表"],
           ] as const
         ).map(([key, label]) => (
           <button
@@ -44,10 +50,12 @@ export default function AdminProductsPage() {
       <div className="mt-6">
         {activeTab === "single" && <ManualSingleForm onCreated={onUpdated} />}
         {activeTab === "sealed" && <SealedAccessoryForm onCreated={onUpdated} />}
+        {activeTab === "inventory" && <InventoryDashboard />}
+        {activeTab === "records" && <RecordDashboard />}
         {activeTab === "list" && <ProductsTable key={refreshKey} />}
       </div>
 
-      {activeTab !== "list" && (
+      {(activeTab === "single" || activeTab === "sealed") && (
         <div className="mt-12 border-t border-border pt-8">
           <h2 className="mb-4 text-lg font-semibold">已上架商品</h2>
           <ProductsTable key={refreshKey} />

@@ -6,6 +6,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { AuthSessionProvider } from "@/providers/session-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { FilterProvider } from "@/providers/filter-provider";
 import { SITE_BRAND, SITE_TAGLINE } from "@/lib/constants";
 import {
   resolveThemeClass,
@@ -53,9 +54,11 @@ export default async function RootLayout({
         >
           <AuthSessionProvider>
             <CartProvider>
-              <SiteHeader />
-              <main className="flex-1">{children}</main>
-              <SiteFooter />
+              <FilterProvider>
+                <SiteHeader />
+                <main className="flex-1">{children}</main>
+                <SiteFooter />
+              </FilterProvider>
             </CartProvider>
           </AuthSessionProvider>
         </ThemeProvider>

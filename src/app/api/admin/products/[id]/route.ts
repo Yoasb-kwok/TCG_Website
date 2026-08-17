@@ -65,6 +65,8 @@ export async function PATCH(
     isFoil?: boolean;
     imageUrl?: string;
     type?: string;
+    lowThreshold?: number | null;
+    criticalThreshold?: number | null;
   };
 
   const prisma = getPrisma();
@@ -80,6 +82,25 @@ export async function PATCH(
   const variantId = body.variantId ?? existing.variants[0]?.id;
   if (!variantId) {
     return NextResponse.json({ error: "商品缺少規格資料" }, { status: 400 });
+  }
+
+  // Handle threshold-only updates (from inventory dashboard or upload forms)
+  if (
+    body.lowThreshold !== undefined ||
+    body.criticalThreshold !== undefined
+  ) {
+    const data: Record<string, number | null> = {};
+    if (body.lowThreshold !== undefined)
+      data.lowThreshold = body.lowThreshold;
+    if (body.criticalThreshold !== undefined)
+      data.criticalThreshold = body.criticalThreshold;
+
+    await prisma.productVariant.update({ where: { id: variantId }, data });
+    const product = await prisma.product.findUnique({
+      where: { id },
+      include: { variants: true, images: true },
+    });
+    return NextResponse.json({ product });
   }
 
   try {

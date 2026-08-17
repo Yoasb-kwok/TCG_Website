@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listTaxonomyGrouped, listTaxonomyOptions } from "@/lib/taxonomy-db";
+import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import type { TaxonomyKind } from "@/lib/taxonomy-types";
 
 export async function GET(request: NextRequest) {
@@ -7,15 +8,26 @@ export async function GET(request: NextRequest) {
   const kind = searchParams.get("kind") as TaxonomyKind | null;
   const parentValue = searchParams.get("parentValue");
   const grouped = searchParams.get("grouped") === "1";
+  const gameTypeSlug = searchParams.get("gameType");
+
+  // ADR-006: Resolve game type slug to ID
+  let gameTypeId: string | undefined;
+  if (gameTypeSlug && isDatabaseConfigured()) {
+    const prisma = getPrisma();
+    const game = await prisma.gameType.findUnique({ where: { slug: gameTypeSlug } });
+    if (game) gameTypeId = game.id;
+  }
 
   try {
     if (grouped) {
-      const data = await listTaxonomyGrouped();
+      const data = await listTaxonomyGrouped(false, gameTypeId);
       return NextResponse.json({ grouped: data });
     }
     const options = await listTaxonomyOptions(
       kind ?? undefined,
       parentValue === null ? undefined : parentValue,
+      true,
+      gameTypeId,
     );
     return NextResponse.json({ options });
   } catch (err) {
