@@ -109,7 +109,7 @@ export default function AdminPointsPage() {
 
       {/* Table */}
       <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[800px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground">
               <th className="px-3 py-2">排名</th>
@@ -142,7 +142,7 @@ export default function AdminPointsPage() {
                   <td className="px-3 py-3">{acct.name || "—"}</td>
                   <td className="px-3 py-3">
                     <span
-                      className={`rounded px-1.5 py-0.5 text-xs ${
+                      className={`whitespace-nowrap rounded px-1.5 py-0.5 text-xs ${
                         acct.type === "USER"
                           ? "bg-blue-500/10 text-blue-600"
                           : "bg-gray-500/10 text-gray-500"

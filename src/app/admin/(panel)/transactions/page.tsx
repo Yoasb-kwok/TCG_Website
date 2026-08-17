@@ -165,7 +165,7 @@ function TransactionsContent() {
 
       {/* Table */}
       <div className="mt-6 overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full min-w-[900px] text-sm">
           <thead>
             <tr className="border-b border-border text-left text-muted-foreground">
               <th className="px-3 py-2">
@@ -221,7 +221,7 @@ function TransactionsContent() {
                   </td>
                   <td className="px-3 py-3">
                     <span
-                      className={`rounded px-1.5 py-0.5 text-xs ${
+                      className={`whitespace-nowrap rounded px-1.5 py-0.5 text-xs ${
                         txn.type === "ORDER"
                           ? "bg-blue-500/10 text-blue-600"
                           : "bg-purple-500/10 text-purple-600"
