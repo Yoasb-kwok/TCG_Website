@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { ArrowLeft, Mail, Printer, Search } from "lucide-react";
 import { formatDate, formatPrice } from "@/lib/format";
 import {
@@ -23,12 +24,22 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function AdminTransactionsPage() {
+  return (
+    <Suspense>
+      <TransactionsContent />
+    </Suspense>
+  );
+}
+
+function TransactionsContent() {
   const router = useRouter();
+  // ADR-008 Decision 8：從帳戶管理「查看交易紀錄」帶入 email 預填搜尋
+  const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<TransactionRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Filters
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("email") ?? "");
   const [statusFilter, setStatusFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [buyerTypeFilter, setBuyerTypeFilter] = useState("");
