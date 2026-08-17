@@ -120,10 +120,10 @@ test.describe("Coupon Management", () => {
     await page.getByRole("button", { name: "新增" }).click();
 
     // Click a quick-fill button
-    await page.getByRole("button", { name: "20% off" }).click();
+    await page.getByRole("button", { name: "8折" }).click();
 
     // Verify description textarea is populated
     const desc = page.locator("#coupon-description");
-    await expect(desc).toHaveValue("20% off");
+    await expect(desc).toHaveValue("8折");
   });
 });
