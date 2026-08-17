@@ -347,11 +347,6 @@ export function AccountsManager() {
                   </td>
                   <td className="px-3 py-3 font-medium">
                     {a.name ?? "—"}
-                    {a.role === "ADMIN" && (
-                      <span className="ml-1 rounded bg-purple-500/10 px-1.5 py-0.5 text-xs text-purple-600">
-                        管理員
-                      </span>
-                    )}
                   </td>
                   <td className="px-3 py-3 text-muted-foreground">{a.email}</td>
                   <td className="px-3 py-3 text-muted-foreground">
@@ -428,6 +423,7 @@ export function AccountsManager() {
               <button
                 type="button"
                 onClick={closeEdit}
+                title="關閉"
                 className="rounded p-1 hover:bg-muted"
               >
                 <X className="h-4 w-4" />

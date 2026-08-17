@@ -35,7 +35,9 @@ export async function listAccounts(
 ): Promise<AccountRow[]> {
   const prisma = getPrisma();
 
-  const where: Record<string, unknown> = {};
+  const where: Record<string, unknown> = {
+    role: "USER", // 管理員帳戶不顯示於帳戶管理儀表板
+  };
   if (!opts.includeDeleted) where.deletedAt = null;
 
   const q = opts.q?.trim();

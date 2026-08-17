@@ -87,6 +87,20 @@ beforeEach(() => {
 });
 
 describe("listAccounts", () => {
+  it("excludes admin accounts (role: USER filter)", async () => {
+    const prisma = mockPrisma();
+    prisma.user.findMany.mockResolvedValue([USER] as never);
+    prisma.emailChangeRequest.findMany.mockResolvedValue([] as never);
+
+    await listAccounts({});
+
+    expect(prisma.user.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ role: "USER" }),
+      }),
+    );
+  });
+
   it("hides deleted accounts by default (deletedAt: null filter)", async () => {
     const prisma = mockPrisma();
     prisma.user.findMany.mockResolvedValue([USER] as never);
