@@ -20,6 +20,7 @@ export const authConfig = {
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as "USER" | "ADMIN";
+        session.user.emailChangePending = token.emailChangePending === true;
       }
       return session;
     },
