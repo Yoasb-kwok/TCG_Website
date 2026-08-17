@@ -231,7 +231,8 @@ export function ReportsManager() {
                 本月沒有到貨記錄
               </p>
             ) : (
-              <table className="w-full text-sm">
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[680px] text-sm">
                 <thead>
                   <tr className="border-b border-border text-left text-muted-foreground">
                     <th className="px-4 py-2">產品</th>
@@ -256,7 +257,8 @@ export function ReportsManager() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
             )}
           </div>
         </>
