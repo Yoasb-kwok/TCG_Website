@@ -187,7 +187,7 @@ export function buildWhatsAppLink(
 export async function sendOtpEmail(input: {
   to: string;
   code: string;
-  purpose: "registration" | "password-reset";
+  purpose: "registration" | "password-reset" | "email-change";
   name?: string;
 }): Promise<boolean> {
   if (!getTransporter()) {
@@ -197,7 +197,11 @@ export async function sendOtpEmail(input: {
 
   try {
     const title =
-      input.purpose === "registration" ? "註冊驗證碼" : "重設密碼驗證碼";
+      input.purpose === "registration"
+        ? "註冊驗證碼"
+        : input.purpose === "email-change"
+          ? "電郵驗證碼"
+          : "重設密碼驗證碼";
     const html = await render(
       OtpVerificationEmail({
         code: input.code,

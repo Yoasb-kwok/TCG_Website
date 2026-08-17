@@ -13,24 +13,42 @@ import { SITE_BRAND } from "@/lib/constants";
 
 export interface OtpVerificationEmailProps {
   code: string;
-  purpose: "registration" | "password-reset";
+  purpose: "registration" | "password-reset" | "email-change";
   name?: string;
 }
+
+const PURPOSE_COPY: Record<
+  OtpVerificationEmailProps["purpose"],
+  { titleEn: string; titleZh: string; instructionEn: string; instructionZh: string }
+> = {
+  registration: {
+    titleEn: "ACCOUNT REGISTRATION",
+    titleZh: "帳號註冊",
+    instructionEn: "Use the verification code below to complete your registration.",
+    instructionZh: "請使用以下驗證碼完成註冊。",
+  },
+  "password-reset": {
+    titleEn: "PASSWORD RESET",
+    titleZh: "密碼重設",
+    instructionEn: "Use the verification code below to reset your password.",
+    instructionZh: "請使用以下驗證碼重設您的密碼。",
+  },
+  "email-change": {
+    titleEn: "EMAIL VERIFICATION",
+    titleZh: "電郵驗證",
+    instructionEn:
+      "Use the verification code below to confirm your new email address.",
+    instructionZh: "請使用以下驗證碼確認您的新電郵地址。",
+  },
+};
 
 export function OtpVerificationEmail({
   code,
   purpose,
   name,
 }: OtpVerificationEmailProps) {
-  const isRegistration = purpose === "registration";
-  const titleEn = isRegistration ? "ACCOUNT REGISTRATION" : "PASSWORD RESET";
-  const titleZh = isRegistration ? "帳號註冊" : "密碼重設";
-  const instructionEn = isRegistration
-    ? "Use the verification code below to complete your registration."
-    : "Use the verification code below to reset your password.";
-  const instructionZh = isRegistration
-    ? "請使用以下驗證碼完成註冊。"
-    : "請使用以下驗證碼重設您的密碼。";
+  const { titleEn, titleZh, instructionEn, instructionZh } =
+    PURPOSE_COPY[purpose];
   const greeting = name ? `您好 ${name}，` : "您好，";
 
   return (
