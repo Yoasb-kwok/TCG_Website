@@ -340,6 +340,8 @@ model Transaction {
   status       OrderStatus      @default(PENDING)
   remark       String?
   receiptData  Json?
+  /// ADR-009: set when status enters a money-received status (PAID/SHIPPED/COMPLETED/NOT_REQUIRED)
+  paidAt       DateTime?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
 
@@ -348,6 +350,7 @@ model Transaction {
   @@index([buyerType])
   @@index([createdAt])
   @@index([email])
+  @@index([paidAt])
 }
 
 /// ADR-004: Email-keyed points ledger. Balance = SUM(delta) WHERE email = ?

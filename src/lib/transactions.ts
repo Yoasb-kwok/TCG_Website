@@ -5,6 +5,7 @@
  * Functions are idempotent — safe to call multiple times (webhook retry, etc.).
  */
 import { getPrisma } from "@/lib/prisma";
+import { isEarnedStatus } from "@/lib/reports";
 import type { OrderReceiptData, TournamentReceiptData } from "@/lib/transaction-types";
 
 // ── Receipt snapshot builders ──────────────────────────────────────────
@@ -123,6 +124,9 @@ export async function createOrderTransaction(orderId: string): Promise<void> {
     })),
   });
 
+  // ADR-009 Decision 3: paidAt set when created with a money-received status
+  const paidAt = isEarnedStatus(order.status) ? new Date() : undefined;
+
   await prisma.transaction.create({
     data: {
       type: "ORDER",
@@ -133,6 +137,7 @@ export async function createOrderTransaction(orderId: string): Promise<void> {
       description,
       amount: order.totalAmount,
       status: order.status,
+      paidAt,
       receiptData: receiptData as never,
     },
   });
@@ -183,6 +188,10 @@ export async function createTournamentTransaction(
     },
   });
 
+  // ADR-009 Decision 3: paidAt set when created as PAID
+  const status = reg.paymentStatus === "PAID" ? "PAID" : "PENDING";
+  const paidAt = isEarnedStatus(status) ? new Date() : undefined;
+
   await prisma.transaction.create({
     data: {
       type: "TOURNAMENT",
@@ -192,7 +201,8 @@ export async function createTournamentTransaction(
       customerName: reg.playerName,
       description: reg.tournament.title,
       amount: reg.tournament.entryFee,
-      status: reg.paymentStatus === "PAID" ? "PAID" : "PENDING",
+      status,
+      paidAt,
       receiptData: receiptData as never,
     },
   });

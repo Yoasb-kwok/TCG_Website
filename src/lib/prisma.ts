@@ -9,7 +9,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment after Prisma schema migrations that add/change model fields */
-const PRISMA_SCHEMA_VERSION = "20260817000000_accounts";
+const PRISMA_SCHEMA_VERSION = "20260817120000_paidat";
 
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL);

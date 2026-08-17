@@ -397,3 +397,79 @@ describe("createTournamentTransaction", () => {
     );
   });
 });
+
+// ── ADR-009: paidAt maintenance ─────────────────────────────────────────
+
+describe("paidAt on creation (ADR-009)", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("sets paidAt when order transaction is created with a money-received status", async () => {
+    const mockPrisma = makeMockPrisma();
+    vi.mocked(getPrisma).mockReturnValue(mockPrisma as never);
+
+    await createOrderTransaction("order-1");
+
+    expect(mockPrisma.transaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "PAID",
+          paidAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it("omits paidAt when order is PENDING", async () => {
+    const mockPrisma = makeMockPrisma({
+      order: {
+        findUnique: vi.fn().mockResolvedValue({
+          ...mockOrderWithItems,
+          status: "PENDING",
+        }),
+      },
+    });
+    vi.mocked(getPrisma).mockReturnValue(mockPrisma as never);
+
+    await createOrderTransaction("order-1");
+
+    const createCall = mockPrisma.transaction.create.mock.calls[0][0];
+    expect(createCall.data.status).toBe("PENDING");
+    expect(createCall.data.paidAt).toBeUndefined();
+  });
+
+  it("sets paidAt when tournament transaction is created as PAID", async () => {
+    const mockPrisma = makeMockPrisma();
+    vi.mocked(getPrisma).mockReturnValue(mockPrisma as never);
+
+    await createTournamentTransaction("reg-1");
+
+    expect(mockPrisma.transaction.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "PAID",
+          paidAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it("omits paidAt when tournament registration is PENDING", async () => {
+    const mockPrisma = makeMockPrisma({
+      tournamentRegistration: {
+        findUnique: vi.fn().mockResolvedValue({
+          ...mockRegistration,
+          paymentStatus: "PENDING",
+        }),
+      },
+    });
+    vi.mocked(getPrisma).mockReturnValue(mockPrisma as never);
+
+    await createTournamentTransaction("reg-1");
+
+    const createCall = mockPrisma.transaction.create.mock.calls[0][0];
+    expect(createCall.data.status).toBe("PENDING");
+    expect(createCall.data.paidAt).toBeUndefined();
+  });
+});

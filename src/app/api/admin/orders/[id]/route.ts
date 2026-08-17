@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { awardOrderPoints } from "@/lib/points";
+import { createOrderTransaction } from "@/lib/transactions";
+import { isEarnedStatus } from "@/lib/reports";
 
 export async function PATCH(
   request: NextRequest,
@@ -31,6 +33,13 @@ export async function PATCH(
       0,
     );
     await awardOrderPoints(order.email, order.id, subtotal);
+  }
+
+  // ADR-009: ensure the ledger Transaction exists with paidAt for any
+  // money-received status (PAID, SHIPPED, COMPLETED — walk-in sales can skip
+  // PAID). Idempotent — skips if already created by the Stripe webhook.
+  if (isEarnedStatus(status)) {
+    await createOrderTransaction(order.id);
   }
 
   return NextResponse.json({ order });

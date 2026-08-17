@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { createTournamentTransaction } from "@/lib/transactions";
 
 /**
  * Verify a Stripe Checkout Session for a tournament registration payment.
@@ -54,6 +55,11 @@ export async function GET(request: NextRequest) {
         where: { id: registration.id },
         data: { paymentStatus: "PAID" },
       });
+
+      // ADR-003/009: create the ledger Transaction here — the webhook's
+      // PENDING guard would otherwise skip it, leaking revenue from reports.
+      // Idempotent: safe if the webhook also fires.
+      await createTournamentTransaction(registration.id);
     }
 
     return NextResponse.json({

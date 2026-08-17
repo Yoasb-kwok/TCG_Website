@@ -17,6 +17,7 @@ import {
   Gamepad2,
   Ticket,
   Users,
+  BarChart3,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SITE_BRAND } from "@/lib/constants";
@@ -29,6 +30,7 @@ const LINKS = [
   { href: "/admin/products", label: "商品上架", icon: Package },
   { href: "/admin/content", label: "網站內容", icon: FilePenLine },
   { href: "/admin/transactions", label: "交易管理", icon: Receipt },
+  { href: "/admin/reports", label: "收益報告", icon: BarChart3 },
   { href: "/admin/accounts", label: "帳戶管理", icon: Users },
   { href: "/admin/points", label: "積分管理", icon: Award },
   { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },

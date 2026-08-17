@@ -308,4 +308,56 @@ describe("POST /api/admin/transactions", () => {
     const res = await POST(makePostRequest({ type: "ORDER" }));
     expect(res.status).toBe(400);
   });
+
+  // ── ADR-009: paidAt on manual creation ──────────────────────────
+
+  it("sets paidAt when created with a money-received status (default NOT_REQUIRED)", async () => {
+    const mockCreate = vi.fn().mockResolvedValue({ id: "txn-new" });
+    vi.mocked(getPrisma).mockReturnValue({
+      transaction: { create: mockCreate },
+      user: { findUnique: vi.fn().mockResolvedValue(null) },
+    } as never);
+
+    await POST(
+      makePostRequest({
+        type: "ORDER",
+        referenceId: "manual-1",
+        email: "guest@test.com",
+        description: "Cash sale",
+        amount: 30,
+      }),
+    );
+
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "NOT_REQUIRED",
+          paidAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it("omits paidAt when created as PENDING", async () => {
+    const mockCreate = vi.fn().mockResolvedValue({ id: "txn-new" });
+    vi.mocked(getPrisma).mockReturnValue({
+      transaction: { create: mockCreate },
+      user: { findUnique: vi.fn().mockResolvedValue(null) },
+    } as never);
+
+    await POST(
+      makePostRequest({
+        type: "ORDER",
+        referenceId: "manual-1",
+        email: "guest@test.com",
+        description: "Future order",
+        amount: 30,
+        status: "PENDING",
+      }),
+    );
+
+    const createCall = mockCreate.mock.calls[0][0];
+    expect(createCall.data.status).toBe("PENDING");
+    expect(createCall.data.paidAt).toBeUndefined();
+  });
 });

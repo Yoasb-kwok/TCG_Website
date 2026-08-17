@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
+import { isEarnedStatus } from "@/lib/reports";
 
 const PAGE_SIZE = 30;
 
@@ -100,6 +101,19 @@ export async function POST(request: NextRequest) {
   const buyerType = existingUser ? "USER" : "GUEST";
   const customerName = existingUser?.name ?? body.customerName ?? null;
 
+  // ADR-003 Decision 8: offline transactions default to NOT_REQUIRED
+  const status = (body.status ?? "NOT_REQUIRED") as
+    | "PENDING"
+    | "PAID"
+    | "SHIPPED"
+    | "COMPLETED"
+    | "CANCELLED"
+    | "FAILED"
+    | "NOT_REQUIRED";
+
+  // ADR-009 Decision 3: paidAt when created with a money-received status
+  const paidAt = isEarnedStatus(status) ? new Date() : undefined;
+
   const transaction = await prisma.transaction.create({
     data: {
       type: body.type as "ORDER" | "TOURNAMENT",
@@ -109,8 +123,8 @@ export async function POST(request: NextRequest) {
       customerName,
       description: body.description,
       amount: body.amount,
-      // ADR-003 Decision 8: offline transactions default to NOT_REQUIRED
-      status: (body.status ?? "NOT_REQUIRED") as "PENDING" | "PAID" | "SHIPPED" | "COMPLETED" | "CANCELLED" | "FAILED" | "NOT_REQUIRED",
+      status,
+      paidAt,
       remark: body.remark,
     },
   });

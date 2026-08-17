@@ -57,7 +57,10 @@ describe("PATCH /api/admin/transactions/[id]", () => {
       remark: null,
     });
     vi.mocked(getPrisma).mockReturnValue({
-      transaction: { update: mockUpdate },
+      transaction: {
+        findUnique: vi.fn().mockResolvedValue({ status: "SHIPPED" }),
+        update: mockUpdate,
+      },
     } as never);
 
     const res = await PATCH(makeRequest({ status: "PAID" }), {
@@ -104,7 +107,10 @@ describe("PATCH /api/admin/transactions/[id]", () => {
       remark: "Shipped via SF Express",
     });
     vi.mocked(getPrisma).mockReturnValue({
-      transaction: { update: mockUpdate },
+      transaction: {
+        findUnique: vi.fn().mockResolvedValue({ status: "PAID" }),
+        update: mockUpdate,
+      },
     } as never);
 
     await PATCH(
@@ -122,7 +128,10 @@ describe("PATCH /api/admin/transactions/[id]", () => {
   it("allows any status transition (unconstrained)", async () => {
     const mockUpdate = vi.fn().mockResolvedValue({ id: "txn-1", status: "CANCELLED" });
     vi.mocked(getPrisma).mockReturnValue({
-      transaction: { update: mockUpdate },
+      transaction: {
+        findUnique: vi.fn().mockResolvedValue({ status: "PAID" }),
+        update: mockUpdate,
+      },
     } as never);
 
     // Try transitioning from PAID to CANCELLED (normally a refund scenario)
@@ -132,5 +141,93 @@ describe("PATCH /api/admin/transactions/[id]", () => {
 
     expect(res.status).toBe(200);
     expect(mockUpdate).toHaveBeenCalled();
+  });
+
+  // ── ADR-009: paidAt on status transitions ───────────────────
+
+  it("sets paidAt when transitioning from non-money to money status", async () => {
+    const mockUpdate = vi.fn().mockResolvedValue({ id: "txn-1", status: "PAID" });
+    const mockFindUnique = vi.fn().mockResolvedValue({ id: "txn-1", status: "PENDING" });
+    vi.mocked(getPrisma).mockReturnValue({
+      transaction: { findUnique: mockFindUnique, update: mockUpdate },
+    } as never);
+
+    await PATCH(makeRequest({ status: "PAID" }), {
+      params: Promise.resolve({ id: "txn-1" }),
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: "PAID",
+          paidAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it("does not refresh paidAt when moving between money statuses", async () => {
+    const mockUpdate = vi.fn().mockResolvedValue({ id: "txn-1", status: "SHIPPED" });
+    const mockFindUnique = vi.fn().mockResolvedValue({ id: "txn-1", status: "PAID" });
+    vi.mocked(getPrisma).mockReturnValue({
+      transaction: { findUnique: mockFindUnique, update: mockUpdate },
+    } as never);
+
+    await PATCH(makeRequest({ status: "SHIPPED" }), {
+      params: Promise.resolve({ id: "txn-1" }),
+    });
+
+    const updateCall = mockUpdate.mock.calls[0][0];
+    expect(updateCall.data.paidAt).toBeUndefined();
+  });
+
+  it("does not set paidAt on refund (PAID → CANCELLED)", async () => {
+    const mockUpdate = vi.fn().mockResolvedValue({ id: "txn-1", status: "CANCELLED" });
+    const mockFindUnique = vi.fn().mockResolvedValue({ id: "txn-1", status: "PAID" });
+    vi.mocked(getPrisma).mockReturnValue({
+      transaction: { findUnique: mockFindUnique, update: mockUpdate },
+    } as never);
+
+    await PATCH(makeRequest({ status: "CANCELLED" }), {
+      params: Promise.resolve({ id: "txn-1" }),
+    });
+
+    const updateCall = mockUpdate.mock.calls[0][0];
+    expect(updateCall.data.paidAt).toBeUndefined();
+  });
+
+  it("re-sets paidAt after refund reversed (CANCELLED → PAID)", async () => {
+    const mockUpdate = vi.fn().mockResolvedValue({ id: "txn-1", status: "PAID" });
+    const mockFindUnique = vi.fn().mockResolvedValue({ id: "txn-1", status: "CANCELLED" });
+    vi.mocked(getPrisma).mockReturnValue({
+      transaction: { findUnique: mockFindUnique, update: mockUpdate },
+    } as never);
+
+    await PATCH(makeRequest({ status: "PAID" }), {
+      params: Promise.resolve({ id: "txn-1" }),
+    });
+
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          paidAt: expect.any(Date),
+        }),
+      }),
+    );
+  });
+
+  it("does not touch paidAt for remark-only updates", async () => {
+    const mockUpdate = vi.fn().mockResolvedValue({ id: "txn-1", remark: "note" });
+    const mockFindUnique = vi.fn().mockResolvedValue({ id: "txn-1", status: "PAID" });
+    vi.mocked(getPrisma).mockReturnValue({
+      transaction: { findUnique: mockFindUnique, update: mockUpdate },
+    } as never);
+
+    await PATCH(makeRequest({ remark: "note" }), {
+      params: Promise.resolve({ id: "txn-1" }),
+    });
+
+    const updateCall = mockUpdate.mock.calls[0][0];
+    expect(updateCall.data.paidAt).toBeUndefined();
   });
 });
