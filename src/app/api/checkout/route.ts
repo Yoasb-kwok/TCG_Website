@@ -101,7 +101,6 @@ export async function POST(request: NextRequest) {
             product_data: {
               name: `${variant.product.name} (${variant.condition}${variant.isFoil ? " · 閃卡" : ""})`,
               images: imageUrl ? [imageUrl] : undefined,
-              tax_code: "txcd_99999999",
             },
             unit_amount: Math.round(variant.price * 100),
           },
@@ -130,7 +129,6 @@ export async function POST(request: NextRequest) {
                   images: product.images[0]?.url
                     ? [product.images[0].url]
                     : undefined,
-                  tax_code: "txcd_99999999",
                 },
                 unit_amount: Math.round(variant.price * 100),
               },
@@ -159,6 +157,9 @@ export async function POST(request: NextRequest) {
 
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
+      // Physical goods / in-person events are ineligible for Managed Payments;
+      // MP is enabled by default on this account, so opt out per-session.
+      managed_payments: { enabled: false },
       customer_email: email,
       line_items: lineItems,
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,

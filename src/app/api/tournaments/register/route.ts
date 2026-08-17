@@ -176,6 +176,9 @@ export async function POST(request: NextRequest) {
 
       const checkoutSession = await stripe.checkout.sessions.create({
         mode: "payment",
+        // In-person events are ineligible for Managed Payments; MP is enabled
+        // by default on this account, so opt out per-session.
+        managed_payments: { enabled: false },
         customer_email: email.trim(),
         line_items: [
           {
@@ -183,7 +186,6 @@ export async function POST(request: NextRequest) {
               currency: "hkd",
               product_data: {
                 name: `${tournament.title} — 報名費`,
-                tax_code: "txcd_99999999",
               },
               unit_amount: Math.round(tournament.entryFee * 100),
             },

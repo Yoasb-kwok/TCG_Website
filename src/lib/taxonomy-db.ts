@@ -87,18 +87,33 @@ export async function ensureProductTypeTaxonomy() {
 export async function ensureDefaultTaxonomy() {
   if (!isDatabaseConfigured()) return;
   const prisma = getPrisma();
-  const count = await taxonomy(prisma).count();
-  if (count === 0) {
-    await taxonomy(prisma).createMany({
-      data: DEFAULT_TAXONOMY_ROWS.map((row) => ({
-        kind: row.kind,
-        value: row.value,
-        label: row.label,
-        sortIndex: row.sortIndex,
-        parentValue: row.parentValue ?? null,
-      })),
-    });
-  }
+  // Serialize seeding across concurrent requests — the [kind, value, parentValue]
+  // unique index cannot dedupe rows with NULL parentValue (Postgres treats
+  // NULLs as distinct), so parallel first-requests used to create 3× copies.
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(918273645)`;
+    const count = await tx.taxonomyOption.count();
+    if (count === 0) {
+      // ADR-006: Pokémon-specific defaults scope to the Pokémon game;
+      // PRODUCT_TYPE stays shared across games
+      const pokemonGame = await tx.gameType.findFirst({
+        where: { slug: "pokemon" },
+      });
+      await tx.taxonomyOption.createMany({
+        data: DEFAULT_TAXONOMY_ROWS.map((row) => ({
+          kind: row.kind,
+          value: row.value,
+          label: row.label,
+          sortIndex: row.sortIndex,
+          parentValue: row.parentValue ?? null,
+          gameTypeId:
+            row.kind !== "PRODUCT_TYPE" && pokemonGame
+              ? pokemonGame.id
+              : null,
+        })),
+      });
+    }
+  });
   await ensureProductTypeTaxonomy();
 }
 
