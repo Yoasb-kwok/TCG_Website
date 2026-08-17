@@ -391,28 +391,23 @@ describe("verifyEmailChangeOtp", () => {
 });
 
 describe("hasPendingEmailChange", () => {
-  it("true when the email's account has a PENDING request", async () => {
+  it("true when the account has a PENDING request", async () => {
     const prisma = mockPrisma();
-    prisma.user.findUnique.mockResolvedValue(USER as never);
     prisma.emailChangeRequest.findUnique.mockResolvedValue(PENDING_REQ as never);
 
-    expect(await hasPendingEmailChange("old@test.com")).toBe(true);
+    expect(await hasPendingEmailChange("u-1")).toBe(true);
   });
 
-  it("false for CONFIRMED / REVERSED / none / unknown email", async () => {
+  it("false for CONFIRMED / REVERSED / none", async () => {
     const prisma = mockPrisma();
-    prisma.user.findUnique.mockResolvedValue(USER as never);
     prisma.emailChangeRequest.findUnique
       .mockResolvedValueOnce({ ...PENDING_REQ, status: "CONFIRMED" } as never)
       .mockResolvedValueOnce({ ...PENDING_REQ, status: "REVERSED" } as never)
       .mockResolvedValueOnce(null as never);
 
-    expect(await hasPendingEmailChange("old@test.com")).toBe(false);
-    expect(await hasPendingEmailChange("old@test.com")).toBe(false);
-    expect(await hasPendingEmailChange("old@test.com")).toBe(false);
-
-    prisma.user.findUnique.mockResolvedValue(null as never);
-    expect(await hasPendingEmailChange("ghost@test.com")).toBe(false);
+    expect(await hasPendingEmailChange("u-1")).toBe(false);
+    expect(await hasPendingEmailChange("u-1")).toBe(false);
+    expect(await hasPendingEmailChange("u-1")).toBe(false);
   });
 });
 

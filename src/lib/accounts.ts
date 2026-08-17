@@ -232,17 +232,10 @@ export async function verifyEmailChangeOtp(userId: string, code: string) {
 }
 
 /** ADR-008 Decision 3 — password reset is blocked while a change is pending. */
-export async function hasPendingEmailChange(email: string): Promise<boolean> {
+export async function hasPendingEmailChange(userId: string): Promise<boolean> {
   const prisma = getPrisma();
-  const normalized = email.trim().toLowerCase();
-  const user = await prisma.user.findUnique({
-    where: { email: normalized },
-    select: { id: true },
-  });
-  if (!user) return false;
-
   const req = await prisma.emailChangeRequest.findUnique({
-    where: { userId: user.id },
+    where: { userId },
   });
   return req?.status === "PENDING";
 }
