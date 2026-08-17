@@ -1,5 +1,4 @@
 import NextAuth from "next-auth";
-import type { User } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { verifyPassword } from "@/lib/auth-password";
 import { authConfig } from "@/auth.config";
@@ -60,16 +59,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     ...authConfig.callbacks,
-    async jwt({ token, user, trigger }) {
-      if (user) {
-        if (user.id) token.id = user.id;
-        token.role = user.role;
-        // ADR-008 Decision 4：登入時帶入電郵變更待驗證旗標
-        token.emailChangePending =
-          (user as User).emailChangePending === true;
-      }
-      if (trigger === "update" && token.id) {
-        // 驗證完成後 session.update() → 重新查詢待驗證狀態
+    async jwt(params) {
+      // 基礎映射（id/role/emailChangePending）統一在 auth.config.ts
+      const token = await authConfig.callbacks.jwt(params);
+
+      // ADR-008 Decision 4：驗證完成後 session.update() → 重新查詢待驗證狀態
+      if (params.trigger === "update" && token.id) {
         try {
           const prisma = getPrisma();
           const req = await prisma.emailChangeRequest.findUnique({

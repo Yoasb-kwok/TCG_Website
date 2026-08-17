@@ -13,6 +13,8 @@ export const authConfig = {
       if (user) {
         if (user.id) token.id = user.id;
         token.role = user.role;
+        // ADR-008 Decision 4：登入時帶入電郵變更待驗證旗標（由 authorize 計算）
+        token.emailChangePending = user.emailChangePending === true;
       }
       return token;
     },

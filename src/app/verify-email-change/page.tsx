@@ -32,8 +32,8 @@ export default function VerifyEmailChangePage() {
       const res = await fetch("/api/auth/email-change/request-otp", {
         method: "POST",
       });
-      const data = (await res.json()) as { error?: string; newEmail?: string };
       if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
         if (data.error?.includes("沒有進行中的電郵變更")) {
           setNoPending(true);
         } else {
@@ -41,6 +41,7 @@ export default function VerifyEmailChangePage() {
         }
         return;
       }
+      await res.json().catch(() => ({}));
       setResendIn(RESEND_SECONDS);
       setNotice("驗證碼已發送至您的新電郵");
     } catch {
@@ -79,8 +80,8 @@ export default function VerifyEmailChangePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: otp }),
       });
-      const data = (await res.json()) as { error?: string };
       if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
         setError(data.error ?? "驗證失敗");
         setOtp("");
         setOtpAttempt((a) => a + 1);

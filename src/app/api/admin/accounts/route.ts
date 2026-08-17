@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (!authCheck.ok) return authCheck.response;
 
   if (!isDatabaseConfigured()) {
-    return NextResponse.json([]);
+    return NextResponse.json({ error: "資料庫未設定" }, { status: 503 });
   }
 
   const { searchParams } = new URL(request.url);
