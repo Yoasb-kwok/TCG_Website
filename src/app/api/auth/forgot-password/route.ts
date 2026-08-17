@@ -3,6 +3,7 @@ import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { sendOtpEmail } from "@/lib/email";
 import { generateOtp, hashOtp, OTP_EXPIRY_MS } from "@/lib/otp";
 import { checkCooldown, checkRateLimit } from "@/lib/rate-limit";
+import { hasPendingEmailChange } from "@/lib/accounts";
 
 const COOLDOWN_MS = 60_000;
 const RATE_LIMIT_MAX = 5;
@@ -73,6 +74,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       message: "如果此電郵已註冊，驗證碼已發送至您的電郵",
     });
+  }
+
+  // ── ADR-008 Decision 3: block while email change is pending ─────
+  if (await hasPendingEmailChange(user.id)) {
+    return NextResponse.json(
+      {
+        error:
+          "此帳號有進行中的電郵變更，請先以新電郵登入完成驗證，或聯絡我們還原變更",
+      },
+      { status: 409 },
+    );
   }
 
   // ── Generate OTP and store ──────────────────────────────────────

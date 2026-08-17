@@ -86,6 +86,7 @@ describe("POST /api/auth/forgot-password", () => {
     vi.mocked(getPrisma).mockReturnValue({
       user: { findUnique: mockFindUnique },
       passwordReset: { upsert: mockUpsert, delete: vi.fn().mockResolvedValue({}) },
+      emailChangeRequest: { findUnique: vi.fn().mockResolvedValue(null) },
     } as never);
 
     const res = await POST(makeRequest({ email: "real@example.com" }));
