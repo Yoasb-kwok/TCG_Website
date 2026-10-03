@@ -207,7 +207,7 @@ export const DEMO_TOURNAMENTS = [
     startsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
     registrationDeadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
     status: "OPEN",
-    registeredCount: 18,
+    registeredCount: 0,
   },
   {
     id: "t-2",
@@ -222,6 +222,6 @@ export const DEMO_TOURNAMENTS = [
     startsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
     registrationDeadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
     status: "OPEN",
-    registeredCount: 8,
+    registeredCount: 0,
   },
 ];

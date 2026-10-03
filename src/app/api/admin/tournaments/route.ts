@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
+import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
+import { listRegistrationRosters } from "@/lib/tournament-registrations";
 
 function slugify(title: string): string {
   return `${title}-${Date.now().toString(36)}`
@@ -15,7 +17,30 @@ export async function GET() {
   if (!authCheck.ok) return authCheck.response;
 
   if (!isDatabaseConfigured()) {
-    return NextResponse.json({ tournaments: [] });
+    const rosters = await listRegistrationRosters();
+    const tournaments = DEMO_TOURNAMENTS.map((tournament) => {
+      const registrations =
+        rosters.find((roster) => roster.slug === tournament.slug)?.registrations ?? [];
+      return {
+        id: tournament.id,
+        title: tournament.title,
+        format: tournament.format,
+        maxPlayers: tournament.maxPlayers,
+        entryFee: tournament.entryFee,
+        location: tournament.location,
+        startsAt: tournament.startsAt,
+        status: tournament.status,
+        _count: { registrations: registrations.length },
+        registrations: registrations.map((registration) => ({
+          id: registration.id,
+          playerName: registration.playerName,
+          email: null,
+          phone: registration.phone,
+          createdAt: registration.createdAt,
+        })),
+      };
+    });
+    return NextResponse.json({ tournaments });
   }
 
   const tournaments = await getPrisma().tournament.findMany({

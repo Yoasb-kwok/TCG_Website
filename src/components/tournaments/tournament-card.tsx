@@ -56,19 +56,26 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
         )}
       </CardContent>
 
-      <CardFooter className="flex items-center justify-between border-t border-border pt-4">
+      <CardFooter className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
         <span className="font-semibold">
           {tournament.entryFee > 0
             ? formatPrice(tournament.entryFee)
             : "免費"}
         </span>
-        <Link
-          href={`/tournaments/${tournament.slug}`}
-          className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90 disabled:pointer-events-none disabled:opacity-50"
-          aria-disabled={!isOpen}
-        >
-          {isOpen ? "立即報名" : "查看詳情"}
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <Link
+            href={`/tournaments/live?title=${encodeURIComponent(tournament.title)}`}
+            className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
+          >
+            開始店賽
+          </Link>
+          <Link
+            href={`/tournaments/${tournament.slug}`}
+            className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
+          >
+            {isOpen ? "立即報名" : "查看詳情"}
+          </Link>
+        </div>
       </CardFooter>
     </Card>
   );

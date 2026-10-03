@@ -55,6 +55,11 @@ export function SiteFooter() {
                 店賽日程
               </Link>
             </li>
+            <li>
+              <Link href="/pos" className="hover:text-foreground">
+                收銀 / 損益
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

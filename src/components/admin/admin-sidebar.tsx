@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Package,
   Receipt,
+  Calculator,
   Tags,
   Trophy,
   FilePenLine,
@@ -23,6 +24,7 @@ const LINKS = [
   { href: "/admin/products", label: "商品上架", icon: Package },
   { href: "/admin/content", label: "網站內容", icon: FilePenLine },
   { href: "/admin/orders", label: "交易紀錄", icon: Receipt },
+  { href: "/pos", label: "收銀 / 損益", icon: Calculator },
   { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },
 ];
 

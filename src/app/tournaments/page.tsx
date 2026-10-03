@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
 
@@ -8,9 +9,7 @@ export const metadata = {
 async function getTournaments() {
   try {
     const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const res = await fetch(`${base}/api/tournaments`, {
-      next: { revalidate: 60 },
-    });
+    const res = await fetch(`${base}/api/tournaments`, { cache: "no-store" });
     const data = (await res.json()) as { tournaments: typeof DEMO_TOURNAMENTS };
     return data.tournaments;
   } catch {
@@ -23,10 +22,20 @@ export default async function TournamentsPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 lg:px-6">
-      <h1 className="text-2xl font-bold text-foreground">店賽日程</h1>
-      <p className="mt-2 text-muted-foreground">
-        報名 Pokémon TCG 店賽 · 標準賽制 · 香港時間
-      </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">店賽日程</h1>
+          <p className="mt-2 text-muted-foreground">
+            報名 Pokémon TCG 店賽 · 標準賽制 · 香港時間
+          </p>
+        </div>
+        <Link
+          href="/tournaments/live"
+          className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
+        >
+          計分板 / 計時
+        </Link>
+      </div>
 
       <div className="mt-8 grid gap-4 md:grid-cols-2">
         {tournaments.map((t) => (

@@ -44,3 +44,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# local tournament signups when no database is configured
+/data/tournament-registrations.json
+/data/pos-ledger.json

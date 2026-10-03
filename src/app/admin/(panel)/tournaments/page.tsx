@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { formatDate, formatPrice } from "@/lib/format";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { STORE } from "@/lib/constants";
@@ -10,7 +11,7 @@ import { STORE } from "@/lib/constants";
 interface Registration {
   id: string;
   playerName: string;
-  email: string;
+  email: string | null;
   phone: string | null;
   createdAt: string;
 }
@@ -77,12 +78,21 @@ export default function AdminTournamentsPage() {
           <h1 className="text-2xl font-bold">店賽報名</h1>
           <p className="mt-1 text-sm text-muted-foreground">賽事管理及報名名單</p>
         </div>
-        <Button
-          onClick={() => setShowForm(!showForm)}
-          className="bg-primary text-primary-foreground hover:bg-primary/90"
-        >
-          {showForm ? "取消" : "新增賽事"}
-        </Button>
+        <div className="flex gap-2">
+          <Link
+            href="/tournaments/live"
+            target="_blank"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            計分板 / 計時
+          </Link>
+          <Button
+            onClick={() => setShowForm(!showForm)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            {showForm ? "取消" : "新增賽事"}
+          </Button>
+        </div>
       </div>
 
       {showForm && (
@@ -214,7 +224,7 @@ export default function AdminTournamentsPage() {
                       {t.registrations.map((r) => (
                         <tr key={r.id} className="border-t border-border">
                           <td className="py-2 text-foreground">{r.playerName}</td>
-                          <td className="py-2 text-muted-foreground">{r.email}</td>
+                          <td className="py-2 text-muted-foreground">{r.email ?? "—"}</td>
                           <td className="py-2 text-muted-foreground">{r.phone ?? "—"}</td>
                           <td className="py-2 text-muted-foreground">
                             {formatDate(r.createdAt)}

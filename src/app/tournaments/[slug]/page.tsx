@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
+import { RegistrationForm } from "@/components/tournaments/registration-form";
 import { formatDate, formatPrice } from "@/lib/format";
+import {
+  getPublicTournament,
+  registrationOpen,
+} from "@/lib/tournament-registrations";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -11,11 +14,12 @@ interface PageProps {
 
 export default async function TournamentDetailPage({ params }: PageProps) {
   const { slug } = await params;
-  const tournament = DEMO_TOURNAMENTS.find((t) => t.slug === slug);
+  const tournament = await getPublicTournament(slug);
 
   if (!tournament) notFound();
 
   const spotsLeft = tournament.maxPlayers - tournament.registeredCount;
+  const open = registrationOpen(tournament);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 lg:px-6">
@@ -71,12 +75,12 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         </div>
       </dl>
 
-      <Button
-        className="mt-8 bg-white text-black hover:bg-white/90"
-        disabled={spotsLeft <= 0}
-      >
-        {spotsLeft > 0 ? "立即報名（即將推出）" : "名額已滿"}
-      </Button>
+      <RegistrationForm
+        slug={tournament.slug}
+        title={tournament.title}
+        open={open}
+        spotsLeft={spotsLeft}
+      />
     </div>
   );
 }

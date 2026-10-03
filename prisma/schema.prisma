@@ -227,9 +227,9 @@ model TournamentRegistration {
   userId       String?
   user         User?      @relation(fields: [userId], references: [id])
   playerName   String
-  email        String
-  phone        String?
+  email        String?
+  phone        String
   createdAt    DateTime   @default(now())
 
-  @@unique([tournamentId, email])
+  @@unique([tournamentId, phone])
 }
