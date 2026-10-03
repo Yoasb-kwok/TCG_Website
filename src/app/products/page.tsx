@@ -1,21 +1,6 @@
-import { Suspense } from "react";
-import { Loader2 } from "lucide-react";
-import { MarketplaceShell } from "@/components/marketplace/marketplace-shell";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "商品",
-};
-
+// ADR-006 Decision 5: /products redirects to default game
 export default function ProductsPage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex items-center justify-center py-24">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </div>
-      }
-    >
-      <MarketplaceShell />
-    </Suspense>
-  );
+  redirect("/products/pokemon");
 }

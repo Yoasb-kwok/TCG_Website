@@ -95,6 +95,7 @@ export async function POST(request: NextRequest) {
         description: body.description,
         imageUrl: body.imageUrl,
         isFoil: body.isFoil,
+        gameTypeId: body.gameTypeId,
       });
       return NextResponse.json({ product });
     }
@@ -111,6 +112,7 @@ export async function POST(request: NextRequest) {
         stock: Number(body.stock),
         description: body.description,
         imageUrl: body.imageUrl,
+        gameTypeId: body.gameTypeId,
       });
       return NextResponse.json({ product });
     }
@@ -122,6 +124,7 @@ export async function POST(request: NextRequest) {
         price: Number(body.price),
         stock: Number(body.stock),
         imageUrl: body.imageUrl,
+        gameTypeId: body.gameTypeId,
       });
       return NextResponse.json({ product });
     }

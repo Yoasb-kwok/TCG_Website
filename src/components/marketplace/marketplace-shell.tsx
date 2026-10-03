@@ -11,25 +11,15 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { FilterPanel, type FilterState } from "@/components/marketplace/filter-panel";
+import { FilterPanel } from "@/components/marketplace/filter-panel";
 import { ProductCard } from "@/components/marketplace/product-card";
-import type { ProductType, ProductsResponse } from "@/lib/types";
+import { GameTabs } from "@/components/marketplace/game-tabs";
+import { useFilterContext } from "@/providers/filter-provider";
+import type { ProductsResponse } from "@/lib/types";
 
-const DEFAULT_FILTERS: FilterState = {
-  types: [],
-  rarities: [],
-  cardSets: [],
-  pokemonTypes: [],
-  setCodes: [],
-  rarityTiers: [],
-  inStock: false,
-  priceRange: [0, 5000],
-  sort: "newest",
-};
-
-export function MarketplaceShell() {
+export function MarketplaceShell({ gameTypeSlug }: { gameTypeSlug?: string }) {
   const searchParams = useSearchParams();
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
+  const { filters, setFilters } = useFilterContext();
   const [data, setData] = useState<ProductsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -40,20 +30,16 @@ export function MarketplaceShell() {
     params.set("page", String(page));
     params.set("pageSize", "24");
 
+    if (gameTypeSlug) params.set("gameType", gameTypeSlug);
     if (filters.inStock) params.set("inStock", "true");
     if (filters.priceRange[0] > 0) params.set("minPrice", String(filters.priceRange[0]));
     if (filters.priceRange[1] < 5000) params.set("maxPrice", String(filters.priceRange[1]));
 
-    const urlType = searchParams.get("type") as ProductType | null;
-    const urlSet = searchParams.get("cardSet");
-    const urlLang = searchParams.get("language");
     const urlSearch = searchParams.get("search")?.trim();
-
-    if (urlType) params.set("type", urlType);
-    if (urlSet) params.set("cardSet", urlSet);
-    if (urlLang) params.set("language", urlLang);
+    const urlLang = searchParams.get("language");
     if (urlSearch) params.set("search", urlSearch);
-    if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
+    if (urlLang) params.set("language", urlLang);
+    if (filters.sort !== "newest") params.set("sort", filters.sort);
 
     filters.types.forEach((t) => params.append("type", t));
     filters.cardSets.forEach((s) => params.append("cardSet", s));
@@ -92,6 +78,8 @@ export function MarketplaceShell() {
           )}
         </div>
 
+        <GameTabs activeSlug={gameTypeSlug} />
+
         <Sheet>
           <SheetTrigger
             render={
@@ -105,26 +93,54 @@ export function MarketplaceShell() {
             <SheetHeader>
               <SheetTitle>篩選</SheetTitle>
             </SheetHeader>
-            {data && (
+            {loading && !data ? (
+              <div className="space-y-4">
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-9 w-full animate-pulse rounded bg-muted" />
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="h-3.5 w-20 animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                  </div>
+                ))}
+              </div>
+            ) : data ? (
               <FilterPanel
                 filters={filters}
                 onChange={setFilters}
                 availableFilters={data.filters}
               />
-            )}
+            ) : null}
           </SheetContent>
         </Sheet>
       </div>
 
       <div className="flex gap-8">
         <div className="hidden w-56 shrink-0 lg:block">
-          {data && (
+          {loading && !data ? (
+            <aside className="sticky top-24 space-y-4">
+              <div className="space-y-2">
+                <div className="h-4 w-16 animate-pulse rounded bg-muted" />
+                <div className="h-9 w-full animate-pulse rounded bg-muted" />
+              </div>
+              <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="space-y-2">
+                  <div className="h-3.5 w-20 animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
+                  <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+                </div>
+              ))}
+            </aside>
+          ) : data ? (
             <FilterPanel
               filters={filters}
               onChange={setFilters}
               availableFilters={data.filters}
             />
-          )}
+          ) : null}
         </div>
 
         <div className="min-w-0 flex-1">

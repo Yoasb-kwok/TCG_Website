@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { usePublicTaxonomy } from "@/hooks/use-public-taxonomy";
 import { getProductTypeDisplayLabel } from "@/lib/product-type-display";
 import { formatPrice } from "@/lib/format";
+import { POINTS_RATE } from "@/lib/points-constants";
 import type { ProductWithVariants } from "@/lib/types";
 import { useCart } from "@/providers/cart-provider";
 
@@ -21,6 +22,7 @@ export function ProductCard({ product }: ProductCardProps) {
     v.price < min.price ? v : min,
   );
   const inStock = product.variants.some((v) => v.stock > 0);
+  const totalStock = product.variants.reduce((sum, v) => sum + Math.max(0, v.stock), 0);
   const imageUrl = product.images[0]?.url;
 
   const handleAdd = () => {
@@ -94,9 +96,17 @@ export function ProductCard({ product }: ProductCardProps) {
         )}
 
         <div className="mt-auto flex items-center justify-between pt-3">
-          <span className="text-base font-semibold text-foreground">
-            {formatPrice(cheapest.price)}
-          </span>
+          <div>
+            <span className="text-base font-semibold text-foreground">
+              {formatPrice(cheapest.price)}
+            </span>
+            <p className="text-[10px] text-amber-600">
+              賺 {Math.floor(cheapest.price * POINTS_RATE)} 分
+            </p>
+            <p className={`text-[10px] ${totalStock <= 3 ? "text-red-500" : "text-muted-foreground"}`}>
+              {inStock ? `庫存 ${totalStock}` : "缺貨"}
+            </p>
+          </div>
           <Button size="sm" disabled={!inStock} onClick={handleAdd}>
             <ShoppingCart className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:inline">加入</span>

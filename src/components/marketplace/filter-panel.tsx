@@ -45,7 +45,7 @@ export function FilterPanel({
   availableFilters,
   maxPrice = 5000,
 }: FilterPanelProps) {
-  const { grouped } = usePublicTaxonomy();
+  const { grouped, loading: taxonomyLoading } = usePublicTaxonomy();
   const setSeriesOptions = grouped.SET_CODE;
   const rarityTierOptions = grouped.RARITY;
   const productTypeOptions = (
@@ -114,28 +114,37 @@ export function FilterPanel({
         </Label>
       </div>
 
-      <Accordion>
+      <Accordion multiple>
         <AccordionItem value="setCode" className="border-border">
           <AccordionTrigger className="text-sm text-foreground hover:no-underline">
             系列編號
           </AccordionTrigger>
           <AccordionContent className="max-h-48 space-y-2 overflow-y-auto">
-            {setSeriesOptions.map(({ value, label, id }) => (
-              <div key={id} className="flex items-center gap-2">
-                <Checkbox
-                  id={`setCode-${value}`}
-                  checked={filters.setCodes.includes(value)}
-                  disabled={!hasSetCode(value)}
-                  onCheckedChange={() => toggleArray("setCodes", value)}
-                />
-                <Label
-                  htmlFor={`setCode-${value}`}
-                  className={`text-sm ${hasSetCode(value) ? "text-foreground/80" : "text-muted-foreground/50"}`}
-                >
-                  {label}
-                </Label>
-              </div>
-            ))}
+            {taxonomyLoading && setSeriesOptions.length === 0 ? (
+              [0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+                  <div className="h-3.5 w-16 animate-pulse rounded bg-muted" />
+                </div>
+              ))
+            ) : (
+              setSeriesOptions.map(({ value, label, id }) => (
+                <div key={id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`setCode-${value}`}
+                    checked={filters.setCodes.includes(value)}
+                    disabled={!hasSetCode(value)}
+                    onCheckedChange={() => toggleArray("setCodes", value)}
+                  />
+                  <Label
+                    htmlFor={`setCode-${value}`}
+                    className={`text-sm ${hasSetCode(value) ? "text-foreground/80" : "text-muted-foreground/50"}`}
+                  >
+                    {label}
+                  </Label>
+                </div>
+              ))
+            )}
           </AccordionContent>
         </AccordionItem>
 
@@ -144,22 +153,31 @@ export function FilterPanel({
             稀有度分類
           </AccordionTrigger>
           <AccordionContent className="max-h-56 space-y-2 overflow-y-auto">
-            {rarityTierOptions.map(({ value, label, id }) => (
-              <div key={id} className="flex items-center gap-2">
-                <Checkbox
-                  id={`tier-${value}`}
-                  checked={filters.rarityTiers.includes(value)}
-                  disabled={!hasRarityTier(value)}
-                  onCheckedChange={() => toggleArray("rarityTiers", value)}
-                />
-                <Label
-                  htmlFor={`tier-${value}`}
-                  className={`text-sm ${hasRarityTier(value) ? "text-foreground/80" : "text-muted-foreground/50"}`}
-                >
-                  {label}
-                </Label>
-              </div>
-            ))}
+            {taxonomyLoading && rarityTierOptions.length === 0 ? (
+              [0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+                  <div className="h-3.5 w-16 animate-pulse rounded bg-muted" />
+                </div>
+              ))
+            ) : (
+              rarityTierOptions.map(({ value, label, id }) => (
+                <div key={id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`tier-${value}`}
+                    checked={filters.rarityTiers.includes(value)}
+                    disabled={!hasRarityTier(value)}
+                    onCheckedChange={() => toggleArray("rarityTiers", value)}
+                  />
+                  <Label
+                    htmlFor={`tier-${value}`}
+                    className={`text-sm ${hasRarityTier(value) ? "text-foreground/80" : "text-muted-foreground/50"}`}
+                  >
+                    {label}
+                  </Label>
+                </div>
+              ))
+            )}
           </AccordionContent>
         </AccordionItem>
 
@@ -189,23 +207,30 @@ export function FilterPanel({
             類型
           </AccordionTrigger>
           <AccordionContent className="space-y-2">
-            {productTypeOptions.map((t) => (
-              <div key={t.value} className="flex items-center gap-2">
-                <Checkbox
-                  id={`type-${t.value}`}
-                  checked={filters.types.includes(t.value as ProductType)}
-                  onCheckedChange={() =>
-                    toggleArray("types", t.value as ProductType)
-                  }
-                />
-                <Label
-                  htmlFor={`type-${t.value}`}
-                  className="text-sm text-foreground/80"
-                >
-                  {t.label}
-                </Label>
-              </div>
-            ))}
+            {taxonomyLoading && grouped.PRODUCT_TYPE.length === 0
+              ? [0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="h-4 w-4 animate-pulse rounded bg-muted" />
+                    <div className="h-3.5 w-14 animate-pulse rounded bg-muted" />
+                  </div>
+                ))
+              : productTypeOptions.map((t) => (
+                  <div key={t.value} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`type-${t.value}`}
+                      checked={filters.types.includes(t.value as ProductType)}
+                      onCheckedChange={() =>
+                        toggleArray("types", t.value as ProductType)
+                      }
+                    />
+                    <Label
+                      htmlFor={`type-${t.value}`}
+                      className="text-sm text-foreground/80"
+                    >
+                      {t.label}
+                    </Label>
+                  </div>
+                ))}
           </AccordionContent>
         </AccordionItem>
 

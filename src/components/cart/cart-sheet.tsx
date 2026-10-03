@@ -21,6 +21,7 @@ import {
   SHIPPING_FEE,
 } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
+import { POINTS_RATE } from "@/lib/points-constants";
 import { useCart } from "@/providers/cart-provider";
 
 async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Promise<T> {
@@ -190,6 +191,12 @@ export function CartSheet() {
                 <span className="text-muted-foreground">小計</span>
                 <span>{formatPrice(subtotal)}</span>
               </div>
+              {subtotal > 0 && (
+                <div className="flex justify-between text-xs text-amber-600">
+                  <span>將獲得積分</span>
+                  <span>{Math.floor(subtotal * POINTS_RATE)} 分</span>
+                </div>
+              )}
               <div className="flex justify-between">
                 <span className="text-muted-foreground">運費</span>
                 <span>

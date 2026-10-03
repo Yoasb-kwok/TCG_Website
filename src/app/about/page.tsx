@@ -40,6 +40,15 @@ export default async function AboutPage() {
         </InfoSection>
       )}
 
+      <InfoSection title="積分系統">
+        <p>
+          每消費 HKD 1 即可獲得 1 積分。積分可用於未來的優惠及獎賞。
+        </p>
+        <p className="text-muted-foreground">
+          訪客消費亦會累積積分，註冊帳戶後即可查看及使用。
+        </p>
+      </InfoSection>
+
       <InfoSection title="聯絡我們">
         {about.contactBody.split(/\n{2,}/).map((paragraph, index) => (
           <p key={`contact-${index}`}>{paragraph}</p>

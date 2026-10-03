@@ -35,6 +35,19 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
   const categoryOptions = optionsFor("CARD_CATEGORY");
   const attributeOptions = optionsFor("POKEMON_ATTRIBUTE");
 
+  // ADR-006: Game type selector
+  const [gameTypes, setGameTypes] = useState<{ id: string; name: string }[]>([]);
+  const [gameTypeId, setGameTypeId] = useState("");
+  useEffect(() => {
+    fetch("/api/games")
+      .then((r) => r.json())
+      .then((d: { id: string; name: string }[]) => {
+        setGameTypes(d);
+        if (d[0]) setGameTypeId(d[0].id);
+      })
+      .catch(() => setGameTypes([{ id: "00000000-0000-0000-0000-000000000001", name: "Pokémon" }]));
+  }, []);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState("");
   const [setCode, setSetCode] = useState("");
@@ -46,6 +59,8 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
   const [stock, setStock] = useState("1");
   const [description, setDescription] = useState("");
   const [isFoil, setIsFoil] = useState(false);
+  const [lowThreshold, setLowThreshold] = useState("");
+  const [criticalThreshold, setCriticalThreshold] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -87,6 +102,8 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
     setStock("1");
     setDescription("");
     setIsFoil(false);
+    setLowThreshold("");
+    setCriticalThreshold("");
     setImageFile(null);
     setImagePreview(null);
     if (fileRef.current) fileRef.current.value = "";
@@ -109,6 +126,7 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kind: "single",
+          gameTypeId,
           name: name.trim(),
           setCode,
           cardNumber: cardNumber.trim() || undefined,
@@ -122,10 +140,34 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
           isFoil,
         }),
       });
-      const data = (await res.json()) as { error?: string; product?: { name: string } };
+      const data = (await res.json()) as { error?: string; product?: { id: string; name: string; variants?: { id: string }[] } };
       if (!res.ok) throw new Error(data.error ?? "上架失敗");
 
       setSuccess(`已上架：${data.product?.name ?? name}`);
+
+      // Set thresholds if provided (post-creation PATCH)
+      const newProductId = data.product?.id;
+      const newVariantId = data.product?.variants?.[0]?.id;
+      if (
+        newProductId &&
+        newVariantId &&
+        (lowThreshold.trim() || criticalThreshold.trim())
+      ) {
+        await fetch(`/api/admin/products/${newProductId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            variantId: newVariantId,
+            lowThreshold: lowThreshold.trim()
+              ? Number(lowThreshold)
+              : null,
+            criticalThreshold: criticalThreshold.trim()
+              ? Number(criticalThreshold)
+              : null,
+          }),
+        });
+      }
+
       resetForm();
       onCreated();
     } catch (err) {
@@ -150,6 +192,21 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
       </p>
 
       <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2">
+          <Label>遊戲</Label>
+          <select
+            value={gameTypeId}
+            onChange={(e) => setGameTypeId(e.target.value)}
+            className={cn("mt-1 w-full", SEARCH_BAR_SELECT_CLASS)}
+          >
+            {gameTypes.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="sm:col-span-2">
           <Label>卡牌名稱 *</Label>
           <Input
@@ -286,6 +343,40 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
             />
             閃卡 / 逆閃
           </label>
+        </div>
+
+        {/* Inventory threshold settings */}
+        <div className="sm:col-span-2 rounded-lg border border-border/50 bg-muted/30 p-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            庫存水位設定（可選）
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            系統會保留緩衝庫存給門市客人。留空則使用全局預設值。
+          </p>
+          <div className="mt-2 grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs text-muted-foreground">低水位</label>
+              <input
+                type="number"
+                min={0}
+                value={lowThreshold}
+                onChange={(e) => setLowThreshold(e.target.value)}
+                placeholder="留空使用預設"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground">臨界水位</label>
+              <input
+                type="number"
+                min={0}
+                value={criticalThreshold}
+                onChange={(e) => setCriticalThreshold(e.target.value)}
+                placeholder="留空使用預設"
+                className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+              />
+            </div>
+          </div>
         </div>
       </div>
 

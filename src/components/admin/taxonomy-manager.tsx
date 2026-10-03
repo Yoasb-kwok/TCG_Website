@@ -631,7 +631,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
 
           <div
             className={cn(
-              "overflow-hidden rounded-lg border border-border",
+              "overflow-x-auto rounded-lg border border-border",
               isPage ? "max-h-[calc(100vh-320px)] overflow-y-auto" : "max-h-96 overflow-y-auto",
             )}
           >
@@ -646,7 +646,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
               </p>
             )}
             {!loading && items.length > 0 && (
-              <table className="w-full text-left text-sm">
+              <table className="w-full min-w-[640px] text-left text-sm">
                 <thead className="sticky top-0 bg-muted/80 text-xs text-muted-foreground">
                   <tr>
                     <th className="px-3 py-2 font-medium">排序</th>

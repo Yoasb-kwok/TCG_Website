@@ -57,6 +57,11 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
   const [accImageFile, setAccImageFile] = useState<File | null>(null);
   const accFileRef = useRef<HTMLInputElement>(null);
 
+  const [sealedLowThreshold, setSealedLowThreshold] = useState("");
+  const [sealedCriticalThreshold, setSealedCriticalThreshold] = useState("");
+  const [accLowThreshold, setAccLowThreshold] = useState("");
+  const [accCriticalThreshold, setAccCriticalThreshold] = useState("");
+
   useEffect(() => {
     if (sealedTypeOptions.length === 0) return;
     if (!sealedTypeOptions.some((o) => o.value === productType)) {
@@ -94,9 +99,33 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
           imageUrl,
         }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; product?: { id: string; variants?: { id: string }[] } };
       if (!res.ok) throw new Error(data.error ?? "建立失敗");
       setSuccess(`已上架：${productName}`);
+
+      // Set thresholds if provided (post-creation PATCH)
+      const newProductId = data.product?.id;
+      const newVariantId = data.product?.variants?.[0]?.id;
+      if (
+        newProductId &&
+        newVariantId &&
+        (sealedLowThreshold.trim() || sealedCriticalThreshold.trim())
+      ) {
+        await fetch(`/api/admin/products/${newProductId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            variantId: newVariantId,
+            lowThreshold: sealedLowThreshold.trim()
+              ? Number(sealedLowThreshold)
+              : null,
+            criticalThreshold: sealedCriticalThreshold.trim()
+              ? Number(sealedCriticalThreshold)
+              : null,
+          }),
+        });
+      }
+
       setProductName("");
       setPrice("");
       setDescription("");
@@ -136,9 +165,33 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
           imageUrl,
         }),
       });
-      const data = (await res.json()) as { error?: string };
+      const data = (await res.json()) as { error?: string; product?: { id: string; variants?: { id: string }[] } };
       if (!res.ok) throw new Error(data.error ?? "建立失敗");
       setSuccess(`已上架：${accName}`);
+
+      // Set thresholds if provided (post-creation PATCH)
+      const newProductId = data.product?.id;
+      const newVariantId = data.product?.variants?.[0]?.id;
+      if (
+        newProductId &&
+        newVariantId &&
+        (accLowThreshold.trim() || accCriticalThreshold.trim())
+      ) {
+        await fetch(`/api/admin/products/${newProductId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            variantId: newVariantId,
+            lowThreshold: accLowThreshold.trim()
+              ? Number(accLowThreshold)
+              : null,
+            criticalThreshold: accCriticalThreshold.trim()
+              ? Number(accCriticalThreshold)
+              : null,
+          }),
+        });
+      }
+
       setAccName("");
       setAccDesc("");
       setAccPrice("");
@@ -260,6 +313,40 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
                 className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
               />
             </div>
+
+            {/* Inventory threshold settings */}
+            <div className="sm:col-span-2 rounded-lg border border-border/50 bg-muted/30 p-3">
+              <p className="text-xs font-medium text-muted-foreground">
+                庫存水位設定（可選）
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                系統會保留緩衝庫存給門市客人。留空則使用全局預設值。
+              </p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">低水位</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={sealedLowThreshold}
+                    onChange={(e) => setSealedLowThreshold(e.target.value)}
+                    placeholder="留空使用預設"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">臨界水位</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={sealedCriticalThreshold}
+                    onChange={(e) => setSealedCriticalThreshold(e.target.value)}
+                    placeholder="留空使用預設"
+                    className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -343,6 +430,40 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
                 onChange={(e) => setAccStock(e.target.value)}
                 className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
               />
+            </div>
+          </div>
+
+          {/* Inventory threshold settings */}
+          <div className="rounded-lg border border-border/50 bg-muted/30 p-3">
+            <p className="text-xs font-medium text-muted-foreground">
+              庫存水位設定（可選）
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              系統會保留緩衝庫存給門市客人。留空則使用全局預設值。
+            </p>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="text-xs text-muted-foreground">低水位</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={accLowThreshold}
+                  onChange={(e) => setAccLowThreshold(e.target.value)}
+                  placeholder="留空使用預設"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-muted-foreground">臨界水位</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={accCriticalThreshold}
+                  onChange={(e) => setAccCriticalThreshold(e.target.value)}
+                  placeholder="留空使用預設"
+                  className="mt-1 w-full rounded-lg border border-border bg-background px-3 py-1.5 text-sm"
+                />
+              </div>
             </div>
           </div>
           <div>
