@@ -98,6 +98,23 @@ function playAlarm(onDone: () => void) {
   else ring();
 }
 
+function parseClockInput(raw: string) {
+  const text = raw.trim();
+  if (!text) return null;
+  const toMs = (minutes: number, seconds: number) => {
+    if (!Number.isInteger(minutes) || !Number.isInteger(seconds)) return null;
+    if (minutes < 0 || minutes > 180 || seconds < 0 || seconds > 59) return null;
+    return (minutes * 60 + seconds) * 1000;
+  };
+  if (text.includes(":")) {
+    const [minutes, seconds = "0"] = text.split(":");
+    return toMs(Number(minutes), Number(seconds));
+  }
+  if (!/^\d{1,4}$/.test(text)) return null;
+  if (text.length <= 2) return toMs(Number(text), 0);
+  return toMs(Number(text.slice(0, -2)), Number(text.slice(-2)));
+}
+
 function scoreLabel(match: Match) {
   if (match.bId == null) return "輪空";
   if (match.winsA == null || match.winsB == null) return "—";
@@ -118,7 +135,15 @@ export function LiveBoard() {
   >([]);
   const [fullscreen, setFullscreen] = useState(false);
   const [alarmOn, setAlarmOn] = useState(false);
+  const [clockDraft, setClockDraft] = useState<string | null>(null);
   const expiredRef = useRef(false);
+  const skipClockCommit = useRef(false);
+  const clockDraftRef = useRef<string | null>(null);
+
+  const setClockText = (value: string | null) => {
+    clockDraftRef.current = value;
+    setClockDraft(value);
+  };
 
   useEffect(() => {
     const loaded = normalizeTimer(loadBoard());
@@ -243,13 +268,21 @@ export function LiveBoard() {
     primeAudio();
     silenceAlarm();
     expiredRef.current = false;
+    const typed = clockDraftRef.current == null ? null : parseClockInput(clockDraftRef.current);
     const started = Date.now();
     setNow(started);
+    setClockText(null);
     setBoard((prev) => {
       if (!prev) return prev;
-      const left = prev.timerRemainingMs > 0 ? prev.timerRemainingMs : prev.roundMinutes * 60_000;
+      const left =
+        typed != null
+          ? typed
+          : prev.timerRemainingMs > 0
+            ? prev.timerRemainingMs
+            : prev.roundMinutes * 60_000;
       return {
         ...prev,
+        roundMinutes: typed != null && Math.floor(typed / 60_000) > 0 ? Math.floor(typed / 60_000) : prev.roundMinutes,
         timerRunning: true,
         timerRemainingMs: left,
         timerEndsAt: started + left,
@@ -271,12 +304,29 @@ export function LiveBoard() {
   const setMinutes = (minutes: number) => {
     silenceAlarm();
     expiredRef.current = false;
+    setClockText(null);
     update({
       ...board,
       roundMinutes: minutes,
       timerRunning: false,
       timerEndsAt: null,
       timerRemainingMs: minutes * 60_000,
+    });
+  };
+
+  const commitClock = (raw: string) => {
+    const parsed = parseClockInput(raw);
+    setClockText(null);
+    if (parsed == null || board.timerRunning) return;
+    silenceAlarm();
+    expiredRef.current = false;
+    const minutes = Math.floor(parsed / 60_000);
+    update({
+      ...board,
+      roundMinutes: minutes > 0 ? minutes : board.roundMinutes,
+      timerRunning: false,
+      timerEndsAt: null,
+      timerRemainingMs: parsed,
     });
   };
 
@@ -393,14 +443,47 @@ export function LiveBoard() {
           <p className={cn("text-sm font-semibold", timeUp ? "text-red-400" : "text-zinc-400")}>
             {timeUp ? "時間到" : board.timerRunning ? "計時中" : "計時暫停"}
           </p>
-          <p
-            className={cn(
-              "font-mono text-7xl leading-none font-bold tabular-nums tracking-tight sm:text-8xl",
-              timeUp ? "text-red-400" : urgent ? "text-red-400" : warning ? "text-amber-300" : "text-white",
-            )}
-          >
-            {formatClock(remaining)}
-          </p>
+          {board.timerRunning ? (
+            <p
+              className={cn(
+                "font-mono text-7xl leading-none font-bold tabular-nums tracking-tight sm:text-8xl",
+                timeUp ? "text-red-400" : urgent ? "text-red-400" : warning ? "text-amber-300" : "text-white",
+              )}
+            >
+              {formatClock(remaining)}
+            </p>
+          ) : (
+            <input
+              aria-label="設定計時，例如 45:00"
+              inputMode="numeric"
+              value={clockDraft ?? formatClock(remaining)}
+              onFocus={(event) => {
+                setClockText(formatClock(remaining));
+                event.target.select();
+              }}
+              onChange={(event) => setClockText(event.target.value)}
+              onBlur={() => {
+                if (skipClockCommit.current) {
+                  skipClockCommit.current = false;
+                  setClockText(null);
+                  return;
+                }
+                commitClock(clockDraftRef.current ?? formatClock(remaining));
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") event.currentTarget.blur();
+                if (event.key === "Escape") {
+                  skipClockCommit.current = true;
+                  setClockText(null);
+                  event.currentTarget.blur();
+                }
+              }}
+              className={cn(
+                "w-[5.2ch] border-0 bg-transparent p-0 text-right font-mono text-7xl leading-none font-bold tabular-nums tracking-tight outline-none sm:text-8xl",
+                timeUp ? "text-red-400" : urgent ? "text-red-400" : warning ? "text-amber-300" : "text-white",
+              )}
+            />
+          )}
           <div className="flex flex-wrap gap-2">
             {PRESETS.map((minutes) => (
               <button
@@ -409,7 +492,7 @@ export function LiveBoard() {
                 onClick={() => setMinutes(minutes)}
                 className={cn(
                   "h-8 rounded-md px-2.5 text-sm",
-                  board.roundMinutes === minutes && !board.timerRunning
+                  !board.timerRunning && board.timerRemainingMs === minutes * 60_000
                     ? "bg-white text-zinc-950"
                     : "bg-white/10 text-zinc-200 hover:bg-white/15",
                 )}
@@ -460,8 +543,8 @@ export function LiveBoard() {
         </section>
       </header>
 
-      <div className="grid gap-4 p-4 lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-[minmax(0,1fr)] lg:overflow-hidden lg:p-6">
-        <section className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:h-full lg:min-h-0 lg:overflow-hidden">
+      <div className="grid gap-4 p-4 lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden lg:p-6">
+        <section className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
             <h2 className="text-lg font-semibold">本輪配對</h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -483,7 +566,7 @@ export function LiveBoard() {
               {pending > 0 && <span className="text-sm text-amber-300">未填 {pending} 場</span>}
             </div>
           </div>
-          <div className="lg:min-h-0 lg:flex-1 lg:overflow-auto">
+          <div className="lg:min-h-0 lg:overflow-auto">
             {pairings.length === 0 ? (
               <p className="px-4 py-10 text-center text-zinc-400">
                 加入選手後，按「配對第 1 輪」。比分會即時更新右邊積分榜。
@@ -546,7 +629,7 @@ export function LiveBoard() {
           </div>
         </section>
 
-        <section className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:h-full lg:min-h-0 lg:overflow-hidden">
+        <section className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:overflow-hidden">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <div>
               <h2 className="text-lg font-semibold">積分榜</h2>
@@ -556,7 +639,7 @@ export function LiveBoard() {
               {shownRound ? `計至第 ${maxRound} 輪` : "尚未開賽"}
             </p>
           </div>
-          <div className="lg:min-h-0 lg:flex-1 lg:overflow-auto">
+          <div className="lg:min-h-0 lg:overflow-auto">
             {standings.length === 0 ? (
               <p className="px-4 py-10 text-center text-zinc-400">未有選手</p>
             ) : (
