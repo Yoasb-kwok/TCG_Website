@@ -48,3 +48,4 @@ next-env.d.ts
 # local tournament signups when no database is configured
 /data/tournament-registrations.json
 /data/pos-ledger.json
+.neon
