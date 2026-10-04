@@ -279,8 +279,12 @@ export function createRound(state: BoardState): BoardState {
   let pool = active;
   let bye: Player | null = null;
   if (pool.length % 2 === 1) {
-    bye = [...pool].reverse().find((player) => !hadBye.has(player.id)) ?? pool[pool.length - 1];
-    pool = pool.filter((player) => player.id !== bye.id);
+    const byePlayer =
+      [...pool].reverse().find((player) => !hadBye.has(player.id)) ?? pool[pool.length - 1];
+    if (byePlayer) {
+      bye = byePlayer;
+      pool = pool.filter((player) => player.id !== byePlayer.id);
+    }
   }
 
   const pairs = pairPlayers(pool, played);
