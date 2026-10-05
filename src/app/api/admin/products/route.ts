@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
         rarityTier: body.rarityTier,
         cardCategory: body.cardCategory ?? "POKEMON",
         pokemonType: body.pokemonType,
-        price: Number(body.price),
-        stock: Number(body.stock),
+        price: Number.isFinite(Number(body.price)) ? Number(body.price) : 0,
+        stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         description: body.description,
         imageUrl: body.imageUrl,
         isFoil: body.isFoil,
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
         name: body.name,
         type: body.type ?? "BOOSTER_PACK",
         setCode: body.setCode,
-        price: Number(body.price),
-        stock: Number(body.stock),
+        price: Number.isFinite(Number(body.price)) ? Number(body.price) : 0,
+        stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         description: body.description,
         imageUrl: body.imageUrl,
       });
@@ -119,8 +119,8 @@ export async function POST(request: NextRequest) {
       const product = await createManualAccessory({
         name: body.name,
         description: body.description,
-        price: Number(body.price),
-        stock: Number(body.stock),
+        price: Number.isFinite(Number(body.price)) ? Number(body.price) : 0,
+        stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         imageUrl: body.imageUrl,
       });
       return NextResponse.json({ product });

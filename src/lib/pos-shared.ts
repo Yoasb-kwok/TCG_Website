@@ -1,7 +1,7 @@
 export const PAYMENT_METHODS = ["CASH", "PAYME", "FPS", "CARD"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
-export const EXPENSE_CATEGORIES = ["RENT", "WAGES", "SUPPLIES", "UTILITIES", "OTHER"] as const;
+export const EXPENSE_CATEGORIES = ["GOODS", "RENT", "WAGES", "SUPPLIES", "UTILITIES", "OTHER"] as const;
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number];
 
 export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
@@ -12,6 +12,7 @@ export const PAYMENT_LABELS: Record<PaymentMethod, string> = {
 };
 
 export const EXPENSE_LABELS: Record<ExpenseCategory, string> = {
+  GOODS: "進貨",
   RENT: "租金",
   WAGES: "薪金",
   SUPPLIES: "用品",
@@ -46,9 +47,23 @@ export type Expense = {
   note: string;
 };
 
+export type Receipt = {
+  id: string;
+  createdAt: string;
+  productId: string;
+  variantId: string;
+  name: string;
+  sku: string | null;
+  quantity: number;
+  unitCost: number;
+  unitPrice: number;
+  expenseId: string;
+};
+
 export type Ledger = {
   sales: Sale[];
   expenses: Expense[];
+  receipts: Receipt[];
 };
 
 export type PnlSummary = {

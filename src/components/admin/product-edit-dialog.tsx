@@ -114,8 +114,8 @@ export function ProductEditDialog({
     if (!product?.variants[0]) return;
     const v = product.variants[0];
 
-    if (!name.trim() || !price || stock === "") {
-      setError("請填寫名稱、售價與庫存");
+    if (!name.trim()) {
+      setError("請填寫名稱");
       return;
     }
 
@@ -354,28 +354,7 @@ export function ProductEditDialog({
             </div>
           )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>售價 (HKD) *</Label>
-              <Input
-                type="number"
-                min={0}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-              />
-            </div>
-            <div>
-              <Label>庫存 *</Label>
-              <Input
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-              />
-            </div>
-          </div>
+          <p className="text-sm text-muted-foreground">售價和數量在收銀的「來貨」點算。</p>
 
           <div>
             <Label>備註（選填）</Label>

@@ -23,7 +23,7 @@ function WhatsAppButton() {
 export function StorefrontFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  if (pathname === "/tournaments/live") {
+  if (pathname === "/tournaments/live" || pathname.startsWith("/pos")) {
     return <div className="min-h-dvh flex-1 lg:h-dvh lg:overflow-hidden">{children}</div>;
   }
 

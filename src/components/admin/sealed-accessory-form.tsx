@@ -41,8 +41,6 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
   const [productType, setProductType] = useState("");
   const [setCode, setSetCode] = useState("");
   const [productName, setProductName] = useState("");
-  const [price, setPrice] = useState("");
-  const [stock, setStock] = useState("1");
   const [description, setDescription] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -52,8 +50,6 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
 
   const [accName, setAccName] = useState("");
   const [accDesc, setAccDesc] = useState("");
-  const [accPrice, setAccPrice] = useState("");
-  const [accStock, setAccStock] = useState("1");
   const [accImageFile, setAccImageFile] = useState<File | null>(null);
   const accFileRef = useRef<HTMLInputElement>(null);
 
@@ -71,8 +67,8 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
   };
 
   const handleSealedSubmit = async () => {
-    if (!productName.trim() || !price || !imageFile || !productType) {
-      setError("請填寫商品名稱、商品類型、售價並上傳圖片");
+    if (!productName.trim() || !imageFile || !productType) {
+      setError("請填寫商品名稱、商品類型並上傳圖片");
       return;
     }
     setLoading(true);
@@ -88,8 +84,8 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
           name: productName.trim(),
           type: productType,
           setCode: setCode || undefined,
-          price: Number(price),
-          stock: Number(stock),
+          price: 0,
+          stock: 0,
           description: description.trim() || undefined,
           imageUrl,
         }),
@@ -98,7 +94,6 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
       if (!res.ok) throw new Error(data.error ?? "建立失敗");
       setSuccess(`已上架：${productName}`);
       setProductName("");
-      setPrice("");
       setDescription("");
       setImageFile(null);
       setImagePreview(null);
@@ -112,8 +107,8 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
   };
 
   const handleAccessorySubmit = async () => {
-    if (!accName.trim() || !accPrice) {
-      setError("請填寫商品名稱與售價");
+    if (!accName.trim()) {
+      setError("請填寫商品名稱");
       return;
     }
     setLoading(true);
@@ -131,8 +126,8 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
           kind: "accessory",
           name: accName.trim(),
           description: accDesc.trim() || undefined,
-          price: Number(accPrice),
-          stock: Number(accStock),
+          price: 0,
+          stock: 0,
           imageUrl,
         }),
       });
@@ -141,7 +136,6 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
       setSuccess(`已上架：${accName}`);
       setAccName("");
       setAccDesc("");
-      setAccPrice("");
       setAccImageFile(null);
       if (accFileRef.current) accFileRef.current.value = "";
       onCreated();
@@ -232,26 +226,6 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
                 className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
               />
             </div>
-            <div>
-              <Label>售價 (HKD) *</Label>
-              <Input
-                type="number"
-                min={1}
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-              />
-            </div>
-            <div>
-              <Label>庫存 *</Label>
-              <Input
-                type="number"
-                min={0}
-                value={stock}
-                onChange={(e) => setStock(e.target.value)}
-                className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-              />
-            </div>
             <div className="sm:col-span-2">
               <Label>備註（選填）</Label>
               <Input
@@ -322,28 +296,6 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
               onChange={(e) => setAccDesc(e.target.value)}
               className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
             />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Label>售價 (HKD) *</Label>
-              <Input
-                type="number"
-                min={1}
-                value={accPrice}
-                onChange={(e) => setAccPrice(e.target.value)}
-                className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-              />
-            </div>
-            <div>
-              <Label>庫存 *</Label>
-              <Input
-                type="number"
-                min={0}
-                value={accStock}
-                onChange={(e) => setAccStock(e.target.value)}
-                className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-              />
-            </div>
           </div>
           <div>
             <Label>商品圖片（選填）</Label>

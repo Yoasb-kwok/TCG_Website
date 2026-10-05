@@ -6,19 +6,8 @@ import { ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
 import { ProductEditDialog } from "@/components/admin/product-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
 import { SEARCH_BAR_SELECT_CLASS } from "@/lib/search-bar-styles";
-import { Label } from "@/components/ui/label";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { formatPrice } from "@/lib/format";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { getProductTypeDisplayLabel } from "@/lib/product-type-display";
 import { useTaxonomy } from "@/providers/taxonomy-provider";
@@ -63,9 +52,6 @@ export function ProductsTable() {
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [bulkOpen, setBulkOpen] = useState(false);
-  const [bulkPrice, setBulkPrice] = useState("");
-  const [bulkStock, setBulkStock] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<AdminProduct | null>(null);
@@ -134,20 +120,6 @@ export function ProductsTable() {
     else setSelected(new Set());
   };
 
-  const updateVariant = async (
-    productId: string,
-    variantId: string,
-    field: "price" | "stock",
-    value: number,
-  ) => {
-    await fetch(`/api/admin/products/${productId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ variantId, [field]: value }),
-    });
-    load(page);
-  };
-
   const deleteProducts = async (ids: string[]) => {
     if (
       !confirm(
@@ -174,48 +146,6 @@ export function ProductsTable() {
       return;
     }
     setMessage(data.message ?? `已刪除 ${data.deleted ?? 0} 項商品`);
-    await load(page);
-  };
-
-  const applyBulkEdit = async () => {
-    const price = bulkPrice.trim() ? Number(bulkPrice) : undefined;
-    const stock = bulkStock.trim() ? Number(bulkStock) : undefined;
-    if (price == null && stock == null) {
-      setMessage("請至少填寫售價或庫存");
-      return;
-    }
-    if (
-      (price != null && (Number.isNaN(price) || price < 0)) ||
-      (stock != null && (Number.isNaN(stock) || stock < 0 || !Number.isInteger(stock)))
-    ) {
-      setMessage("售價或庫存格式不正確");
-      return;
-    }
-
-    setBusy(true);
-    setMessage(null);
-    const res = await fetch("/api/admin/products/bulk", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ids: Array.from(selected),
-        price,
-        stock,
-      }),
-    });
-    const data = (await res.json()) as {
-      updated?: number;
-      error?: string;
-    };
-    setBusy(false);
-    if (!res.ok) {
-      setMessage(data.error ?? "更新失敗");
-      return;
-    }
-    setBulkOpen(false);
-    setBulkPrice("");
-    setBulkStock("");
-    setMessage(`已更新 ${data.updated ?? 0} 項商品`);
     await load(page);
   };
 
@@ -312,16 +242,6 @@ export function ProductsTable() {
           <Button
             type="button"
             size="sm"
-            variant="secondary"
-            disabled={busy}
-            onClick={() => setBulkOpen(true)}
-          >
-            <Pencil className="mr-1 h-3.5 w-3.5" />
-            批次編輯
-          </Button>
-          <Button
-            type="button"
-            size="sm"
             variant="destructive"
             disabled={busy}
             onClick={() => deleteProducts(Array.from(selected))}
@@ -360,8 +280,6 @@ export function ProductsTable() {
               <th className="p-3">系列</th>
               <th className="p-3">稀有度</th>
               <th className="p-3">類型</th>
-              <th className="p-3">售價</th>
-              <th className="p-3">庫存</th>
               <th className="p-3 w-20">操作</th>
             </tr>
           </thead>
@@ -414,28 +332,6 @@ export function ProductsTable() {
                     {p.rarityTier ? labelFor("RARITY", p.rarityTier) : "—"}
                   </td>
                   <td className="p-3 text-muted-foreground">{typeLabel(p.type)}</td>
-                  <td className="p-3">
-                    <Input
-                      type="number"
-                      defaultValue={v.price}
-                      className="h-8 w-24 border-border bg-background text-foreground"
-                      onBlur={(e) =>
-                        updateVariant(p.id, v.id, "price", Number(e.target.value))
-                      }
-                    />
-                  </td>
-                  <td className="p-3">
-                    <Input
-                      type="number"
-                      defaultValue={v.stock}
-                      className={`h-8 w-16 border-border bg-background text-foreground ${
-                        v.stock <= 2 ? "border-amber-500/50" : ""
-                      }`}
-                      onBlur={(e) =>
-                        updateVariant(p.id, v.id, "stock", Number(e.target.value))
-                      }
-                    />
-                  </td>
                   <td className="p-3">
                     <div className="flex justify-end gap-1">
                       <button
@@ -521,70 +417,6 @@ export function ProductsTable() {
           void load(page);
         }}
       />
-
-      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>批次編輯</DialogTitle>
-            <DialogDescription>
-              將統一套用至已選的 {selectedCount} 項商品（空白欄位不會變更）
-            </DialogDescription>
-          </DialogHeader>
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void applyBulkEdit();
-            }}
-          >
-            <div className="grid gap-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="bulk-price">售價 (HKD)</Label>
-                <Input
-                  id="bulk-price"
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="留空則不變更"
-                  value={bulkPrice}
-                  onChange={(e) => setBulkPrice(e.target.value)}
-                  className="border-border bg-background"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bulk-stock">庫存</Label>
-                <Input
-                  id="bulk-stock"
-                  type="number"
-                  min={0}
-                  step={1}
-                  placeholder="留空則不變更"
-                  value={bulkStock}
-                  onChange={(e) => setBulkStock(e.target.value)}
-                  className="border-border bg-background"
-                />
-              </div>
-              {selectedCount > 0 && bulkPrice && (
-                <p className="text-xs text-muted-foreground">
-                  預覽：售價將設為 {formatPrice(Number(bulkPrice))}
-                </p>
-              )}
-            </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setBulkOpen(false)}
-                disabled={busy}
-              >
-                取消
-              </Button>
-              <Button type="submit" disabled={busy}>
-                {busy ? "更新中..." : "套用"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

@@ -41,7 +41,10 @@ export function MarketplaceShell() {
     params.set("pageSize", "24");
 
     if (filters.inStock) params.set("inStock", "true");
-    if (filters.priceRange[0] > 0) params.set("minPrice", String(filters.priceRange[0]));
+    params.set(
+      "minPrice",
+      String(filters.priceRange[0] > 0 ? filters.priceRange[0] : 1),
+    );
     if (filters.priceRange[1] < 5000) params.set("maxPrice", String(filters.priceRange[1]));
 
     const urlType = searchParams.get("type") as ProductType | null;

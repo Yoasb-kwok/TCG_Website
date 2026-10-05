@@ -42,8 +42,6 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
   const [rarityTier, setRarityTier] = useState("");
   const [cardCategory, setCardCategory] = useState("");
   const [pokemonType, setPokemonType] = useState("");
-  const [price, setPrice] = useState("");
-  const [stock, setStock] = useState("1");
   const [description, setDescription] = useState("");
   const [isFoil, setIsFoil] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -83,8 +81,6 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
   const resetForm = () => {
     setName("");
     setCardNumber("");
-    setPrice("");
-    setStock("1");
     setDescription("");
     setIsFoil(false);
     setImageFile(null);
@@ -93,8 +89,8 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
   };
 
   const handleSubmit = async () => {
-    if (!name.trim() || !setCode || !rarityTier || !price || !imageFile) {
-      setError("請填寫卡牌名稱、系列、稀有度、售價並上傳圖片");
+    if (!name.trim() || !setCode || !rarityTier || !imageFile) {
+      setError("請填寫卡牌名稱、系列、稀有度並上傳圖片");
       return;
     }
 
@@ -115,8 +111,8 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
           rarityTier,
           cardCategory,
           pokemonType: pokemonType || undefined,
-          price: Number(price),
-          stock: Number(stock),
+          price: 0,
+          stock: 0,
           description: description.trim() || undefined,
           imageUrl,
           isFoil,
@@ -244,28 +240,6 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
             </select>
           </div>
         )}
-
-        <div>
-          <Label>售價 (HKD) *</Label>
-          <Input
-            type="number"
-            min={1}
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-          />
-        </div>
-
-        <div>
-          <Label>庫存 *</Label>
-          <Input
-            type="number"
-            min={0}
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-          />
-        </div>
 
         <div className="sm:col-span-2">
           <Label>備註（選填）</Label>

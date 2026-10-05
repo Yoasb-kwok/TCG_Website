@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { PosNav } from "@/components/pos/pos-nav";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PosShell } from "@/components/pos/pos-nav";
 import { formatDate, formatPrice } from "@/lib/format";
 import {
   EXPENSE_LABELS,
@@ -82,13 +80,16 @@ export function PnlReport() {
       ]
     : [];
 
+  const fieldClass =
+    "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-pink-400";
+
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
-      <PosNav current="pnl" />
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-3">
+    <PosShell current="pnl">
+      <div className="h-full overflow-y-auto px-4 py-6 lg:px-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold">損益表</h1>
-          <p className="mt-1 text-sm text-muted-foreground">純利 = 營業額 − 銷貨成本 − 開支。作廢單據不算在內。</p>
+          <h1 className="text-2xl font-extrabold">損益表</h1>
+          <p className="mt-1 text-sm font-bold text-muted-foreground">純利 = 營業額 − 銷貨成本 − 開支。作廢單據不算在內。</p>
         </div>
         <div className="flex gap-2">
           {PERIODS.map((item) => (
@@ -96,8 +97,8 @@ export function PnlReport() {
               key={item.id}
               type="button"
               onClick={() => setPeriod(item.id)}
-              className={`h-8 rounded-lg px-3 text-sm ${
-                period === item.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              className={`h-8 rounded-full px-3 text-sm font-bold ${
+                period === item.id ? "bg-pink-500 text-white" : "bg-muted text-muted-foreground"
               }`}
             >
               {item.label}
@@ -108,24 +109,24 @@ export function PnlReport() {
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         {cards.map((card) => (
-          <div key={card.label} className="rounded-xl border border-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">{card.label}</p>
-            <p className={`mt-2 text-2xl font-bold tabular-nums ${card.value < 0 ? "text-red-400" : ""}`}>
+          <div key={card.label} className="rounded-[14px] border border-border bg-card p-4">
+            <p className="text-sm font-bold text-muted-foreground">{card.label}</p>
+            <p className={`mt-2 text-2xl font-extrabold tabular-nums ${card.value < 0 ? "text-red-400" : ""}`}>
               {formatPrice(card.value)}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{card.hint}</p>
+            <p className="mt-1 text-xs font-bold text-muted-foreground">{card.hint}</p>
           </div>
         ))}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-border p-4">
-          <h2 className="font-semibold">開支</h2>
+        <section className="rounded-[14px] border border-border bg-card p-4">
+          <h2 className="font-extrabold">開支</h2>
           <form onSubmit={addExpense} className="mt-3 grid gap-2 sm:grid-cols-[8rem_7rem_1fr_auto]">
             <select
               value={form.category}
               onChange={(event) => setForm({ ...form, category: event.target.value as ExpenseCategory })}
-              className="h-8 rounded-lg border border-input bg-transparent px-2 text-sm"
+              className={fieldClass}
             >
               {CATEGORIES.map(([value, label]) => (
                 <option key={value} value={value}>
@@ -133,35 +134,43 @@ export function PnlReport() {
                 </option>
               ))}
             </select>
-            <Input
+            <input
               inputMode="decimal"
               value={form.amount}
               onChange={(event) => setForm({ ...form, amount: event.target.value })}
               placeholder="金額"
               required
+              className={fieldClass}
             />
-            <Input
+            <input
               value={form.note}
               onChange={(event) => setForm({ ...form, note: event.target.value })}
               placeholder="備註，例如三月租金"
+              className={fieldClass}
             />
-            <Button type="submit">記入</Button>
+            <button type="submit" className="h-10 rounded-xl bg-pink-500 px-4 text-sm font-extrabold text-white hover:bg-pink-400">
+              記入
+            </button>
           </form>
-          {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
+          {error && <p className="mt-2 text-sm font-bold text-red-400">{error}</p>}
           <ul className="mt-4 divide-y divide-border">
-            {expenses.length === 0 && <li className="py-3 text-sm text-muted-foreground">這段時間未有開支</li>}
+            {expenses.length === 0 && <li className="py-3 text-sm font-bold text-muted-foreground">這段時間未有開支</li>}
             {expenses.map((expense) => (
               <li key={expense.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                 <div>
                   <p>
                     {EXPENSE_LABELS[expense.category]} · {formatPrice(expense.amount)}
                   </p>
-                  <p className="text-muted-foreground">
+                  <p className="font-bold text-muted-foreground">
                     {formatDate(expense.createdAt)}
                     {expense.note ? ` · ${expense.note}` : ""}
                   </p>
                 </div>
-                <button type="button" className="text-xs text-red-400" onClick={() => removeExpense(expense.id)}>
+                <button
+                  type="button"
+                  className="inline-flex h-8 shrink-0 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                  onClick={() => removeExpense(expense.id)}
+                >
                   刪除
                 </button>
               </li>
@@ -169,16 +178,16 @@ export function PnlReport() {
           </ul>
         </section>
 
-        <section className="rounded-xl border border-border p-4">
-          <h2 className="font-semibold">銷售</h2>
+        <section className="rounded-[14px] border border-border bg-card p-4">
+          <h2 className="font-extrabold">銷售</h2>
           {pnl && pnl.byPayment.length > 0 && (
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mt-2 text-sm font-bold text-muted-foreground">
               {pnl.byPayment.map((row) => `${row.label} ${formatPrice(row.amount)}`).join(" · ")}
             </p>
           )}
           <ul className="mt-3 divide-y divide-border">
             {sales.filter((sale) => !sale.voided).length === 0 && (
-              <li className="py-3 text-sm text-muted-foreground">這段時間未有銷售</li>
+              <li className="py-3 text-sm font-bold text-muted-foreground">這段時間未有銷售</li>
             )}
             {sales
               .filter((sale) => !sale.voided)
@@ -194,7 +203,7 @@ export function PnlReport() {
                       <p>{sale.items.map((item) => item.name).join("、")}</p>
                       <p className="tabular-nums">{formatPrice(revenue)}</p>
                     </div>
-                    <p className="text-muted-foreground">
+                    <p className="font-bold text-muted-foreground">
                       {formatDate(sale.createdAt)} · 成本 {formatPrice(cost)} · 毛利 {formatPrice(revenue - cost)}
                     </p>
                   </li>
@@ -203,6 +212,7 @@ export function PnlReport() {
           </ul>
         </section>
       </div>
-    </div>
+      </div>
+    </PosShell>
   );
 }

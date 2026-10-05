@@ -15,6 +15,7 @@
     "db:seed-content": "tsx prisma/seed-site-content.ts",
     "db:clear": "tsx prisma/clear-db.ts",
     "db:seed-taxonomy": "tsx prisma/seed-taxonomy.ts",
+    "db:seed-pos-demo": "tsx prisma/seed-pos-demo.ts",
     "db:push": "prisma db push"
   },
   "prisma": {

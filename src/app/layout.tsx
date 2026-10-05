@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { Noto_Sans_TC } from "next/font/google";
+import { M_PLUS_Rounded_1c, Noto_Sans_TC } from "next/font/google";
 import { StorefrontFrame } from "@/components/layout/storefront-frame";
 import { AuthSessionProvider } from "@/providers/session-provider";
 import { CartProvider } from "@/providers/cart-provider";
@@ -17,6 +17,12 @@ const notoSansTC = Noto_Sans_TC({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-sans",
+});
+
+const posRounded = M_PLUS_Rounded_1c({
+  subsets: ["latin"],
+  weight: ["400", "500", "700", "800"],
+  variable: "--font-pos",
 });
 
 export const metadata: Metadata = {
@@ -41,7 +47,7 @@ export default async function RootLayout({
   return (
     <html
       lang="zh-HK"
-      className={`${notoSansTC.variable} ${resolved} h-full`}
+      className={`${notoSansTC.variable} ${posRounded.variable} ${resolved} h-full`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">

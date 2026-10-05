@@ -1,12 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
-import { PosNav } from "@/components/pos/pos-nav";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PosShell } from "@/components/pos/pos-nav";
+import { PRODUCT_TYPES } from "@/lib/constants";
 import { formatPrice } from "@/lib/format";
 import { PAYMENT_LABELS, type PaymentMethod, type Sale } from "@/lib/pos-shared";
 import type { ProductWithVariants } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 type TicketLine = {
   key: string;
@@ -18,13 +19,23 @@ type TicketLine = {
 };
 
 const METHODS = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
+const KINDS = [{ value: "", label: "全部" }, ...PRODUCT_TYPES] as const;
+
+const fieldClass =
+  "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-pink-400";
 
 function lineTotal(line: TicketLine) {
   return line.quantity * line.unitPrice;
 }
 
+function saleAmount(sale: Sale) {
+  return Math.max(0, sale.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) - sale.discount);
+}
+
 export function PosRegister() {
   const [query, setQuery] = useState("");
+  const [kind, setKind] = useState("");
+  const [inStockOnly, setInStockOnly] = useState(true);
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
   const [lines, setLines] = useState<TicketLine[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -47,32 +58,48 @@ export function PosRegister() {
 
   useEffect(() => {
     const handle = window.setTimeout(() => {
-      const params = new URLSearchParams({ pageSize: "8", search: query });
+      const params = new URLSearchParams({ pageSize: "48", search: query });
+      if (kind) params.set("type", kind);
+      if (inStockOnly) params.set("inStock", "true");
       fetch(`/api/products?${params}`)
         .then((res) => res.json())
         .then((data: { products: ProductWithVariants[] }) => setProducts(data.products ?? []))
         .catch(() => setProducts([]));
     }, 250);
     return () => window.clearTimeout(handle);
-  }, [query]);
+  }, [query, kind, inStockOnly]);
 
   const subtotal = lines.reduce((sum, line) => sum + lineTotal(line), 0);
   const total = Math.max(0, subtotal - discount);
+  const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
+  const todayTotal = recent.filter((sale) => !sale.voided).reduce((sum, sale) => sum + saleAmount(sale), 0);
+
+  const patchLine = (key: string, patch: Partial<TicketLine>) => {
+    setLines((current) => current.map((item) => (item.key === key ? { ...item, ...patch } : item)));
+  };
 
   const addProduct = (product: ProductWithVariants) => {
     const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
     if (!variant) return;
-    setLines((current) => [
-      ...current,
-      {
-        key: crypto.randomUUID(),
-        name: product.name,
-        sku: variant.sku,
-        quantity: 1,
-        unitPrice: variant.price,
-        unitCost: 0,
-      },
-    ]);
+    setLines((current) => {
+      const existing = current.find((line) => line.sku != null && line.sku === variant.sku);
+      if (existing) {
+        return current.map((line) =>
+          line.key === existing.key ? { ...line, quantity: line.quantity + 1 } : line,
+        );
+      }
+      return [
+        ...current,
+        {
+          key: crypto.randomUUID(),
+          name: product.name,
+          sku: variant.sku,
+          quantity: 1,
+          unitPrice: variant.price,
+          unitCost: 0,
+        },
+      ];
+    });
   };
 
   const addManual = () => {
@@ -92,6 +119,13 @@ export function PosRegister() {
       },
     ]);
     setManual({ name: "", unitPrice: "", unitCost: "" });
+  };
+
+  const clearTicket = () => {
+    setLines([]);
+    setDiscount(0);
+    setNote("");
+    setError("");
   };
 
   const checkout = async () => {
@@ -119,9 +153,7 @@ export function PosRegister() {
         setError(data.error ?? "未能入帳");
         return;
       }
-      setLines([]);
-      setDiscount(0);
-      setNote("");
+      clearTicket();
       await loadRecent();
     } catch {
       setError("未能入帳，請再試一次");
@@ -137,211 +169,274 @@ export function PosRegister() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
-      <PosNav current="register" />
-      <h1 className="mt-4 text-2xl font-bold">收銀</h1>
-      <p className="mt-1 text-sm text-muted-foreground">
-        門市銷售會記入損益表。成本留空會當成 0，毛利會偏高。
-      </p>
-
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <section className="space-y-4">
-          <Input
+    <PosShell current="register">
+      <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_320px] lg:overflow-hidden">
+        <section className="flex min-h-[28rem] flex-col overflow-hidden rounded-[14px] border border-border bg-card p-4 lg:min-h-0">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-extrabold text-muted-foreground">揀貨</p>
+            <p className="text-xs font-bold text-muted-foreground">撳一下就加入</p>
+          </div>
+          <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="搜尋貨品名稱或系列"
+            placeholder="打卡名、系列或編號"
+            className={cn(fieldClass, "mt-3")}
           />
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <div className="mt-3 flex flex-wrap gap-2">
+            {KINDS.map((item) => (
+              <button
+                key={item.value || "all"}
+                type="button"
+                onClick={() => setKind(item.value)}
+                className={cn(
+                  "h-8 rounded-full border px-3 text-sm font-bold",
+                  kind === item.value
+                    ? "border-pink-500 bg-pink-500 text-white"
+                    : "border-border bg-muted text-muted-foreground",
+                )}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <label className="mt-3 flex items-center gap-2 text-sm font-bold text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={inStockOnly}
+              onChange={(event) => setInStockOnly(event.target.checked)}
+              className="size-4 accent-pink-500"
+            />
+            淨係有貨
+          </label>
+          <ul className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1">
             {products.map((product) => {
-              const variant = product.variants[0];
+              const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
+              const image = product.images[0];
+              const stock = product.variants.reduce((sum, item) => sum + item.stock, 0);
               return (
-                <li key={product.id} className="flex items-center justify-between gap-3 px-4 py-3">
-                  <div>
-                    <p className="font-medium">{product.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {variant ? formatPrice(variant.price) : "未有售價"}
-                      {variant?.sku ? ` · ${variant.sku}` : ""}
-                    </p>
-                  </div>
-                  <Button type="button" variant="outline" onClick={() => addProduct(product)}>
-                    加入
-                  </Button>
+                <li key={product.id}>
+                  <button
+                    type="button"
+                    onClick={() => addProduct(product)}
+                    className="flex h-full w-full flex-col rounded-[10px] border border-border bg-card p-2 text-left hover:border-pink-400"
+                  >
+                    <span className="relative flex h-24 items-center justify-center overflow-hidden rounded-lg bg-muted">
+                      {image ? (
+                        <Image src={image.url} alt="" fill className="object-contain p-1" sizes="140px" unoptimized />
+                      ) : (
+                        <span className="text-xs font-bold text-muted-foreground">無圖</span>
+                      )}
+                    </span>
+                    <span className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug">{product.name}</span>
+                    <span className="mt-auto pt-1 text-sm font-extrabold text-pink-400">
+                      {variant && variant.price > 0 ? formatPrice(variant.price) : "未定價"}
+                    </span>
+                    <span className="text-xs font-bold text-muted-foreground">存 {stock}</span>
+                  </button>
                 </li>
               );
             })}
             {products.length === 0 && (
-              <li className="px-4 py-6 text-sm text-muted-foreground">找不到貨品，可以用下方手動加一項。</li>
+              <li className="col-span-2 px-2 py-8 text-center text-sm font-bold text-muted-foreground">
+                找不到貨品，可以用下面手動加一項。
+              </li>
             )}
           </ul>
           <form
-            className="grid gap-2 rounded-xl border border-border p-4 sm:grid-cols-[1fr_7rem_7rem_auto]"
+            className="mt-3 grid gap-2 border-t border-border pt-3"
             onSubmit={(event) => {
               event.preventDefault();
               addManual();
             }}
           >
-            <Input
+            <input
               value={manual.name}
               onChange={(event) => setManual({ ...manual, name: event.target.value })}
               placeholder="手動貨品名稱"
+              className={fieldClass}
             />
-            <Input
-              inputMode="decimal"
-              value={manual.unitPrice}
-              onChange={(event) => setManual({ ...manual, unitPrice: event.target.value })}
-              placeholder="售價"
-            />
-            <Input
-              inputMode="decimal"
-              value={manual.unitCost}
-              onChange={(event) => setManual({ ...manual, unitCost: event.target.value })}
-              placeholder="成本"
-            />
-            <Button type="submit" variant="outline">
-              加一項
-            </Button>
+            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+              <input
+                inputMode="decimal"
+                value={manual.unitPrice}
+                onChange={(event) => setManual({ ...manual, unitPrice: event.target.value })}
+                placeholder="售價"
+                className={fieldClass}
+              />
+              <input
+                inputMode="decimal"
+                value={manual.unitCost}
+                onChange={(event) => setManual({ ...manual, unitCost: event.target.value })}
+                placeholder="成本"
+                className={fieldClass}
+              />
+              <button
+                type="submit"
+                className="h-10 rounded-xl border border-border bg-muted px-3 text-sm font-extrabold text-foreground"
+              >
+                加入
+              </button>
+            </div>
           </form>
         </section>
 
-        <aside className="space-y-4">
-          <div className="rounded-xl border border-border bg-card p-4">
-            <h2 className="font-semibold">本單</h2>
+        <section className="flex min-h-[24rem] flex-col overflow-hidden lg:min-h-0">
+          <div className="flex items-end justify-between gap-3">
+            <h2 className="text-xl font-extrabold">購物車</h2>
+            <p className="text-sm font-bold text-muted-foreground">{itemCount} 件</p>
+          </div>
+          <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
             {lines.length === 0 ? (
-              <p className="mt-4 text-sm text-muted-foreground">未有貨品</p>
+              <div className="rounded-[14px] border border-dashed border-border px-4 py-12 text-center">
+                <p className="text-lg font-extrabold">喺左邊撳貨</p>
+                <p className="mt-2 text-sm font-bold text-muted-foreground">揀分類，撳一下就加入購物車。冇貨品資料可以手動加。</p>
+              </div>
             ) : (
-              <ul className="mt-3 space-y-3">
+              <ul className="space-y-2">
                 {lines.map((line) => (
-                  <li key={line.key} className="space-y-2 border-b border-border pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="font-medium">{line.name}</p>
+                  <li key={line.key} className="rounded-[14px] border border-border bg-card p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-extrabold">{line.name}</p>
+                        {line.sku && <p className="text-xs font-bold text-muted-foreground">{line.sku}</p>}
+                      </div>
+                      <p className="font-extrabold tabular-nums">{formatPrice(lineTotal(line))}</p>
+                    </div>
+                    <div className="mt-2 flex items-center gap-2">
                       <button
                         type="button"
-                        className="text-xs text-red-400"
+                        aria-label={`減少 ${line.name}`}
+                        onClick={() => patchLine(line.key, { quantity: Math.max(1, line.quantity - 1) })}
+                        className="flex size-9 items-center justify-center rounded-full border border-border bg-muted text-lg font-extrabold"
+                      >
+                        −
+                      </button>
+                      <span className="w-8 text-center font-extrabold tabular-nums">{line.quantity}</span>
+                      <button
+                        type="button"
+                        aria-label={`增加 ${line.name}`}
+                        onClick={() => patchLine(line.key, { quantity: line.quantity + 1 })}
+                        className="flex size-9 items-center justify-center rounded-full border border-border bg-muted text-lg font-extrabold"
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-auto inline-flex h-8 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
                         onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}
                       >
-                        移除
+                        刪走
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <label className="text-xs text-muted-foreground">
-                        數量
-                        <Input
-                          type="number"
-                          min={1}
-                          value={line.quantity}
-                          onChange={(event) =>
-                            setLines((current) =>
-                              current.map((item) =>
-                                item.key === line.key
-                                  ? { ...item, quantity: Math.max(1, Number(event.target.value) || 1) }
-                                  : item,
-                              ),
-                            )
-                          }
-                          className="mt-1"
-                        />
-                      </label>
-                      <label className="text-xs text-muted-foreground">
-                        售價
-                        <Input
-                          type="number"
-                          min={0}
-                          value={line.unitPrice}
-                          onChange={(event) =>
-                            setLines((current) =>
-                              current.map((item) =>
-                                item.key === line.key
-                                  ? { ...item, unitPrice: Math.max(0, Number(event.target.value) || 0) }
-                                  : item,
-                              ),
-                            )
-                          }
-                          className="mt-1"
-                        />
-                      </label>
-                      <label className="text-xs text-muted-foreground">
-                        成本
-                        <Input
-                          type="number"
-                          min={0}
-                          value={line.unitCost}
-                          onChange={(event) =>
-                            setLines((current) =>
-                              current.map((item) =>
-                                item.key === line.key
-                                  ? { ...item, unitCost: Math.max(0, Number(event.target.value) || 0) }
-                                  : item,
-                              ),
-                            )
-                          }
-                          className="mt-1"
-                        />
-                      </label>
-                    </div>
+                    <label className="mt-2 block text-xs font-bold text-muted-foreground">
+                      售價
+                      <input
+                        type="number"
+                        min={0}
+                        value={line.unitPrice}
+                        onChange={(event) =>
+                          patchLine(line.key, { unitPrice: Math.max(0, Number(event.target.value) || 0) })
+                        }
+                        className={cn(fieldClass, "mt-1")}
+                      />
+                    </label>
                   </li>
                 ))}
               </ul>
             )}
-            <label className="mt-4 block text-xs text-muted-foreground">
-              折扣 (HKD)
-              <Input
+
+            <div className="mt-4">
+              <div className="flex items-end justify-between">
+                <h3 className="font-extrabold">今日單據</h3>
+                <p className="text-sm font-extrabold tabular-nums">{formatPrice(todayTotal)}</p>
+              </div>
+              <ul className="mt-2 space-y-2">
+                {recent.length === 0 && <li className="text-sm font-bold text-muted-foreground">未有銷售</li>}
+                {recent.map((sale) => (
+                  <li key={sale.id} className="flex items-start justify-between gap-2 text-sm">
+                    <div className={sale.voided ? "font-bold text-muted-foreground line-through" : ""}>
+                      <p className="font-extrabold">
+                        {PAYMENT_LABELS[sale.paymentMethod]} · {formatPrice(saleAmount(sale))}
+                      </p>
+                      <p className="font-bold text-muted-foreground">{sale.items.map((item) => item.name).join("、")}</p>
+                    </div>
+                    {!sale.voided && (
+                      <button
+                        type="button"
+                        className="inline-flex h-8 shrink-0 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                        onClick={() => voidTicket(sale.id)}
+                      >
+                        作廢
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
+          <div className="rounded-[14px] border border-border bg-card p-4">
+            <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
+              <span>小計</span>
+              <span className="tabular-nums">{formatPrice(subtotal)}</span>
+            </div>
+            <label className="mt-3 block text-xs font-bold text-muted-foreground">
+              整單折扣
+              <input
                 type="number"
                 min={0}
                 value={discount}
                 onChange={(event) => setDiscount(Math.max(0, Number(event.target.value) || 0))}
-                className="mt-1"
+                className={cn(fieldClass, "mt-1")}
               />
             </label>
-            <div className="mt-4 flex gap-2">
+            <input
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="備註，可以留空"
+              className={cn(fieldClass, "mt-2")}
+            />
+            <p className="mt-4 text-sm font-bold text-muted-foreground">應收</p>
+            <p className="text-right text-4xl font-extrabold tabular-nums">{formatPrice(total)}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2">
               {METHODS.map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setMethod(value)}
-                  className={`h-8 flex-1 rounded-lg text-sm ${
-                    method === value ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                  }`}
+                  className={cn(
+                    "h-9 rounded-full border text-sm font-bold",
+                    method === value
+                      ? "border-pink-500 bg-pink-500 text-white"
+                      : "border-border bg-muted text-muted-foreground",
+                  )}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <p className="mt-4 text-right text-2xl font-bold tabular-nums">{formatPrice(total)}</p>
-            {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
-            <Button
+            {error && <p className="mt-2 text-sm font-bold text-red-400">{error}</p>}
+            <button
               type="button"
-              className="mt-3 w-full bg-pink-500 text-white hover:bg-pink-400"
               disabled={pending || lines.length === 0}
               onClick={checkout}
+              className="mt-3 h-[72px] w-full rounded-[14px] bg-pink-500 text-lg font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
             >
               {pending ? "入帳中…" : `收款 ${formatPrice(total)}`}
-            </Button>
-          </div>
-
-          <div className="rounded-xl border border-border p-4">
-            <h2 className="font-semibold">今日單據</h2>
-            <ul className="mt-3 space-y-3">
-              {recent.length === 0 && <li className="text-sm text-muted-foreground">未有銷售</li>}
-              {recent.map((sale) => {
-                const amount = sale.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) - sale.discount;
-                return (
-                  <li key={sale.id} className="flex items-start justify-between gap-2 text-sm">
-                    <div className={sale.voided ? "text-muted-foreground line-through" : ""}>
-                      <p>{PAYMENT_LABELS[sale.paymentMethod]} · {formatPrice(Math.max(0, amount))}</p>
-                      <p className="text-muted-foreground">{sale.items.map((item) => item.name).join("、")}</p>
-                    </div>
-                    {!sale.voided && (
-                      <button type="button" className="text-xs text-red-400" onClick={() => voidTicket(sale.id)}>
-                        作廢
-                      </button>
-                    )}
-                  </li>
-                );
-              })}
-            </ul>
+            </button>
+            <button
+              type="button"
+              onClick={clearTicket}
+              disabled={lines.length === 0 && discount === 0 && note === ""}
+              className="mt-2 h-11 w-full rounded-[10px] border border-border bg-muted text-sm font-extrabold hover:bg-muted/80 disabled:text-muted-foreground"
+            >
+              清除
+            </button>
           </div>
         </aside>
       </div>
-    </div>
+    </PosShell>
   );
 }

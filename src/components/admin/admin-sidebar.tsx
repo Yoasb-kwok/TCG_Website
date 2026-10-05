@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/admin", label: "總覽", icon: LayoutDashboard, exact: true },
   { href: "/admin/taxonomy", label: "標籤管理", icon: Tags },
-  { href: "/admin/products", label: "商品上架", icon: Package },
+  { href: "/admin/products", label: "商品名單", icon: Package },
   { href: "/admin/content", label: "網站內容", icon: FilePenLine },
   { href: "/admin/orders", label: "交易紀錄", icon: Receipt },
   { href: "/pos", label: "收銀 / 損益", icon: Calculator },

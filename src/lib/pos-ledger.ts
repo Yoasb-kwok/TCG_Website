@@ -13,18 +13,19 @@ import {
   type Ledger,
   type PaymentMethod,
   type PnlSummary,
+  type Receipt,
   type Sale,
   type SaleItem,
 } from "@/lib/pos-shared";
 
-export type { Expense, ExpenseCategory, Ledger, PaymentMethod, PnlSummary, Sale, SaleItem };
+export type { Expense, ExpenseCategory, Ledger, PaymentMethod, PnlSummary, Receipt, Sale, SaleItem };
 export { EXPENSE_LABELS, PAYMENT_LABELS, saleCost, saleTotal };
 
 const filePath = path.join(process.cwd(), "data", "pos-ledger.json");
 let writeQueue: Promise<unknown> = Promise.resolve();
 
 function emptyLedger(): Ledger {
-  return { sales: [], expenses: [] };
+  return { sales: [], expenses: [], receipts: [] };
 }
 
 export async function readLedger(): Promise<Ledger> {
@@ -34,6 +35,7 @@ export async function readLedger(): Promise<Ledger> {
     return {
       sales: Array.isArray(parsed.sales) ? parsed.sales : [],
       expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
+      receipts: Array.isArray(parsed.receipts) ? parsed.receipts : [],
     };
   } catch {
     return emptyLedger();
@@ -145,6 +147,67 @@ export async function createExpense(input: {
   };
   await updateLedger((ledger) => ({ ...ledger, expenses: [expense, ...ledger.expenses] }));
   return { ok: true, expense };
+}
+
+export async function createReceipt(input: {
+  productId: string;
+  variantId: string;
+  name: string;
+  sku?: string | null;
+  quantity: number;
+  unitCost: number;
+  unitPrice: number;
+}): Promise<{ ok: true; receipt: Receipt } | { ok: false; error: string }> {
+  const name = input.name.trim();
+  const quantity = Math.floor(Number(input.quantity));
+  const unitCost = money(input.unitCost);
+  const unitPrice = money(input.unitPrice);
+  if (!name || !input.productId || !input.variantId || quantity < 1 || unitCost == null || unitPrice == null) {
+    return { ok: false, error: "請填寫數量、成本同售價" };
+  }
+  const now = new Date().toISOString();
+  const expenseId = crypto.randomUUID();
+  const receipt: Receipt = {
+    id: crypto.randomUUID(),
+    createdAt: now,
+    productId: input.productId,
+    variantId: input.variantId,
+    name,
+    sku: input.sku?.trim() || null,
+    quantity,
+    unitCost,
+    unitPrice,
+    expenseId,
+  };
+  const expense: Expense = {
+    id: expenseId,
+    createdAt: now,
+    category: "GOODS",
+    amount: roundMoney(quantity * unitCost),
+    note: `來貨 ${name} × ${quantity}`,
+  };
+  await updateLedger((ledger) => ({
+    ...ledger,
+    receipts: [receipt, ...ledger.receipts],
+    expenses: [expense, ...ledger.expenses],
+  }));
+  return { ok: true, receipt };
+}
+
+export async function deleteReceipt(id: string): Promise<{ ok: true; receipt: Receipt } | { ok: false; error: string }> {
+  let removed: Receipt | null = null;
+  await updateLedger((ledger) => {
+    const receipt = ledger.receipts.find((item) => item.id === id);
+    if (!receipt) return ledger;
+    removed = receipt;
+    return {
+      ...ledger,
+      receipts: ledger.receipts.filter((item) => item.id !== id),
+      expenses: ledger.expenses.filter((expense) => expense.id !== receipt.expenseId),
+    };
+  });
+  if (!removed) return { ok: false, error: "找不到這筆來貨" };
+  return { ok: true, receipt: removed };
 }
 
 export async function deleteExpense(id: string) {
