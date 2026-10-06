@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { HomeBannerItem } from "@/lib/site-content";
@@ -33,7 +32,7 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
 
   return (
     <section className="relative w-full overflow-hidden bg-black">
-      <Link href={banner.href} className="relative block aspect-[21/9] w-full sm:aspect-[21/7]">
+      <div className="relative block aspect-[21/9] w-full sm:aspect-[21/7]">
         <Image
           src={banner.image}
           alt={banner.title}
@@ -51,7 +50,7 @@ export function HeroCarousel({ banners }: HeroCarouselProps) {
             {banner.subtitle}
           </p>
         </div>
-      </Link>
+      </div>
 
       {hasMultiple && (
         <>

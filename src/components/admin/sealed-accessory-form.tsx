@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 interface SealedAccessoryFormProps {
   onCreated: () => void;
+  embedded?: boolean;
 }
 
 async function uploadImage(file: File): Promise<string> {
@@ -29,7 +30,7 @@ async function uploadImage(file: File): Promise<string> {
   return data.url;
 }
 
-export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
+export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAccessoryFormProps) {
   const { optionsFor, grouped } = useTaxonomy();
   const setOptions = optionsFor("SET_CODE");
   const sealedTypeOptions = useMemo(
@@ -177,7 +178,7 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
 
       {tab === "sealed" ? (
         <form
-          className="space-y-4 rounded-xl border border-border bg-card p-6"
+          className={cn("space-y-4", !embedded && "rounded-xl border border-border bg-card p-6")}
           onSubmit={(e) => {
             e.preventDefault();
             void handleSealedSubmit();
@@ -274,7 +275,7 @@ export function SealedAccessoryForm({ onCreated }: SealedAccessoryFormProps) {
         </form>
       ) : (
         <form
-          className="space-y-4 rounded-xl border border-border bg-card p-6"
+          className={cn("space-y-4", !embedded && "rounded-xl border border-border bg-card p-6")}
           onSubmit={(e) => {
             e.preventDefault();
             void handleAccessorySubmit();

@@ -34,19 +34,19 @@ export default function AdminDashboardPage() {
     {
       label: "訂單總數",
       value: stats?.orders ?? "—",
-      href: "/admin/orders",
+      href: "/pos/orders",
       icon: Receipt,
     },
     {
       label: "已付款訂單",
       value: stats?.paidOrders ?? "—",
-      href: "/admin/orders",
+      href: "/pos/orders",
       icon: Receipt,
     },
     {
       label: "總營收",
       value: stats ? formatPrice(stats.revenue) : "—",
-      href: "/admin/orders",
+      href: "/pos/orders",
       icon: Receipt,
     },
     {

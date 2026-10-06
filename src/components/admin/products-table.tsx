@@ -2,14 +2,23 @@
 
 import Image from "next/image";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
+import { ManualSingleForm } from "@/components/admin/manual-single-form";
 import { ProductEditDialog } from "@/components/admin/product-edit-dialog";
+import { SealedAccessoryForm } from "@/components/admin/sealed-accessory-form";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchInput } from "@/components/ui/search-input";
 import { SEARCH_BAR_SELECT_CLASS } from "@/lib/search-bar-styles";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { getProductTypeDisplayLabel } from "@/lib/product-type-display";
+import { cn } from "@/lib/utils";
 import { useTaxonomy } from "@/providers/taxonomy-provider";
 import type { ProductSort } from "@/lib/types";
 
@@ -56,6 +65,8 @@ export function ProductsTable() {
   const [message, setMessage] = useState<string | null>(null);
   const [editProduct, setEditProduct] = useState<AdminProduct | null>(null);
   const [editOpen, setEditOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createKind, setCreateKind] = useState<"single" | "sealed">("single");
 
   const load = useCallback(
     async (pageToLoad: number) => {
@@ -156,8 +167,21 @@ export function ProductsTable() {
 
   const selectedCount = selected.size;
 
+  const handleCreated = () => {
+    setCreateOpen(false);
+    setPage(1);
+    void load(1);
+  };
+
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">已上架商品</h2>
+        <Button type="button" onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-1 h-4 w-4" />
+          上架商品
+        </Button>
+      </div>
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput
           placeholder="搜尋商品..."
@@ -404,6 +428,45 @@ export function ProductsTable() {
           </div>
         </div>
       )}
+
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>上架商品</DialogTitle>
+          </DialogHeader>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setCreateKind("single")}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-sm font-medium",
+                createKind === "single"
+                  ? "bg-pink-500 text-white"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              單卡
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateKind("sealed")}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-sm font-medium",
+                createKind === "sealed"
+                  ? "bg-pink-500 text-white"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              卡盒 / 週邊
+            </button>
+          </div>
+          {createKind === "single" ? (
+            <ManualSingleForm embedded onCreated={handleCreated} />
+          ) : (
+            <SealedAccessoryForm embedded onCreated={handleCreated} />
+          )}
+        </DialogContent>
+      </Dialog>
 
       <ProductEditDialog
         product={editProduct}

@@ -127,6 +127,15 @@ model HomeBanner {
   @@index([active, sortIndex])
 }
 
+model MenuBanner {
+  id        String   @id @default("default")
+  imageUrl  String   @default("")
+  href      String   @default("/products")
+  title     String   @default("")
+  active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
 model HomeFeaturedProduct {
   id        String   @id @default(uuid())
   productId String

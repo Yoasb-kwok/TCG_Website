@@ -7,7 +7,7 @@ export default function AdminContentPage() {
     <div className="p-8">
       <h1 className="text-2xl font-bold">網站內容</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        編輯首頁 Banner、熱門商品與關於我們內容。
+        編輯首頁 Banner、商品選單 Banner、熱門商品與關於我們內容。
       </p>
       <div className="mt-6">
         <SiteContentManager />

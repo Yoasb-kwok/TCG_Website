@@ -6,7 +6,7 @@ export function PosShell({
   current,
   children,
 }: {
-  current: "register" | "receiving" | "pnl";
+  current: "register" | "receiving" | "pnl" | "orders";
   children: React.ReactNode;
 }) {
   const tab = (href: string, label: string, active: boolean) => (
@@ -28,8 +28,8 @@ export function PosShell({
     >
       <header className="shrink-0 border-b border-border bg-background">
         <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-          <Link href="/" className="rounded-full bg-muted px-3 py-1.5 text-sm font-bold text-foreground hover:bg-muted/80">
-            ← 網店
+          <Link href="/admin" className="rounded-full bg-muted px-3 py-1.5 text-sm font-bold text-foreground hover:bg-muted/80">
+            ← 商家後台
           </Link>
           <div className="flex items-center gap-2 leading-tight">
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-xs font-bold text-white">
@@ -44,6 +44,7 @@ export function PosShell({
             {tab("/pos", "收銀", current === "register")}
             {tab("/pos/receiving", "來貨", current === "receiving")}
             {tab("/pos/pnl", "損益表", current === "pnl")}
+            {tab("/pos/orders", "交易紀錄", current === "orders")}
           </nav>
         </div>
       </header>

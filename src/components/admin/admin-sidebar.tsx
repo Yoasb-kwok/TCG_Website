@@ -6,8 +6,6 @@ import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Package,
-  Receipt,
-  Calculator,
   Tags,
   Trophy,
   FilePenLine,
@@ -23,8 +21,6 @@ const LINKS = [
   { href: "/admin/taxonomy", label: "標籤管理", icon: Tags },
   { href: "/admin/products", label: "商品名單", icon: Package },
   { href: "/admin/content", label: "網站內容", icon: FilePenLine },
-  { href: "/admin/orders", label: "交易紀錄", icon: Receipt },
-  { href: "/pos", label: "收銀 / 損益", icon: Calculator },
   { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },
 ];
 
@@ -60,6 +56,17 @@ export function AdminSidebar() {
           </Link>
           );
         })}
+        <Link
+          href="/pos"
+          className={cn(
+            "mt-2 block rounded-md border px-3 py-2 text-center text-sm font-medium transition",
+            pathname === "/pos" || pathname.startsWith("/pos/")
+              ? "border-pink-500 bg-pink-500 text-white"
+              : "border-border text-muted-foreground hover:border-pink-400 hover:text-foreground",
+          )}
+        >
+          收銀帳務
+        </Link>
       </nav>
 
       <div className="space-y-1 border-t border-border p-3">

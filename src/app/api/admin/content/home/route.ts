@@ -110,8 +110,8 @@ export async function PUT(request: NextRequest) {
   }
 
   for (const banner of banners) {
-    if (!banner.title?.trim() || !banner.image?.trim() || !banner.href?.trim()) {
-      return NextResponse.json({ error: "Banner 欄位不完整（標題、圖片、連結為必填）" }, { status: 400 });
+    if (!banner.title?.trim() || !banner.image?.trim()) {
+      return NextResponse.json({ error: "Banner 欄位不完整（標題、圖片為必填）" }, { status: 400 });
     }
   }
 
@@ -135,7 +135,7 @@ export async function PUT(request: NextRequest) {
           title: banner.title.trim(),
           subtitle: banner.subtitle?.trim() ?? "",
           imageUrl: banner.image.trim(),
-          href: banner.href.trim(),
+          href: banner.href?.trim() || "/",
           gradient: banner.gradient?.trim() ?? "",
           active: Boolean(banner.active),
           sortIndex: index,

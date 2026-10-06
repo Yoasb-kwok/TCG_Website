@@ -87,6 +87,32 @@ async function seedAbout() {
   console.log("✓ 已建立關於我們預設內容");
 }
 
+async function seedMenuBanner() {
+  const existing = await prisma.menuBanner.findUnique({ where: { id: "default" } });
+  if (existing?.imageUrl) {
+    console.log("✓ 商品選單 Banner 已有圖片，略過");
+    return;
+  }
+
+  await prisma.menuBanner.upsert({
+    where: { id: "default" },
+    create: {
+      id: "default",
+      imageUrl: "/banners/menu-demo.jpg",
+      href: "/products",
+      title: "商品選單",
+      active: true,
+    },
+    update: {
+      imageUrl: "/banners/menu-demo.jpg",
+      href: "/products",
+      title: "商品選單",
+      active: true,
+    },
+  });
+  console.log("✓ 已建立商品選單 Banner 示範圖");
+}
+
 async function main() {
   if (!process.env.DATABASE_URL) {
     throw new Error("請在 .env 設定 DATABASE_URL");
@@ -95,6 +121,7 @@ async function main() {
   await seedBanners();
   await seedFeatured();
   await seedAbout();
+  await seedMenuBanner();
   console.log("網站內容種子完成");
 }
 

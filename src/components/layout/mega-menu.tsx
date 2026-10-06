@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { PRODUCT_CATEGORIES } from "@/lib/constants";
 
@@ -9,7 +11,36 @@ interface MegaMenuProps {
   onClose: () => void;
 }
 
+interface MenuBanner {
+  image: string;
+  href: string;
+  title: string;
+}
+
+const DEMO_BANNER: MenuBanner = {
+  image: "/banners/menu-demo.jpg",
+  href: "/products",
+  title: "商品選單",
+};
+
 export function MegaMenu({ open, onClose }: MegaMenuProps) {
+  const [banner, setBanner] = useState<MenuBanner | null>(DEMO_BANNER);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/content/menu-banner")
+      .then((res) => res.json())
+      .then((data: { banner?: MenuBanner | null }) => {
+        if (!cancelled) setBanner(data.banner ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setBanner(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   if (!open) return null;
 
   return (
@@ -51,10 +82,25 @@ export function MegaMenu({ open, onClose }: MegaMenuProps) {
             </div>
           ))}
         </div>
-        <div className="hidden flex-1 items-center justify-center rounded-lg border border-border bg-muted/50 p-8 md:flex">
-          <p className="text-center text-sm text-muted-foreground">
-            瀏覽 Pokémon TCG 單卡、封盒及配件
-          </p>
+        <div className="relative hidden min-h-56 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30 md:block">
+          {banner?.image ? (
+            <div className="relative block h-full min-h-56">
+              <Image
+                src={banner.image}
+                alt={banner.title || "商品選單"}
+                fill
+                className="object-cover"
+                sizes="720px"
+                unoptimized
+              />
+            </div>
+          ) : (
+            <div className="flex h-full min-h-56 items-center justify-center p-8">
+              <p className="text-center text-sm text-muted-foreground">
+                瀏覽 Pokémon TCG 單卡、封盒及配件
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

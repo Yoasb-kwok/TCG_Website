@@ -9,7 +9,7 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 /** Increment after Prisma schema migrations that add/change model fields */
-const PRISMA_SCHEMA_VERSION = "20260523100000_site_content_v1";
+const PRISMA_SCHEMA_VERSION = "20261006100000_menu_banner";
 
 export function isDatabaseConfigured(): boolean {
   return Boolean(process.env.DATABASE_URL);

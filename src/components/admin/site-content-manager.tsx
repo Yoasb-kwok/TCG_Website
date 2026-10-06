@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Plus, Trash2, Upload } from "lucide-react";
+import { MenuBannerEditor } from "@/components/admin/menu-banner-editor";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
@@ -33,19 +34,13 @@ interface FeaturedProductOption {
   variants: { price: number }[];
 }
 
-const DEFAULT_GRADIENTS = [
-  { label: "紅橙", value: "from-red-900/80 via-orange-900/60 to-black/90" },
-  { label: "藍靛", value: "from-blue-900/80 via-indigo-900/60 to-black/90" },
-  { label: "紫粉", value: "from-purple-900/80 via-fuchsia-900/60 to-black/90" },
-];
-
 const EMPTY_BANNER: BannerFormItem = {
   id: "",
   title: "",
   subtitle: "",
   image: "",
   href: "/products",
-  gradient: DEFAULT_GRADIENTS[0].value,
+  gradient: "",
   active: true,
 };
 
@@ -64,7 +59,7 @@ async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Pr
 }
 
 export function SiteContentManager() {
-  const [activeTab, setActiveTab] = useState<"home" | "featured" | "about">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "menu" | "featured" | "about">("home");
   const [banners, setBanners] = useState<BannerFormItem[]>([]);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<FeaturedProductOption[]>([]);
@@ -308,13 +303,14 @@ export function SiteContentManager() {
         <div className="flex gap-2 border-b border-border">
           {[
             ["home", "首頁 Banner"],
+            ["menu", "商品選單"],
             ["featured", "熱門商品"],
             ["about", "關於我們"],
           ].map(([key, label]) => (
             <button
               key={key}
               type="button"
-              onClick={() => setActiveTab(key as "home" | "featured" | "about")}
+              onClick={() => setActiveTab(key as "home" | "menu" | "featured" | "about")}
               className={cn(
                 "border-b-2 px-4 py-2 text-sm transition",
                 activeTab === key
@@ -345,18 +341,20 @@ export function SiteContentManager() {
       </div>
 
       {bannersUsingDefaults && activeTab === "home" && (
-        <p className="rounded-md border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+        <p className="rounded-md border border-amber-700/40 bg-amber-100 p-3 text-sm font-medium text-amber-950 dark:border-amber-300/40 dark:bg-amber-500/20 dark:text-amber-50">
           Banner 尚未儲存至資料庫，前台目前顯示預設內容。編輯後按「儲存首頁內容」即可同步。
         </p>
       )}
       {aboutFallback && activeTab === "about" && (
-        <p className="rounded-md border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+        <p className="rounded-md border border-amber-700/40 bg-amber-100 p-3 text-sm font-medium text-amber-950 dark:border-amber-300/40 dark:bg-amber-500/20 dark:text-amber-50">
           關於我們尚未儲存至資料庫，前台顯示預設文案。編輯後按「儲存關於我們」即可同步。
         </p>
       )}
 
       {error && <p className="rounded-md border border-red-400/30 bg-red-500/10 p-3 text-sm text-red-400">{error}</p>}
       {message && <p className="rounded-md border border-emerald-400/30 bg-emerald-500/10 p-3 text-sm text-emerald-400">{message}</p>}
+
+      {activeTab === "menu" && <MenuBannerEditor />}
 
       {activeTab === "home" && (
         <div className="space-y-3">
@@ -376,19 +374,6 @@ export function SiteContentManager() {
               <div className="grid gap-3 md:grid-cols-2">
                 <Input value={banner.title} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, title: v } : item)))} placeholder="標題" />
                 <Input value={banner.subtitle} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, subtitle: v } : item)))} placeholder="副標題" />
-                <Input value={banner.href} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, href: v } : item)))} placeholder="連結，例如 /products" />
-                <select
-                  value={banner.gradient}
-                  onChange={(e) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, gradient: e.target.value } : item)))}
-                  className="h-10 rounded-lg border border-input bg-transparent px-3 text-sm"
-                >
-                  {DEFAULT_GRADIENTS.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                <Input value={banner.image} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, image: v } : item)))} placeholder="圖片網址" className="md:col-span-2" />
                 <div className="md:col-span-2 flex flex-wrap items-center gap-3">
                   <input
                     ref={(el) => {

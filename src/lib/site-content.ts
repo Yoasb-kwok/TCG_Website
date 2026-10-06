@@ -3,6 +3,30 @@ import { HERO_BANNERS, SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/const
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import type { ProductWithVariants } from "@/lib/types";
 
+export interface MenuBannerItem {
+  image: string;
+  href: string;
+  title: string;
+  active: boolean;
+}
+
+export async function getMenuBanner(): Promise<MenuBannerItem> {
+  const empty: MenuBannerItem = { image: "", href: "/products", title: "", active: true };
+  if (!isDatabaseConfigured()) return empty;
+  try {
+    const row = await getPrisma().menuBanner.findUnique({ where: { id: "default" } });
+    if (!row) return empty;
+    return {
+      image: row.imageUrl,
+      href: row.href || "/products",
+      title: row.title,
+      active: row.active,
+    };
+  } catch {
+    return empty;
+  }
+}
+
 export interface HomeBannerItem {
   id: string;
   title: string;

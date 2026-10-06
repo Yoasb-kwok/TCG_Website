@@ -15,6 +15,7 @@ import { useTaxonomy } from "@/providers/taxonomy-provider";
 
 interface ManualSingleFormProps {
   onCreated: () => void;
+  embedded?: boolean;
 }
 
 async function uploadImage(file: File): Promise<string> {
@@ -28,7 +29,7 @@ async function uploadImage(file: File): Promise<string> {
   return data.url;
 }
 
-export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
+export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFormProps) {
   const { optionsFor, loading: taxonomyLoading } = useTaxonomy();
   const setOptions = optionsFor("SET_CODE");
   const rarityOptions = optionsFor("RARITY");
@@ -135,7 +136,7 @@ export function ManualSingleForm({ onCreated }: ManualSingleFormProps) {
 
   return (
     <form
-      className="space-y-4 rounded-xl border border-border bg-card p-6"
+      className={cn("space-y-4", !embedded && "rounded-xl border border-border bg-card p-6")}
       onSubmit={(e) => {
         e.preventDefault();
         void handleSubmit();

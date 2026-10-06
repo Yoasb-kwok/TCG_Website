@@ -7,7 +7,8 @@ const { auth } = NextAuth(authConfig);
 export default auth((req) => {
   const { pathname } = req.nextUrl;
 
-  if (!pathname.startsWith("/admin")) {
+  const needsAdmin = pathname.startsWith("/admin") || pathname.startsWith("/pos");
+  if (!needsAdmin) {
     return NextResponse.next();
   }
 
@@ -27,5 +28,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/pos", "/pos/:path*"],
 };
