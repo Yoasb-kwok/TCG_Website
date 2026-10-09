@@ -42,7 +42,15 @@ export type Standing = {
   ogp: number;
 };
 
-const STORAGE_KEY = "tcghk-live-board-v1";
+const LEGACY_STORAGE_KEY = "tcghk-live-board-v1";
+const STORE_KEY = "tcghk-live-boards-v2";
+export const SHOP_TEST_BOARD_KEY = "shop-test";
+export const TEST_PLAYER_NAMES = ["試賽 1", "試賽 2", "試賽 3", "試賽 4", "試賽 5", "試賽 6", "試賽 7", "試賽 8"];
+
+type BoardStore = {
+  lastKey: string;
+  boards: Record<string, BoardState>;
+};
 
 export function defaultBoard(): BoardState {
   return {
@@ -56,25 +64,150 @@ export function defaultBoard(): BoardState {
   };
 }
 
-export function loadBoard(): BoardState {
-  if (typeof window === "undefined") return defaultBoard();
+function sanitizeBoard(parsed: Partial<BoardState>): BoardState {
+  const fallback = defaultBoard();
+  return {
+    ...fallback,
+    ...parsed,
+    title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : fallback.title,
+    players: Array.isArray(parsed.players) ? parsed.players : [],
+    matches: Array.isArray(parsed.matches) ? parsed.matches : [],
+    roundMinutes: typeof parsed.roundMinutes === "number" ? parsed.roundMinutes : fallback.roundMinutes,
+    timerRunning: Boolean(parsed.timerRunning),
+    timerEndsAt: typeof parsed.timerEndsAt === "number" ? parsed.timerEndsAt : null,
+    timerRemainingMs:
+      typeof parsed.timerRemainingMs === "number" ? parsed.timerRemainingMs : fallback.timerRemainingMs,
+  };
+}
+
+function emptyStore(): BoardStore {
+  return { lastKey: "default", boards: {} };
+}
+
+function readStore(): BoardStore {
+  if (typeof window === "undefined") return emptyStore();
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return defaultBoard();
-    const parsed = JSON.parse(raw) as Partial<BoardState>;
+    const raw = localStorage.getItem(STORE_KEY);
+    if (!raw) return emptyStore();
+    const parsed = JSON.parse(raw) as Partial<BoardStore>;
     return {
-      ...defaultBoard(),
-      ...parsed,
-      players: Array.isArray(parsed.players) ? parsed.players : [],
-      matches: Array.isArray(parsed.matches) ? parsed.matches : [],
+      lastKey: typeof parsed.lastKey === "string" && parsed.lastKey ? parsed.lastKey : "default",
+      boards: parsed.boards && typeof parsed.boards === "object" ? parsed.boards : {},
     };
   } catch {
-    return defaultBoard();
+    return emptyStore();
   }
 }
 
-export function saveBoard(state: BoardState) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+export function loadLastBoardKey() {
+  return readStore().lastKey || "default";
+}
+
+export function boardKeyFromSearch(params: URLSearchParams) {
+  return params.get("board")?.trim() || params.get("slug")?.trim() || params.get("title")?.trim() || "";
+}
+
+export function liveBoardHref(
+  event?: { slug?: string | null; title?: string | null },
+  options?: { test?: boolean },
+) {
+  if (options?.test) {
+    const params = new URLSearchParams({ board: SHOP_TEST_BOARD_KEY, title: "試賽" });
+    return `/tournaments/live?${params.toString()}`;
+  }
+  const params = new URLSearchParams();
+  if (event?.slug) params.set("slug", event.slug);
+  if (event?.title) params.set("title", event.title);
+  const query = params.toString();
+  return query ? `/tournaments/live?${query}` : "/tournaments/live";
+}
+
+export function testPlayers(): Player[] {
+  return TEST_PLAYER_NAMES.map((name) => ({
+    id: crypto.randomUUID(),
+    name,
+    dropped: false,
+  }));
+}
+
+export function loadBoard(key = "default"): BoardState {
+  if (typeof window === "undefined") return defaultBoard();
+  const store = readStore();
+  const found = store.boards[key];
+  if (found) return sanitizeBoard(found);
+  if (key === "default") {
+    try {
+      const raw = localStorage.getItem(LEGACY_STORAGE_KEY);
+      if (raw) return sanitizeBoard(JSON.parse(raw) as Partial<BoardState>);
+    } catch {
+      // Ignore a corrupt older board and start clean.
+    }
+  }
+  return defaultBoard();
+}
+
+export function saveBoard(state: BoardState, key = "default") {
+  const store = readStore();
+  store.lastKey = key || "default";
+  store.boards[store.lastKey] = state;
+  localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  if (store.lastKey === "default") localStorage.removeItem(LEGACY_STORAGE_KEY);
+}
+
+export function parseClockInput(raw: string) {
+  const text = raw.trim();
+  if (!text) return null;
+  const toMs = (minutes: number, seconds: number) => {
+    if (!Number.isInteger(minutes) || !Number.isInteger(seconds)) return null;
+    if (minutes < 0 || minutes > 180 || seconds < 0 || seconds > 59) return null;
+    return (minutes * 60 + seconds) * 1000;
+  };
+  if (text.includes(":")) {
+    const [minutes, seconds = "0"] = text.split(":");
+    return toMs(Number(minutes), Number(seconds));
+  }
+  if (!/^\d{1,4}$/.test(text)) return null;
+  if (text.length <= 2) return toMs(Number(text), 0);
+  return toMs(Number(text.slice(0, -2)), Number(text.slice(-2)));
+}
+
+export function addMinutesState(
+  state: BoardState,
+  minutes: number,
+  typedMs: number | null,
+  now = Date.now(),
+): BoardState {
+  const base =
+    state.timerRunning && state.timerEndsAt != null
+      ? Math.max(0, state.timerEndsAt - now)
+      : typedMs != null
+        ? typedMs
+        : state.timerRemainingMs;
+  const next = base + minutes * 60_000;
+  return {
+    ...state,
+    timerRemainingMs: next,
+    timerEndsAt: state.timerRunning ? now + next : null,
+  };
+}
+
+export function startTimerState(state: BoardState, typedMs: number | null, now: number): BoardState {
+  const left =
+    typedMs != null
+      ? typedMs
+      : state.timerRemainingMs > 0
+        ? state.timerRemainingMs
+        : state.roundMinutes * 60_000;
+  return {
+    ...state,
+    roundMinutes:
+      typedMs != null && Math.floor(typedMs / 60_000) > 0
+        ? Math.floor(typedMs / 60_000)
+        : state.roundMinutes,
+    timerRunning: true,
+    timerRemainingMs: left,
+    timerEndsAt: now + left,
+  };
 }
 
 export function normalizeTimer(state: BoardState, now = Date.now()): BoardState {
