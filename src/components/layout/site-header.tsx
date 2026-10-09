@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import {
-  Globe,
   LayoutDashboard,
   LogOut,
   MapPin,
@@ -14,16 +13,20 @@ import {
   X,
 } from "lucide-react";
 import { SiteSearchBar, SiteSearchToggle } from "@/components/layout/site-search";
+import { LocaleCurrencyMenu } from "@/components/layout/locale-currency-menu";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { UserMenu } from "@/components/layout/user-menu";
 import { CartSheet } from "@/components/cart/cart-sheet";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useCart } from "@/providers/cart-provider";
 import { NAV_ITEMS, SITE_BRAND } from "@/lib/constants";
+import { getStoreMapsUrl } from "@/lib/store-maps";
 
 export function SiteHeader() {
   const { data: session } = useSession();
-  const { itemCount, setIsOpen } = useCart();
+  const { itemCount, isOpen: cartOpen, setIsOpen } = useCart();
+  const storeMapsUrl = getStoreMapsUrl();
+  const cartLabel = itemCount > 0 ? `購物車，${itemCount} 件商品` : "購物車";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
@@ -43,19 +46,17 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1 text-sm text-muted-foreground sm:gap-2">
           <UserMenu />
-          <button
-            type="button"
-            className="hidden items-center gap-1 hover:text-foreground md:flex"
+          <LocaleCurrencyMenu />
+          <a
+            href={storeMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden rounded-md p-2 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:inline-flex"
+            aria-label="開啟門市地圖"
+            title="開啟門市地圖"
           >
-            <Globe className="h-4 w-4" />
-            HKD | 繁
-          </button>
-          <button
-            type="button"
-            className="hidden p-2 hover:text-foreground md:block"
-          >
-            <MapPin className="h-5 w-5" />
-          </button>
+            <MapPin className="h-5 w-5" aria-hidden="true" />
+          </a>
           <ThemeToggle />
           <SiteSearchToggle
             expanded={searchOpen}
@@ -69,22 +70,30 @@ export function SiteHeader() {
           />
           <button
             type="button"
-            className="relative p-2 hover:text-foreground"
+            className="relative rounded-md p-2 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             onClick={() => setIsOpen(true)}
+            aria-haspopup="dialog"
+            aria-expanded={cartOpen}
+            aria-label={cartLabel}
           >
-            <ShoppingBag className="h-5 w-5" />
+            <ShoppingBag className="h-5 w-5" aria-hidden="true" />
             {itemCount > 0 && (
-              <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white">
+              <span
+                aria-hidden="true"
+                className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white"
+              >
                 {itemCount}
               </span>
             )}
           </button>
           <button
             type="button"
-            className="p-2 text-foreground lg:hidden"
+            className="rounded-md p-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
+            aria-expanded={mobileOpen}
+            aria-label={mobileOpen ? "關閉選單" : "開啟選單"}
           >
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
           </button>
         </div>
       </div>
