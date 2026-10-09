@@ -4,6 +4,7 @@ import { Globe } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuLabel,
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
@@ -38,19 +39,23 @@ export function LocaleCurrencyMenu() {
         {CURRENCY} | {buttonLocale}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 min-w-64">
-        <DropdownMenuLabel>貨幣</DropdownMenuLabel>
-        <DropdownMenuRadioGroup defaultValue={CURRENCY} aria-label="貨幣">
-          <DropdownMenuRadioItem value={CURRENCY}>港幣 (HKD)</DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-        <p className="px-1.5 py-1 text-xs text-muted-foreground">目前只以港幣結算</p>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>貨幣</DropdownMenuLabel>
+          <DropdownMenuRadioGroup defaultValue={CURRENCY} aria-label="貨幣">
+            <DropdownMenuRadioItem value={CURRENCY}>港幣 (HKD)</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          <p className="px-1.5 py-1 text-xs text-muted-foreground">目前只以港幣結算</p>
+        </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuLabel>語言</DropdownMenuLabel>
-        <DropdownMenuRadioGroup defaultValue={LOCALE} aria-label="語言">
-          <DropdownMenuRadioItem value={LOCALE}>{menuLocale}</DropdownMenuRadioItem>
-        </DropdownMenuRadioGroup>
-        <p className="px-1.5 pb-1.5 text-xs text-muted-foreground">
-          English 與簡體中文暫不提供
-        </p>
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>語言</DropdownMenuLabel>
+          <DropdownMenuRadioGroup defaultValue={LOCALE} aria-label="語言">
+            <DropdownMenuRadioItem value={LOCALE}>{menuLocale}</DropdownMenuRadioItem>
+          </DropdownMenuRadioGroup>
+          <p className="px-1.5 pb-1.5 text-xs text-muted-foreground">
+            English 與簡體中文暫不提供
+          </p>
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );
