@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { LiveBoard } from "@/components/tournaments/live-board";
 
 export const metadata = {
@@ -5,5 +6,13 @@ export const metadata = {
 };
 
 export default function TournamentLivePage() {
-  return <LiveBoard />;
+  return (
+    <Suspense
+      fallback={
+        <div className="grid h-dvh place-items-center bg-zinc-950 text-zinc-300">載入計分板…</div>
+      }
+    >
+      <LiveBoard />
+    </Suspense>
+  );
 }

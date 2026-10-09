@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Maximize, Pause, Play, RotateCcw, Users } from "lucide-react";
 import {
   Dialog,
@@ -12,6 +13,9 @@ import {
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import {
+  SHOP_TEST_BOARD_KEY,
+  boardKeyFromSearch,
+  addMinutesState,
   canPair,
   computeStandings,
   createRound,
@@ -20,12 +24,15 @@ import {
   formatPct,
   latestRound,
   loadBoard,
+  loadLastBoardKey,
   normalizeTimer,
+  parseClockInput,
   playerName,
-  roundComplete,
   roundMatches,
   saveBoard,
   setMatchResult,
+  startTimerState,
+  testPlayers,
   undoRound,
   type BoardState,
   type Match,
@@ -98,23 +105,6 @@ function playAlarm(onDone: () => void) {
   else ring();
 }
 
-function parseClockInput(raw: string) {
-  const text = raw.trim();
-  if (!text) return null;
-  const toMs = (minutes: number, seconds: number) => {
-    if (!Number.isInteger(minutes) || !Number.isInteger(seconds)) return null;
-    if (minutes < 0 || minutes > 180 || seconds < 0 || seconds > 59) return null;
-    return (minutes * 60 + seconds) * 1000;
-  };
-  if (text.includes(":")) {
-    const [minutes, seconds = "0"] = text.split(":");
-    return toMs(Number(minutes), Number(seconds));
-  }
-  if (!/^\d{1,4}$/.test(text)) return null;
-  if (text.length <= 2) return toMs(Number(text), 0);
-  return toMs(Number(text.slice(0, -2)), Number(text.slice(-2)));
-}
-
 function scoreLabel(match: Match) {
   if (match.bId == null) return "輪空";
   if (match.winsA == null || match.winsB == null) return "—";
@@ -123,7 +113,12 @@ function scoreLabel(match: Match) {
 }
 
 export function LiveBoard() {
+  const searchParams = useSearchParams();
+  const searchKey = searchParams.toString();
   const [board, setBoard] = useState<BoardState | null>(null);
+  const [storedKey, setStoredKey] = useState<string | null>(null);
+  const [eventSlug, setEventSlug] = useState("");
+  const [eventTitle, setEventTitle] = useState("");
   const [now, setNow] = useState(() => Date.now());
   const [viewRound, setViewRound] = useState(1);
   const [editing, setEditing] = useState<Match | null>(null);
@@ -131,7 +126,7 @@ export function LiveBoard() {
   const [nameDraft, setNameDraft] = useState("");
   const [bulkDraft, setBulkDraft] = useState("");
   const [signups, setSignups] = useState<
-    { id: string; tournamentTitle: string; playerName: string; phone: string }[]
+    { id: string; slug: string; tournamentTitle: string; playerName: string; phone: string }[]
   >([]);
   const [fullscreen, setFullscreen] = useState(false);
   const [alarmOn, setAlarmOn] = useState(false);
@@ -139,6 +134,7 @@ export function LiveBoard() {
   const expiredRef = useRef(false);
   const skipClockCommit = useRef(false);
   const clockDraftRef = useRef<string | null>(null);
+  const storageKeyRef = useRef("default");
 
   const setClockText = (value: string | null) => {
     clockDraftRef.current = value;
@@ -146,18 +142,33 @@ export function LiveBoard() {
   };
 
   useEffect(() => {
-    const loaded = normalizeTimer(loadBoard());
-    const title = new URLSearchParams(window.location.search).get("title")?.trim();
-    if (title) loaded.title = title;
+    const params = new URLSearchParams(searchKey);
+    const slug = params.get("slug")?.trim() ?? "";
+    const title = params.get("title")?.trim() ?? "";
+    const explicit = boardKeyFromSearch(params);
+    const key = explicit || loadLastBoardKey() || "default";
+    storageKeyRef.current = key;
+    const loaded = normalizeTimer(loadBoard(key));
+    const untouched =
+      loaded.players.length === 0 && loaded.matches.length === 0 && !loaded.timerRunning;
+    if (title && (untouched || loaded.title === defaultBoard().title)) loaded.title = title;
+    if (key === SHOP_TEST_BOARD_KEY && loaded.players.length === 0 && loaded.matches.length === 0) {
+      loaded.players = testPlayers();
+    }
     setBoard(loaded);
+    setStoredKey(key);
+    setEventSlug(slug);
+    setEventTitle(title);
     setViewRound(Math.max(1, latestRound(loaded.matches)));
-  }, []);
+  }, [searchKey]);
 
   useEffect(() => () => stopAlarm(), []);
 
   useEffect(() => {
-    if (board) saveBoard(board);
-  }, [board]);
+    if (board && storedKey && storedKey === storageKeyRef.current) {
+      saveBoard(board, storedKey);
+    }
+  }, [board, storedKey]);
 
   useEffect(() => {
     if (!board?.timerRunning || board.timerEndsAt == null) return;
@@ -183,13 +194,13 @@ export function LiveBoard() {
   }, [board?.timerRunning, board?.timerEndsAt]);
 
   useEffect(() => {
-    if (!playersOpen) return;
     let cancelled = false;
     fetch("/api/tournaments/registrations")
       .then((res) => res.json())
       .then(
         (data: {
           tournaments?: {
+            slug: string;
             title: string;
             registrations: { id: string; playerName: string; phone: string }[];
           }[];
@@ -199,6 +210,7 @@ export function LiveBoard() {
             (data.tournaments ?? []).flatMap((tournament) =>
               tournament.registrations.map((registration) => ({
                 id: registration.id,
+                slug: tournament.slug,
                 tournamentTitle: tournament.title,
                 playerName: registration.playerName,
                 phone: registration.phone,
@@ -259,6 +271,27 @@ export function LiveBoard() {
     update({ ...board, players: [...board.players, ...nextPlayers] });
   };
 
+  const eventSignups = signups.filter((signup) => {
+    if (eventSlug) return signup.slug === eventSlug;
+    if (eventTitle) return signup.tournamentTitle === eventTitle;
+    return false;
+  });
+  const rosterSignups = eventSlug || eventTitle ? eventSignups : signups;
+  const missingRoster = rosterSignups.filter(
+    (signup) => !board.players.some((player) => player.name === signup.playerName),
+  );
+  const canLoadTest = board.matches.length === 0 && activeCount < 2;
+
+  const loadTestPlayers = () => {
+    if (!canLoadTest) return;
+    if (board.players.length > 0 && !window.confirm("加入 8 位試賽選手？")) return;
+    addPlayers(testPlayers().map((player) => player.name));
+  };
+
+  const keepClockFocus = (event: { preventDefault: () => void }) => {
+    event.preventDefault();
+  };
+
   const silenceAlarm = () => {
     stopAlarm();
     setAlarmOn(false);
@@ -272,22 +305,7 @@ export function LiveBoard() {
     const started = Date.now();
     setNow(started);
     setClockText(null);
-    setBoard((prev) => {
-      if (!prev) return prev;
-      const left =
-        typed != null
-          ? typed
-          : prev.timerRemainingMs > 0
-            ? prev.timerRemainingMs
-            : prev.roundMinutes * 60_000;
-      return {
-        ...prev,
-        roundMinutes: typed != null && Math.floor(typed / 60_000) > 0 ? Math.floor(typed / 60_000) : prev.roundMinutes,
-        timerRunning: true,
-        timerRemainingMs: left,
-        timerEndsAt: started + left,
-      };
-    });
+    setBoard((prev) => (prev ? startTimerState(prev, typed, started) : prev));
   };
 
   const pauseTimer = () => {
@@ -333,16 +351,12 @@ export function LiveBoard() {
   const addMinutes = (minutes: number) => {
     silenceAlarm();
     expiredRef.current = false;
-    const base =
-      board.timerRunning && board.timerEndsAt != null
-        ? Math.max(0, board.timerEndsAt - Date.now())
-        : board.timerRemainingMs;
-    const next = base + minutes * 60_000;
-    update({
-      ...board,
-      timerRemainingMs: next,
-      timerEndsAt: board.timerRunning ? Date.now() + next : null,
-    });
+    const typed =
+      !board.timerRunning && clockDraftRef.current != null
+        ? parseClockInput(clockDraftRef.current)
+        : null;
+    setClockText(null);
+    update(addMinutesState(board, minutes, typed));
   };
 
   const pairNext = () => {
@@ -410,6 +424,15 @@ export function LiveBoard() {
             >
               {maxRound === 0 ? "配對第 1 輪" : `配對第 ${maxRound + 1} 輪`}
             </button>
+            {canLoadTest && (
+              <button
+                type="button"
+                onClick={loadTestPlayers}
+                className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-sm font-semibold text-zinc-950"
+              >
+                載入 8 人試賽
+              </button>
+            )}
             {maxRound > 0 && (
               <button
                 type="button"
@@ -441,7 +464,7 @@ export function LiveBoard() {
           className="flex flex-col items-start gap-2 lg:items-end"
         >
           <p className={cn("text-sm font-semibold", timeUp ? "text-red-400" : "text-zinc-400")}>
-            {timeUp ? "時間到" : board.timerRunning ? "計時中" : "計時暫停"}
+            {timeUp ? "時間到" : board.timerRunning ? "計時中" : "計時暫停 · 點擊時間可修改"}
           </p>
           {board.timerRunning ? (
             <p
@@ -479,7 +502,7 @@ export function LiveBoard() {
                 }
               }}
               className={cn(
-                "w-[5.2ch] border-0 bg-transparent p-0 text-right font-mono text-7xl leading-none font-bold tabular-nums tracking-tight outline-none sm:text-8xl",
+                "w-[6.5ch] border-0 border-b border-white/30 bg-transparent p-0 text-right font-mono text-7xl leading-none font-bold tabular-nums tracking-tight outline-none sm:text-8xl",
                 timeUp ? "text-red-400" : urgent ? "text-red-400" : warning ? "text-amber-300" : "text-white",
               )}
             />
@@ -489,6 +512,7 @@ export function LiveBoard() {
               <button
                 key={minutes}
                 type="button"
+                onMouseDown={keepClockFocus}
                 onClick={() => setMinutes(minutes)}
                 className={cn(
                   "h-8 rounded-md px-2.5 text-sm",
@@ -502,6 +526,7 @@ export function LiveBoard() {
             ))}
             <button
               type="button"
+              onMouseDown={keepClockFocus}
               onClick={board.timerRunning ? pauseTimer : startTimer}
               className="inline-flex h-8 items-center gap-1 rounded-md bg-white px-3 text-sm font-semibold text-zinc-950"
             >
@@ -510,6 +535,7 @@ export function LiveBoard() {
             </button>
             <button
               type="button"
+              onMouseDown={keepClockFocus}
               onClick={() => addMinutes(1)}
               className="h-8 rounded-md bg-white/10 px-2.5 text-sm hover:bg-white/15"
             >
@@ -517,6 +543,7 @@ export function LiveBoard() {
             </button>
             <button
               type="button"
+              onMouseDown={keepClockFocus}
               onClick={() => addMinutes(5)}
               className="h-8 rounded-md bg-white/10 px-2.5 text-sm hover:bg-white/15"
             >
@@ -524,6 +551,7 @@ export function LiveBoard() {
             </button>
             <button
               type="button"
+              onMouseDown={keepClockFocus}
               onClick={() => setMinutes(board.roundMinutes)}
               className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-sm text-zinc-300 hover:bg-white/10"
             >
@@ -542,6 +570,21 @@ export function LiveBoard() {
           </div>
         </section>
       </header>
+
+      {(eventSlug || eventTitle) && missingRoster.length > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 lg:px-6">
+          <p className="text-sm text-zinc-300">
+            本場報名 {rosterSignups.length} 人，尚有 {missingRoster.length} 人未加入計分板
+          </p>
+          <button
+            type="button"
+            onClick={() => addPlayers(missingRoster.map((signup) => signup.playerName))}
+            className="inline-flex h-9 items-center rounded-lg bg-pink-500 px-3 text-sm font-semibold text-white hover:bg-pink-400"
+          >
+            加入報名選手
+          </button>
+        </div>
+      )}
 
       <div className="grid gap-4 p-4 lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden lg:p-6">
         <section className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:overflow-hidden">
@@ -568,9 +611,29 @@ export function LiveBoard() {
           </div>
           <div className="lg:min-h-0 lg:overflow-auto">
             {pairings.length === 0 ? (
-              <p className="px-4 py-10 text-center text-zinc-400">
-                加入選手後，按「配對第 1 輪」。比分會即時更新右邊積分榜。
-              </p>
+              <div className="px-4 py-10 text-center">
+                <p className="text-zinc-400">
+                  加入選手後，按「配對第 1 輪」。比分會即時更新右邊積分榜。
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPlayersOpen(true)}
+                    className="inline-flex h-9 items-center rounded-lg bg-white/10 px-3 text-sm font-medium hover:bg-white/15"
+                  >
+                    加入選手
+                  </button>
+                  {canLoadTest && (
+                    <button
+                      type="button"
+                      onClick={loadTestPlayers}
+                      className="inline-flex h-9 items-center rounded-lg bg-white px-3 text-sm font-semibold text-zinc-950"
+                    >
+                      載入 8 人試賽
+                    </button>
+                  )}
+                </div>
+              </div>
             ) : (
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-zinc-950/95 text-xs tracking-wide text-zinc-400">
@@ -786,16 +849,18 @@ export function LiveBoard() {
           >
             加入以上名單
           </button>
-          {signups.length > 0 && (
+          {rosterSignups.length > 0 && (
             <div className="space-y-2 rounded-lg border border-white/10 p-3">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-medium">報名名單</p>
+                <p className="text-sm font-medium">
+                  {eventSlug || eventTitle ? "本場報名" : "報名名單"}
+                </p>
                 <button
                   type="button"
                   onClick={() => {
                     const existing = new Set(board.players.map((player) => player.name));
                     addPlayers(
-                      signups
+                      rosterSignups
                         .map((signup) => signup.playerName)
                         .filter((name) => !existing.has(name)),
                     );
@@ -806,7 +871,7 @@ export function LiveBoard() {
                 </button>
               </div>
               <ul className="max-h-32 space-y-1 overflow-auto text-sm text-zinc-300">
-                {signups.map((signup) => (
+                {rosterSignups.map((signup) => (
                   <li key={signup.id}>
                     {signup.playerName}
                     <span className="ml-2 font-mono text-zinc-400">{signup.phone}</span>
