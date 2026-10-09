@@ -3,6 +3,7 @@ import { InfoPageLayout, InfoSection } from "@/components/info/info-page-layout"
 import { GoogleMapEmbed } from "@/components/info/google-map-embed";
 import { SITE_BRAND } from "@/lib/constants";
 import { getAboutContent } from "@/lib/site-content";
+import { resolveWhatsAppHref, whatsappDisplayNumber } from "@/lib/whatsapp";
 
 export async function generateMetadata(): Promise<Metadata> {
   const about = await getAboutContent();
@@ -14,6 +15,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function AboutPage() {
   const about = await getAboutContent();
+  const whatsappHref = resolveWhatsAppHref();
+  const whatsappNumber = whatsappDisplayNumber(whatsappHref);
 
   return (
     <InfoPageLayout
@@ -44,6 +47,18 @@ export default async function AboutPage() {
         {about.contactBody.split(/\n{2,}/).map((paragraph, index) => (
           <p key={`contact-${index}`}>{paragraph}</p>
         ))}
+        {whatsappHref && whatsappNumber && (
+          <p>
+            <a
+              href={whatsappHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              WhatsApp {whatsappNumber}
+            </a>
+          </p>
+        )}
       </InfoSection>
     </InfoPageLayout>
   );

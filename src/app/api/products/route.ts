@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
   const inStock = searchParams.get("inStock") === "true";
   const search = searchParams.get("search") ?? undefined;
   const language = searchParams.get("language") ?? undefined;
+  const game = searchParams.get("game") ?? undefined;
   const sort = (searchParams.get("sort") as ProductSort | null) ?? "newest";
 
   const setCodes = searchParams.getAll("setCode").filter(Boolean);
@@ -38,6 +39,7 @@ export async function GET(request: NextRequest) {
     inStock,
     search,
     language,
+    game,
     sort,
   });
 

@@ -1,4 +1,5 @@
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
+import { isSupportedCatalogGame, productMatchesGame } from "@/lib/games";
 import { taxonomyFromCard } from "@/lib/card-taxonomy";
 import { productMatchesSearch, productSearchOr } from "@/lib/product-search";
 import {
@@ -28,6 +29,7 @@ export interface ProductFilters {
   search?: string;
   language?: string;
   sort?: ProductSort;
+  game?: string;
 }
 
 function enrichProduct<T extends ProductWithVariants>(p: T): T {
@@ -105,6 +107,23 @@ function buildFilterMeta(products: ProductWithVariants[]) {
   };
 }
 
+function emptyProducts(filters: ProductFilters): ProductsResponse {
+  return {
+    products: [],
+    total: 0,
+    page: filters.page ?? 1,
+    pageSize: filters.pageSize ?? 24,
+    totalPages: 1,
+    filters: {
+      cardSets: [],
+      rarities: [],
+      pokemonTypes: [],
+      setCodes: [],
+      rarityTiers: [],
+    },
+  };
+}
+
 function filterDemoProducts(filters: ProductFilters): ProductsResponse {
   const page = filters.page ?? 1;
   const pageSize = filters.pageSize ?? 24;
@@ -146,6 +165,10 @@ function filterDemoProducts(filters: ProductFilters): ProductsResponse {
 
   if (filters.language) {
     products = products.filter((p) => p.language === filters.language);
+  }
+
+  if (filters.game) {
+    products = products.filter((p) => productMatchesGame(p.game, filters.game));
   }
 
   if (filters.inStock) {
@@ -194,6 +217,10 @@ function prismaOrderBy(sort: ProductSort = "newest") {
 }
 
 export async function getProducts(filters: ProductFilters): Promise<ProductsResponse> {
+  if (!isSupportedCatalogGame(filters.game)) {
+    return emptyProducts(filters);
+  }
+
   if (!isDatabaseConfigured()) {
     return filterDemoProducts(filters);
   }
@@ -295,5 +322,27 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
     };
   } catch {
     return filterDemoProducts(filters);
+  }
+}
+
+export async function getProductBySlug(slug: string): Promise<ProductWithVariants | null> {
+  const demo = DEMO_PRODUCTS.find((product) => product.slug === slug);
+
+  if (!isDatabaseConfigured()) {
+    return demo ? enrichProduct(demo) : null;
+  }
+
+  try {
+    const product = await getPrisma().product.findUnique({
+      where: { slug },
+      include: {
+        variants: { orderBy: { price: "asc" } },
+        images: { orderBy: { sortOrder: "asc" } },
+      },
+    });
+    if (!product) return null;
+    return enrichProduct(product as ProductWithVariants);
+  } catch {
+    return demo ? enrichProduct(demo) : null;
   }
 }

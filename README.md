@@ -59,6 +59,7 @@ npm run db:seed
 |------|------|
 | 首頁 + Hero 輪播 | `/` |
 | 商品列表 + 進階篩選 | `/products` |
+| 商品詳情 | `/products/[slug]` |
 | 商品 API | `/api/products` |
 | 購物車（localStorage） | 右上角購物袋 |
 | Stripe 結帳 | `/api/checkout` |
@@ -72,6 +73,13 @@ npm run db:seed
 - `type` — `SINGLE` | `SEALED_BOX` | `BOOSTER_PACK` | `ACCESSORY`
 - `inStock=true`
 - `search`, `language`
+- `game` — 目前只支援 `pokemon`。`one-piece`、`lorcana` 會回傳空清單（選單暫不顯示這兩個遊戲）
+
+## WhatsApp
+
+右下角按鈕連到 `https://wa.me/` 加門市號碼。預設使用 `src/lib/constants.ts` 的 `STORE.whatsapp`（`66094893`，即 `https://wa.me/85266094893`）。
+
+要改號碼，在 `.env` 設定 `WHATSAPP_NUMBER`（8 位香港號碼或含 `852` 的國際號碼）。未設定或留空時沿用網站設定。
 
 ## 專案結構
 

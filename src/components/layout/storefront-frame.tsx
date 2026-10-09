@@ -4,10 +4,10 @@ import { usePathname } from "next/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 
-function WhatsAppButton() {
+function WhatsAppButton({ href }: { href: string }) {
   return (
     <a
-      href="https://wa.me/"
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       className="fixed bottom-6 right-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-green-500 text-white shadow-lg transition hover:scale-105 hover:bg-green-400"
@@ -20,7 +20,13 @@ function WhatsAppButton() {
   );
 }
 
-export function StorefrontFrame({ children }: { children: React.ReactNode }) {
+export function StorefrontFrame({
+  children,
+  whatsappHref,
+}: {
+  children: React.ReactNode;
+  whatsappHref: string | null;
+}) {
   const pathname = usePathname();
 
   if (pathname === "/tournaments/live" || pathname.startsWith("/pos")) {
@@ -32,7 +38,7 @@ export function StorefrontFrame({ children }: { children: React.ReactNode }) {
       <SiteHeader />
       <main className="flex-1">{children}</main>
       <SiteFooter />
-      <WhatsAppButton />
+      {whatsappHref ? <WhatsAppButton href={whatsappHref} /> : null}
     </div>
   );
 }
