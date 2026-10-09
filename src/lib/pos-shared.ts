@@ -66,6 +66,14 @@ export type Ledger = {
   receipts: Receipt[];
 };
 
+export type DailySalePoint = {
+  date: string;
+  label: string;
+  caption: string;
+  saleCount: number;
+  revenue: number;
+};
+
 export type PnlSummary = {
   from: string;
   to: string;

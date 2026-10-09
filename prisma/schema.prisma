@@ -67,10 +67,16 @@ model User {
   phone         String?
   passwordHash  String?
   role          UserRole                @default(USER)
+  /** Pokémon ID（玩家 ID，供店務查核） */
+  pokemonId     String?
+  /** 會員積分 */
+  points        Int                     @default(0)
   orders        Order[]
   registrations TournamentRegistration[]
   createdAt     DateTime                @default(now())
   updatedAt     DateTime                @updatedAt
+
+  @@index([pokemonId])
 }
 
 model Product {

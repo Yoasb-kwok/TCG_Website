@@ -3,7 +3,17 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Package, Receipt, Trophy, AlertTriangle } from "lucide-react";
+import { TrendChartCard } from "@/components/charts/trend-charts";
+import { TREND_DAY_COUNT } from "@/lib/chart-days";
 import { formatPrice } from "@/lib/format";
+import type { DailySalePoint } from "@/lib/pos-shared";
+
+interface OrderTrendPoint {
+  label: string;
+  caption: string;
+  orderCount: number;
+  amount: number;
+}
 
 interface Stats {
   products: number;
@@ -13,15 +23,22 @@ interface Stats {
   tournaments: number;
   registrations: number;
   lowStock: number;
+  orderTrend?: OrderTrendPoint[];
 }
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [saleTrend, setSaleTrend] = useState<DailySalePoint[] | null>(null);
 
   useEffect(() => {
     fetch("/api/admin/stats")
       .then((r) => r.json())
-      .then(setStats);
+      .then(setStats)
+      .catch(() => undefined);
+    fetch("/api/pos?period=14d")
+      .then((r) => r.json())
+      .then((data: { trend?: DailySalePoint[] }) => setSaleTrend(data.trend ?? []))
+      .catch(() => setSaleTrend([]));
   }, []);
 
   const cards = [
@@ -85,6 +102,41 @@ export default function AdminDashboardPage() {
             <p className="mt-1 text-sm text-muted-foreground">{label}</p>
           </Link>
         ))}
+      </div>
+
+      <div className="mt-8">
+        <h2 className="font-semibold">近{TREND_DAY_COUNT}日走勢</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          直棒是單量，線是金額。點選直棒可看該日。
+        </p>
+        <div className="mt-4 grid gap-4 xl:grid-cols-2">
+          <TrendChartCard
+            title="網上訂單"
+            description={`近 ${TREND_DAY_COUNT} 日。已取消不計。金額只計已付款、已出貨、已完成。`}
+            points={(stats?.orderTrend ?? []).map((point) => ({
+              label: point.label,
+              caption: point.caption,
+              volume: point.orderCount,
+              amount: point.amount,
+            }))}
+            volumeLabel="單量"
+            amountLabel="金額"
+            emptyLabel={stats ? "這段時間未有訂單" : "載入網上訂單…"}
+          />
+          <TrendChartCard
+            title="店內銷售"
+            description={`近 ${TREND_DAY_COUNT} 日單量與營業額。作廢單據不算在內。`}
+            points={(saleTrend ?? []).map((point) => ({
+              label: point.label,
+              caption: point.caption,
+              volume: point.saleCount,
+              amount: point.revenue,
+            }))}
+            volumeLabel="單量"
+            amountLabel="營業額"
+            emptyLabel={saleTrend ? "這段時間未有銷售" : "載入店內銷售…"}
+          />
+        </div>
       </div>
 
       <div className="mt-8 rounded-xl border border-border bg-card p-6">

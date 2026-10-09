@@ -32,6 +32,8 @@ export interface ProductWithVariants {
   cardCategory?: string | null;
   pokemonType: string | null;
   language: string;
+  /** Catalog game slug. Missing values are Pokémon. */
+  game?: string | null;
   externalCardId?: string | null;
   variants: ProductVariant[];
   images: ProductImage[];

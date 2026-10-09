@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,6 +23,7 @@ export function ProductCard({ product }: ProductCardProps) {
   );
   const inStock = product.variants.some((v) => v.stock > 0);
   const imageUrl = product.images[0]?.url;
+  const href = `/products/${product.slug}`;
 
   const handleAdd = () => {
     if (!inStock) return;
@@ -41,7 +43,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
   return (
     <article className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition hover:border-foreground/20">
-      <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+      <Link href={href} className="relative block aspect-[3/4] overflow-hidden bg-muted">
         {imageUrl ? (
           <Image
             src={imageUrl}
@@ -68,11 +70,13 @@ export function ProductCard({ product }: ProductCardProps) {
             {labelFor("SET_CODE", product.setCode)}
           </Badge>
         )}
-      </div>
+      </Link>
 
       <div className="flex flex-1 flex-col p-3">
         <h3 className="line-clamp-2 text-sm font-medium text-foreground">
-          {product.name}
+          <Link href={href} className="hover:underline">
+            {product.name}
+          </Link>
         </h3>
         <p className="mt-1 truncate text-xs text-muted-foreground">
           {getProductTypeDisplayLabel(product.type, labelFor)}

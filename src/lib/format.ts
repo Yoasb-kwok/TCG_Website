@@ -11,5 +11,6 @@ export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("zh-HK", {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: "Asia/Hong_Kong",
   }).format(new Date(date));
 }

@@ -196,6 +196,10 @@ export const DEMO_PRODUCTS: ProductWithVariants[] = [
   },
 ];
 
+/**
+ * 固定賽程（香港時間），不可用 Date.now() 推算，否則每次重新整理都會漂移。
+ * 週六標準賽：2026-10-17 14:00；新手友善賽：2026-10-24 14:00。
+ */
 export const DEMO_TOURNAMENTS = [
   {
     id: "t-1",
@@ -207,8 +211,8 @@ export const DEMO_TOURNAMENTS = [
     entryFee: 80,
     prizePool: "優勝：補充包 x6 + 店舖點數",
     location: "旺角店",
-    startsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    registrationDeadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+    startsAt: "2026-10-17T06:00:00.000Z",
+    registrationDeadline: "2026-10-16T15:59:00.000Z",
     status: "OPEN",
     registeredCount: 0,
   },
@@ -222,8 +226,8 @@ export const DEMO_TOURNAMENTS = [
     entryFee: 50,
     prizePool: "參加即送卡套",
     location: "銅鑼灣店",
-    startsAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    registrationDeadline: new Date(Date.now() + 6 * 24 * 60 * 60 * 1000).toISOString(),
+    startsAt: "2026-10-24T06:00:00.000Z",
+    registrationDeadline: "2026-10-23T15:59:00.000Z",
     status: "OPEN",
     registeredCount: 0,
   },
