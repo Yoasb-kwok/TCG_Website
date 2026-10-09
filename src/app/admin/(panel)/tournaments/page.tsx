@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { STORE } from "@/lib/constants";
+import { liveBoardHref } from "@/lib/tournament-board";
 
 interface Registration {
   id: string;
@@ -19,6 +19,7 @@ interface Registration {
 interface Tournament {
   id: string;
   title: string;
+  slug?: string;
   format: string;
   maxPlayers: number;
   entryFee: number;
@@ -76,9 +77,18 @@ export default function AdminTournamentsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">店賽報名</h1>
-          <p className="mt-1 text-sm text-muted-foreground">賽事管理及報名名單</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            賽事管理、報名名單同店賽計分。計分同計時留喺店內電腦。
+          </p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href={liveBoardHref(undefined, { test: true })}
+            target="_blank"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            試賽計分
+          </Link>
           <Link
             href="/tournaments/live"
             target="_blank"
@@ -185,26 +195,35 @@ export default function AdminTournamentsPage() {
             key={t.id}
             className="rounded-xl border border-border bg-card"
           >
-            <button
-              type="button"
-              onClick={() => setExpanded(expanded === t.id ? null : t.id)}
-              className="flex w-full items-center justify-between p-5 text-left"
-            >
-              <div>
+            <div className="flex items-center justify-between gap-3 p-5">
+              <button
+                type="button"
+                onClick={() => setExpanded(expanded === t.id ? null : t.id)}
+                className="min-w-0 flex-1 text-left"
+              >
                 <p className="font-semibold text-foreground">{t.title}</p>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {formatDate(t.startsAt)} · {t.location} · {t.format}
                 </p>
+              </button>
+              <div className="flex items-center gap-4">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-pink-400">
+                    {t._count.registrations} / {t.maxPlayers} 人
+                  </p>
+                  <p className="text-xs text-muted-foreground/80">
+                    {t.entryFee > 0 ? formatPrice(t.entryFee) : "免費"}
+                  </p>
+                </div>
+                <Link
+                  href={liveBoardHref(t)}
+                  target="_blank"
+                  className={buttonVariants({ variant: "outline", size: "sm" })}
+                >
+                  計分 / 計時
+                </Link>
               </div>
-              <div className="text-right">
-                <p className="text-sm font-medium text-pink-400">
-                  {t._count.registrations} / {t.maxPlayers} 人
-                </p>
-                <p className="text-xs text-muted-foreground/80">
-                  {t.entryFee > 0 ? formatPrice(t.entryFee) : "免費"}
-                </p>
-              </div>
-            </button>
+            </div>
 
             {expanded === t.id && (
               <div className="border-t border-border px-5 pb-5">

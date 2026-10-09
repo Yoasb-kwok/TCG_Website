@@ -24,6 +24,7 @@ export async function GET() {
       return {
         id: tournament.id,
         title: tournament.title,
+        slug: tournament.slug,
         format: tournament.format,
         maxPlayers: tournament.maxPlayers,
         entryFee: tournament.entryFee,

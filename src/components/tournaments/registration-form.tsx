@@ -6,11 +6,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { liveBoardHref } from "@/lib/tournament-board";
 
-function StartTournamentLink({ title }: { title: string }) {
+function StartTournamentLink({ slug, title }: { slug: string; title: string }) {
   return (
     <Link
-      href={`/tournaments/live?title=${encodeURIComponent(title)}`}
+      href={liveBoardHref({ slug, title })}
       className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
     >
       開始店賽
@@ -39,7 +40,7 @@ export function RegistrationForm({
   if (!open || spotsLeft <= 0) {
     return (
       <div className="mt-8 flex flex-wrap items-center gap-3">
-        <StartTournamentLink title={title} />
+        <StartTournamentLink slug={slug} title={title} />
         <p className="text-sm text-muted-foreground">
           {spotsLeft <= 0 ? "名額已滿" : "報名已截止"}
         </p>
@@ -50,7 +51,7 @@ export function RegistrationForm({
   if (done) {
     return (
       <div className="mt-8 flex flex-wrap items-center gap-3">
-        <StartTournamentLink title={title} />
+        <StartTournamentLink slug={slug} title={title} />
         <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground">
           已收到報名。請於比賽當日到店，並帶同登記的手機號碼。
         </p>
@@ -111,7 +112,7 @@ export function RegistrationForm({
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
       <div className="flex flex-wrap items-center gap-2">
-        <StartTournamentLink title={title} />
+        <StartTournamentLink slug={slug} title={title} />
         <Button
           type="submit"
           disabled={pending}
