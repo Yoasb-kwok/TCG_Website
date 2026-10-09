@@ -46,12 +46,13 @@ export function TrendChartCard({
   emptyLabel: string;
   className?: string;
 }) {
-  const [active, setActive] = useState<number | null>(null);
+  const [hovered, setHovered] = useState<number | null>(null);
+  const [pinned, setPinned] = useState<number | null>(null);
   const volumeSum = points.reduce((sum, point) => sum + point.volume, 0);
   const amountSum = points.reduce((sum, point) => sum + point.amount, 0);
   const maxVolume = niceMax(Math.max(0, ...points.map((point) => point.volume)));
   const maxAmount = niceMax(Math.max(0, ...points.map((point) => point.amount)));
-  const selected = active ?? Math.max(0, points.length - 1);
+  const selected = hovered ?? pinned ?? Math.max(0, points.length - 1);
   const selectedPoint = points[selected];
   const quiet = points.length > 0 && points.every((point) => point.volume === 0 && point.amount === 0);
   const ticks = [1, 0.5, 0];
@@ -106,10 +107,7 @@ export function TrendChartCard({
                 </span>
               ))}
             </div>
-            <div
-              className="relative h-40 min-w-0 flex-1"
-              onMouseLeave={() => setActive(null)}
-            >
+            <div className="relative h-40 min-w-0 flex-1" onMouseLeave={() => setHovered(null)}>
               <div className="absolute inset-0 flex">
                 {points.map((point, index) => (
                   <div
@@ -179,9 +177,10 @@ export function TrendChartCard({
                     type="button"
                     className="h-full flex-1"
                     aria-label={`${point.caption ?? point.label}，${volumeLabel} ${point.volume}，${amountLabel} ${formatPrice(point.amount)}`}
-                    onMouseEnter={() => setActive(index)}
-                    onFocus={() => setActive(index)}
-                    onBlur={() => setActive(null)}
+                    aria-pressed={index === pinned}
+                    onMouseEnter={() => setHovered(index)}
+                    onFocus={() => setPinned(index)}
+                    onClick={() => setPinned(index)}
                   />
                 ))}
               </div>
