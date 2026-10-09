@@ -71,7 +71,19 @@ npm run db:seed
 - `cardSet`, `rarity`, `pokemonType`
 - `type` — `SINGLE` | `SEALED_BOX` | `BOOSTER_PACK` | `ACCESSORY`
 - `inStock=true`
-- `search`, `language`
+- `search`, `language`（`search` 同時對名稱、卡號、SKU、條碼做包含比對）
+
+## 收銀（POS）
+
+店內收銀在 `/pos`（需 ADMIN）。規格可選填 `barcode`：留空代表未設定，有值時全店唯一。收銀搜尋欄掃條碼、SKU 或卡號後按 Enter 會直接加入購物車；名稱搜尋維持原有列表。按「收款」後要再選付款方式並確認金額先入帳。
+
+套用條碼欄位：
+
+```bash
+npm run db:migrate
+```
+
+未設定資料庫時，示範條碼仍可用，例如補充包 `4891510000010`、Charizard ex `4891511990001`。
 
 ## 專案結構
 

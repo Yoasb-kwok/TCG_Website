@@ -1,11 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PosShell } from "@/components/pos/pos-nav";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { formatPrice } from "@/lib/format";
-import { PAYMENT_LABELS, type PaymentMethod, type Sale } from "@/lib/pos-shared";
+import { PAYMENT_LABELS, roundMoney, type PaymentMethod, type Sale } from "@/lib/pos-shared";
 import type { ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -13,9 +13,17 @@ type TicketLine = {
   key: string;
   name: string;
   sku: string | null;
+  barcode: string | null;
   quantity: number;
   unitPrice: number;
   unitCost: number;
+};
+
+type ScanNote = { tone: "ok" | "warn"; text: string };
+
+type LookupMatch = {
+  product: ProductWithVariants;
+  variantId: string;
 };
 
 const METHODS = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
@@ -32,6 +40,23 @@ function saleAmount(sale: Sale) {
   return Math.max(0, sale.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) - sale.discount);
 }
 
+function tenderedAmount(raw: string, total: number) {
+  if (raw.trim() === "") return total;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : Number.NaN;
+}
+
+function formatMoney(amount: number) {
+  const rounded = roundMoney(amount);
+  if (Number.isInteger(rounded)) return formatPrice(rounded);
+  return new Intl.NumberFormat("zh-HK", {
+    style: "currency",
+    currency: "HKD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(rounded);
+}
+
 export function PosRegister() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("");
@@ -43,8 +68,20 @@ export function PosRegister() {
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const payLock = useRef(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [tendered, setTendered] = useState("");
+  const [scanNote, setScanNote] = useState<ScanNote | null>(null);
   const [recent, setRecent] = useState<Sale[]>([]);
   const [manual, setManual] = useState({ name: "", unitPrice: "", unitCost: "" });
+  const scanRef = useRef<HTMLInputElement>(null);
+  const scanSeq = useRef(0);
+  const actionsRef = useRef({
+    confirmOpen: false,
+    openConfirm: () => {},
+    closeConfirm: () => {},
+    checkout: () => {},
+  });
 
   const loadRecent = async () => {
     const res = await fetch("/api/pos?period=today");
@@ -78,8 +115,8 @@ export function PosRegister() {
     setLines((current) => current.map((item) => (item.key === key ? { ...item, ...patch } : item)));
   };
 
-  const addProduct = (product: ProductWithVariants) => {
-    const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
+  const addVariant = (product: ProductWithVariants, variantId: string) => {
+    const variant = product.variants.find((item) => item.id === variantId) ?? product.variants[0];
     if (!variant) return;
     setLines((current) => {
       const existing = current.find((line) => line.sku != null && line.sku === variant.sku);
@@ -94,12 +131,63 @@ export function PosRegister() {
           key: crypto.randomUUID(),
           name: product.name,
           sku: variant.sku,
+          barcode: variant.barcode ?? null,
           quantity: 1,
           unitPrice: variant.price,
           unitCost: 0,
         },
       ];
     });
+  };
+
+  const addProduct = (product: ProductWithVariants) => {
+    const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
+    if (!variant) return;
+    addVariant(product, variant.id);
+  };
+
+  const openConfirm = () => {
+    if (lines.length === 0 || pending) return;
+    setTendered(String(total));
+    setError("");
+    setConfirmOpen(true);
+  };
+
+  const closeConfirm = () => {
+    if (pending) return;
+    setConfirmOpen(false);
+    scanRef.current?.focus();
+  };
+
+  const scanCode = async (raw: string) => {
+    const q = raw.trim();
+    if (!q) return;
+    const seq = ++scanSeq.current;
+    try {
+      const res = await fetch(`/api/pos/lookup?q=${encodeURIComponent(q)}`);
+      const data = (await res.json()) as { match?: LookupMatch | null; error?: string };
+      if (seq !== scanSeq.current) return;
+      if (!res.ok) {
+        setScanNote({ tone: "warn", text: data.error ?? "搜尋失敗，請再試一次" });
+        return;
+      }
+      const match = data.match;
+      if (!match) {
+        setScanNote({ tone: "warn", text: "沒有完全相符嘅條碼、SKU 或卡號，請喺下面揀" });
+        return;
+      }
+      const variant = match.product.variants.find((item) => item.id === match.variantId);
+      addVariant(match.product, match.variantId);
+      setQuery("");
+      setScanNote({
+        tone: "ok",
+        text: variant && variant.stock <= 0 ? `已加入：${match.product.name}（而家無庫存）` : `已加入：${match.product.name}`,
+      });
+      scanRef.current?.focus();
+    } catch {
+      if (seq !== scanSeq.current) return;
+      setScanNote({ tone: "warn", text: "搜尋失敗，請再試一次" });
+    }
   };
 
   const addManual = () => {
@@ -113,6 +201,7 @@ export function PosRegister() {
         key: crypto.randomUUID(),
         name,
         sku: null,
+        barcode: null,
         quantity: 1,
         unitPrice,
         unitCost: Number.isFinite(unitCost) && unitCost >= 0 ? unitCost : 0,
@@ -126,10 +215,19 @@ export function PosRegister() {
     setDiscount(0);
     setNote("");
     setError("");
+    setConfirmOpen(false);
+    setTendered("");
   };
 
   const checkout = async () => {
+    if (payLock.current) return;
+    const paid = tenderedAmount(tendered, total);
+    if (!Number.isFinite(paid) || roundMoney(paid) + 0.001 < roundMoney(total)) {
+      setError("實收少過應收");
+      return;
+    }
     setError("");
+    payLock.current = true;
     setPending(true);
     try {
       const res = await fetch("/api/pos/sales", {
@@ -155,12 +253,48 @@ export function PosRegister() {
       }
       clearTicket();
       await loadRecent();
+      scanRef.current?.focus();
     } catch {
       setError("未能入帳，請再試一次");
     } finally {
+      payLock.current = false;
       setPending(false);
     }
   };
+
+  const paid = tenderedAmount(tendered, total);
+  const tenderedOk = Number.isFinite(paid) && roundMoney(paid) + 0.001 >= roundMoney(total);
+  const changeDue = method === "CASH" && tenderedOk ? Math.max(0, roundMoney(paid - total)) : 0;
+
+  useEffect(() => {
+    actionsRef.current = {
+      confirmOpen,
+      openConfirm,
+      closeConfirm,
+      checkout: () => {
+        void checkout();
+      },
+    };
+  });
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && actionsRef.current.confirmOpen) {
+        event.preventDefault();
+        actionsRef.current.closeConfirm();
+        return;
+      }
+      if (event.key !== " " || event.repeat || !actionsRef.current.confirmOpen) return;
+      const target = event.target as HTMLElement | null;
+      const tag = target?.tagName ?? "";
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (tag === "BUTTON" && target?.id !== "pos-confirm-pay") return;
+      event.preventDefault();
+      actionsRef.current.checkout();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const voidTicket = async (id: string) => {
     if (!window.confirm("作廢這張單？損益表不會再計算它。")) return;
@@ -176,12 +310,39 @@ export function PosRegister() {
             <p className="text-sm font-extrabold text-muted-foreground">揀貨</p>
             <p className="text-xs font-bold text-muted-foreground">撳一下就加入</p>
           </div>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="打卡名、系列或編號"
-            className={cn(fieldClass, "mt-3")}
-          />
+          <label className="mt-3 block text-xs font-bold text-muted-foreground" htmlFor="pos-scan">
+            掃碼 / 搜尋
+            <input
+              id="pos-scan"
+              ref={scanRef}
+              autoFocus
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setScanNote(null);
+              }}
+              onKeyDown={(event) => {
+                if (confirmOpen) return;
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  void scanCode(query);
+                  return;
+                }
+                if (event.key === " " && query.trim() === "" && lines.length > 0) {
+                  event.preventDefault();
+                  openConfirm();
+                }
+              }}
+              placeholder="條碼 / SKU / 卡號 / 品名"
+              className={cn(fieldClass, "mt-1")}
+            />
+          </label>
+          <p className="mt-1 text-xs font-bold text-muted-foreground">掃碼後按 Enter 直接加入。名稱可以打完再喺下面揀。</p>
+          {scanNote && (
+            <p className={cn("mt-1 text-sm font-extrabold", scanNote.tone === "ok" ? "text-emerald-400" : "text-amber-300")} role="status">
+              {scanNote.text}
+            </p>
+          )}
           <div className="mt-3 flex flex-wrap gap-2">
             {KINDS.map((item) => (
               <button
@@ -228,6 +389,9 @@ export function PosRegister() {
                       )}
                     </span>
                     <span className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug">{product.name}</span>
+                    {variant?.barcode && (
+                      <span className="text-[11px] font-bold text-muted-foreground">{variant.barcode}</span>
+                    )}
                     <span className="mt-auto pt-1 text-sm font-extrabold text-pink-400">
                       {variant && variant.price > 0 ? formatPrice(variant.price) : "未定價"}
                     </span>
@@ -299,6 +463,7 @@ export function PosRegister() {
                       <div>
                         <p className="font-extrabold">{line.name}</p>
                         {line.sku && <p className="text-xs font-bold text-muted-foreground">{line.sku}</p>}
+                        {line.barcode && <p className="text-xs font-bold text-muted-foreground">條碼 {line.barcode}</p>}
                       </div>
                       <p className="font-extrabold tabular-nums">{formatPrice(lineTotal(line))}</p>
                     </div>
@@ -400,32 +565,15 @@ export function PosRegister() {
             />
             <p className="mt-4 text-sm font-bold text-muted-foreground">應收</p>
             <p className="text-right text-4xl font-extrabold tabular-nums">{formatPrice(total)}</p>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              {METHODS.map(([value, label]) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => setMethod(value)}
-                  className={cn(
-                    "h-9 rounded-full border text-sm font-bold",
-                    method === value
-                      ? "border-pink-500 bg-pink-500 text-white"
-                      : "border-border bg-muted text-muted-foreground",
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            {error && <p className="mt-2 text-sm font-bold text-red-400">{error}</p>}
             <button
               type="button"
               disabled={pending || lines.length === 0}
-              onClick={checkout}
+              onClick={openConfirm}
               className="mt-3 h-[72px] w-full rounded-[14px] bg-pink-500 text-lg font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
             >
               {pending ? "入帳中…" : `收款 ${formatPrice(total)}`}
             </button>
+            <p className="mt-2 text-center text-xs font-bold text-muted-foreground">按收款後先揀付款方式同確認金額</p>
             <button
               type="button"
               onClick={clearTicket}
@@ -437,6 +585,78 @@ export function PosRegister() {
           </div>
         </aside>
       </div>
+      {confirmOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-4 sm:items-center" role="presentation">
+          <form
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pos-pay-title"
+            className="w-full max-w-xl rounded-[18px] border-2 border-pink-500 bg-card p-5 shadow-2xl"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void checkout();
+            }}
+          >
+            <p className="text-sm font-extrabold text-pink-300">確認收款</p>
+            <h2 id="pos-pay-title" className="mt-1 text-lg font-extrabold">
+              揀付款方式，核對金額後先入帳
+            </h2>
+            <p className="mt-4 text-sm font-bold text-muted-foreground">應收</p>
+            <p className="text-5xl font-extrabold tabular-nums">{formatPrice(total)}</p>
+            <p className="mt-4 text-sm font-bold text-muted-foreground">付款方式</p>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              {METHODS.map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setMethod(value)}
+                  className={cn(
+                    "h-12 rounded-xl border text-base font-extrabold",
+                    method === value
+                      ? "border-pink-500 bg-pink-500 text-white"
+                      : "border-border bg-muted text-muted-foreground",
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <label className="mt-4 block text-sm font-bold text-muted-foreground" htmlFor="pos-tendered">
+              實收（留空即確認應收）
+              <input
+                id="pos-tendered"
+                inputMode="decimal"
+                value={tendered}
+                onChange={(event) => setTendered(event.target.value)}
+                className={cn(fieldClass, "mt-1 text-lg font-extrabold")}
+              />
+            </label>
+            {method === "CASH" && tenderedOk && changeDue > 0 && (
+              <p className="mt-2 text-sm font-extrabold text-emerald-400">找續 {formatMoney(changeDue)}</p>
+            )}
+            {!tenderedOk && <p className="mt-2 text-sm font-bold text-red-400">實收少過應收</p>}
+            {error && <p className="mt-2 text-sm font-bold text-red-400">{error}</p>}
+            <button
+              id="pos-confirm-pay"
+              type="submit"
+              autoFocus
+              disabled={pending || !tenderedOk || lines.length === 0}
+              className="mt-4 h-[72px] w-full rounded-[14px] bg-pink-500 text-xl font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+            >
+              {pending ? "入帳中…" : `確認收款 ${formatPrice(total)}`}
+            </button>
+            <p className="mt-2 text-center text-xs font-bold text-muted-foreground">空格鍵確認 · Esc 返回</p>
+            <button
+              type="button"
+              onClick={closeConfirm}
+              disabled={pending}
+              className="mt-2 h-11 w-full rounded-[10px] border border-border bg-muted text-sm font-extrabold hover:bg-muted/80 disabled:text-muted-foreground"
+            >
+              返回
+            </button>
+          </form>
+        </div>
+      )}
     </PosShell>
   );
 }

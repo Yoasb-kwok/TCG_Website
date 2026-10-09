@@ -43,6 +43,7 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
   const [setCode, setSetCode] = useState("");
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,7 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
 
   const [accName, setAccName] = useState("");
   const [accDesc, setAccDesc] = useState("");
+  const [accBarcode, setAccBarcode] = useState("");
   const [accImageFile, setAccImageFile] = useState<File | null>(null);
   const accFileRef = useRef<HTMLInputElement>(null);
 
@@ -89,6 +91,7 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
           stock: 0,
           description: description.trim() || undefined,
           imageUrl,
+          barcode: barcode.trim() || null,
         }),
       });
       const data = (await res.json()) as { error?: string };
@@ -96,6 +99,7 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
       setSuccess(`已上架：${productName}`);
       setProductName("");
       setDescription("");
+      setBarcode("");
       setImageFile(null);
       setImagePreview(null);
       if (fileRef.current) fileRef.current.value = "";
@@ -127,6 +131,7 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
           kind: "accessory",
           name: accName.trim(),
           description: accDesc.trim() || undefined,
+          barcode: accBarcode.trim() || null,
           price: 0,
           stock: 0,
           imageUrl,
@@ -137,6 +142,7 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
       setSuccess(`已上架：${accName}`);
       setAccName("");
       setAccDesc("");
+      setAccBarcode("");
       setAccImageFile(null);
       if (accFileRef.current) accFileRef.current.value = "";
       onCreated();
@@ -228,6 +234,16 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
               />
             </div>
             <div className="sm:col-span-2">
+              <Label>條碼（選填）</Label>
+              <Input
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                placeholder="掃碼或輸入，留空代表未設定"
+                className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">收銀掃這個條碼就會加入購物車。不可同其他商品重複。</p>
+            </div>
+            <div className="sm:col-span-2">
               <Label>備註（選填）</Label>
               <Input
                 value={description}
@@ -289,6 +305,16 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
               onChange={(e) => setAccName(e.target.value)}
               className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
             />
+          </div>
+          <div>
+            <Label>條碼（選填）</Label>
+            <Input
+              value={accBarcode}
+              onChange={(e) => setAccBarcode(e.target.value)}
+              placeholder="掃碼或輸入，留空代表未設定"
+              className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
+            />
+            <p className="mt-1 text-xs text-muted-foreground">收銀掃這個條碼就會加入購物車。不可同其他商品重複。</p>
           </div>
           <div>
             <Label>描述（選填）</Label>

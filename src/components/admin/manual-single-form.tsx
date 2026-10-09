@@ -44,6 +44,7 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
   const [cardCategory, setCardCategory] = useState("");
   const [pokemonType, setPokemonType] = useState("");
   const [description, setDescription] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [isFoil, setIsFoil] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -83,6 +84,7 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
     setName("");
     setCardNumber("");
     setDescription("");
+    setBarcode("");
     setIsFoil(false);
     setImageFile(null);
     setImagePreview(null);
@@ -117,6 +119,7 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
           description: description.trim() || undefined,
           imageUrl,
           isFoil,
+          barcode: barcode.trim() || null,
         }),
       });
       const data = (await res.json()) as { error?: string; product?: { name: string } };
@@ -241,6 +244,17 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
             </select>
           </div>
         )}
+
+        <div className="sm:col-span-2">
+          <Label>條碼（選填）</Label>
+          <Input
+            value={barcode}
+            onChange={(e) => setBarcode(e.target.value)}
+            placeholder="掃碼或輸入，留空代表未設定"
+            className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">收銀掃這個條碼就會加入購物車。不可同其他商品重複。</p>
+        </div>
 
         <div className="sm:col-span-2">
           <Label>備註（選填）</Label>

@@ -29,7 +29,7 @@ export interface ProductFilters {
   sort?: ProductSort;
 }
 
-function enrichProduct<T extends ProductWithVariants>(p: T): T {
+export function enrichProduct<T extends ProductWithVariants>(p: T): T {
   const t = taxonomyFromCard({
     externalCardId: p.externalCardId ?? p.variants[0]?.sku,
     rarity: p.rarity,
@@ -121,7 +121,12 @@ function filterDemoProducts(filters: ProductFilters): ProductsResponse {
         p.cardNumber?.toLowerCase().includes(q) ||
         p.setCode?.toLowerCase().includes(q) ||
         p.rarityTier?.toLowerCase().includes(q) ||
-        p.rarity?.toLowerCase().includes(q),
+        p.rarity?.toLowerCase().includes(q) ||
+        p.variants.some(
+          (variant) =>
+            variant.sku.toLowerCase().includes(q) ||
+            (variant.barcode ?? "").toLowerCase().includes(q),
+        ),
     );
   }
 
@@ -237,6 +242,8 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
         { setCode: { contains: filters.search, mode: "insensitive" } },
         { rarityTier: { contains: filters.search, mode: "insensitive" } },
         { rarity: { contains: filters.search, mode: "insensitive" } },
+        { variants: { some: { sku: { contains: filters.search, mode: "insensitive" } } } },
+        { variants: { some: { barcode: { contains: filters.search, mode: "insensitive" } } } },
       ];
     }
 

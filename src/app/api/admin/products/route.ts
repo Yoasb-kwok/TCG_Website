@@ -4,6 +4,7 @@ import {
   createManualAccessory,
   createManualSealed,
   createManualSingle,
+  describeProductWriteError,
 } from "@/lib/admin-products";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import type { ProductSort, ProductType } from "@/lib/types";
@@ -33,8 +34,11 @@ export async function GET(request: NextRequest) {
     where.OR = [
       { name: { contains: search, mode: "insensitive" } },
       { cardSet: { contains: search, mode: "insensitive" } },
+      { cardNumber: { contains: search, mode: "insensitive" } },
       { setCode: { contains: search, mode: "insensitive" } },
       { rarityTier: { contains: search, mode: "insensitive" } },
+      { variants: { some: { sku: { contains: search, mode: "insensitive" } } } },
+      { variants: { some: { barcode: { contains: search, mode: "insensitive" } } } },
     ];
   }
 
@@ -95,6 +99,7 @@ export async function POST(request: NextRequest) {
         description: body.description,
         imageUrl: body.imageUrl,
         isFoil: body.isFoil,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -111,6 +116,7 @@ export async function POST(request: NextRequest) {
         stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         description: body.description,
         imageUrl: body.imageUrl,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -122,6 +128,7 @@ export async function POST(request: NextRequest) {
         price: Number.isFinite(Number(body.price)) ? Number(body.price) : 0,
         stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         imageUrl: body.imageUrl,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -131,7 +138,6 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : "建立失敗";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: describeProductWriteError(err, "建立失敗") }, { status: 400 });
   }
 }

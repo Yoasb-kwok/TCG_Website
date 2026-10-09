@@ -41,6 +41,7 @@ const EXTRA_PRODUCTS: DemoProduct[] = [
         price: 68,
         stock: 40,
         sku: "DEMO-SLEEVES-100",
+        barcode: "4890000000100",
       },
     ],
   },
@@ -204,6 +205,7 @@ async function upsertProducts() {
           price: variant.price,
           stock: variant.stock,
           sku: variant.sku,
+          barcode: variant.barcode ?? null,
         },
         update: {
           productId: saved.id,
@@ -211,6 +213,7 @@ async function upsertProducts() {
           isFoil: variant.isFoil,
           price: variant.price,
           stock: variant.stock,
+          barcode: variant.barcode ?? null,
         },
       });
     }

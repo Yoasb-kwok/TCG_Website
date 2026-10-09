@@ -27,6 +27,7 @@ export const DEMO_PRODUCTS: ProductWithVariants[] = [
         price: 1280,
         stock: 3,
         sku: "SV151-199-NM",
+        barcode: "4891511990001",
       },
       {
         id: "var-1-lp",
@@ -130,6 +131,7 @@ export const DEMO_PRODUCTS: ProductWithVariants[] = [
         price: 55,
         stock: 200,
         sku: "SV151-BOOSTER",
+        barcode: "4891510000010",
       },
     ],
   },
@@ -159,6 +161,7 @@ export const DEMO_PRODUCTS: ProductWithVariants[] = [
         price: 480,
         stock: 15,
         sku: "SV151-ETB",
+        barcode: "4891510000480",
       },
     ],
   },

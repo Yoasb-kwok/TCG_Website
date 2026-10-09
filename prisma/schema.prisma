@@ -172,6 +172,8 @@ model ProductVariant {
   price     Float
   stock     Int     @default(0)
   sku       String  @unique
+  /** 收銀條碼。空值代表未設定；有值時全店唯一（多個 NULL 可並存）。 */
+  barcode   String? @unique
   orderItems OrderItem[]
 
   @@index([productId])

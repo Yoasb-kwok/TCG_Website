@@ -1,3 +1,4 @@
+import { normalizeBarcode } from "@/lib/pos-scan";
 import { getPrisma } from "@/lib/prisma";
 import { taxonomyFromCard } from "@/lib/card-taxonomy";
 import { getTaxonomyLabel } from "@/lib/taxonomy-db";
@@ -19,6 +20,7 @@ export interface ManualSingleInput {
   description?: string;
   imageUrl: string;
   isFoil?: boolean;
+  barcode?: string | null;
 }
 
 export interface ManualSealedInput {
@@ -29,6 +31,7 @@ export interface ManualSealedInput {
   stock: number;
   description?: string;
   imageUrl: string;
+  barcode?: string | null;
 }
 
 export interface ManualAccessoryInput {
@@ -37,14 +40,59 @@ export interface ManualAccessoryInput {
   price: number;
   stock: number;
   imageUrl?: string;
+  barcode?: string | null;
 }
 
 function buildSku(slug: string, suffix: string) {
   return `${slug}-${suffix}`.slice(0, 64);
 }
 
+export function describeProductWriteError(err: unknown, fallback: string) {
+  if (err instanceof Error && err.message.startsWith("條碼")) return err.message;
+  const code =
+    typeof err === "object" && err && "code" in err ? String((err as { code: unknown }).code) : "";
+  if (code === "P2002") {
+    const target = (err as { meta?: { target?: unknown } }).meta?.target;
+    const fields = Array.isArray(target) ? target.map(String) : [];
+    if (fields.some((field) => field.includes("barcode"))) return "條碼已被其他商品使用";
+    if (fields.some((field) => field.includes("sku"))) return "SKU 已被使用";
+    return "資料重複，請檢查條碼或 SKU";
+  }
+  return err instanceof Error ? err.message : fallback;
+}
+
+export async function setVariantBarcode(variantId: string, value: unknown) {
+  const barcode = normalizeBarcode(value);
+  await ensureBarcodeAvailable(barcode, variantId);
+  await getPrisma().productVariant.update({
+    where: { id: variantId },
+    data: { barcode },
+  });
+}
+
+async function barcodeUpdateData(value: unknown, variantId: string) {
+  if (value === undefined) return {};
+  const barcode = normalizeBarcode(value);
+  await ensureBarcodeAvailable(barcode, variantId);
+  return { barcode };
+}
+
+async function ensureBarcodeAvailable(barcode: string | null, exceptVariantId?: string) {
+  if (!barcode) return;
+  const taken = await getPrisma().productVariant.findFirst({
+    where: {
+      barcode: { equals: barcode, mode: "insensitive" },
+      ...(exceptVariantId ? { id: { not: exceptVariantId } } : {}),
+    },
+    select: { id: true },
+  });
+  if (taken) throw new Error("條碼已被其他商品使用");
+}
+
 export async function createManualSingle(input: ManualSingleInput) {
   const prisma = getPrisma();
+  const barcode = normalizeBarcode(input.barcode);
+  await ensureBarcodeAvailable(barcode);
   const slug = slugifyProduct(
     input.name,
     `${input.setCode}-${input.cardNumber ?? Date.now().toString(36)}`,
@@ -108,6 +156,7 @@ export async function createManualSingle(input: ManualSingleInput) {
           price: input.price,
           stock: input.stock,
           sku,
+          barcode,
         },
       },
     },
@@ -117,6 +166,8 @@ export async function createManualSingle(input: ManualSingleInput) {
 
 export async function createManualSealed(input: ManualSealedInput) {
   const prisma = getPrisma();
+  const barcode = normalizeBarcode(input.barcode);
+  await ensureBarcodeAvailable(barcode);
   const slug = slugifyProduct(input.name, input.type);
   const sku = buildSku(slug, "sealed");
   const setCode = input.setCode ?? null;
@@ -151,6 +202,7 @@ export async function createManualSealed(input: ManualSealedInput) {
           price: input.price,
           stock: input.stock,
           sku,
+          barcode,
         },
       },
     },
@@ -160,6 +212,8 @@ export async function createManualSealed(input: ManualSealedInput) {
 
 export async function createManualAccessory(input: ManualAccessoryInput) {
   const prisma = getPrisma();
+  const barcode = normalizeBarcode(input.barcode);
+  await ensureBarcodeAvailable(barcode);
   const slug = slugifyProduct(input.name, Date.now().toString(36));
   const sku = buildSku(slug, "acc");
 
@@ -186,6 +240,7 @@ export async function createManualAccessory(input: ManualAccessoryInput) {
           price: input.price,
           stock: input.stock,
           sku,
+          barcode,
         },
       },
     },
@@ -199,6 +254,7 @@ export async function updateManualSingle(
   input: Omit<ManualSingleInput, "imageUrl"> & { imageUrl?: string },
 ) {
   const prisma = getPrisma();
+  const barcodeUpdate = await barcodeUpdateData(input.barcode, variantId);
   const taxonomy = taxonomyFromCard({
     setCode: input.setCode,
     rarityTier: input.rarityTier,
@@ -258,6 +314,7 @@ export async function updateManualSingle(
         price: input.price,
         stock: input.stock,
         isFoil: input.isFoil ?? false,
+        ...barcodeUpdate,
       },
     }),
   ]);
@@ -274,6 +331,7 @@ export async function updateManualSealed(
   input: Omit<ManualSealedInput, "imageUrl"> & { imageUrl?: string },
 ) {
   const prisma = getPrisma();
+  const barcodeUpdate = await barcodeUpdateData(input.barcode, variantId);
   const setCode = input.setCode ?? null;
   const sortMaps = await getTaxonomySortMaps();
   const typeLabel = await getTaxonomyLabel("PRODUCT_TYPE", input.type);
@@ -308,7 +366,7 @@ export async function updateManualSealed(
     }),
     prisma.productVariant.update({
       where: { id: variantId },
-      data: { price: input.price, stock: input.stock },
+      data: { price: input.price, stock: input.stock, ...barcodeUpdate },
     }),
   ]);
 
@@ -324,6 +382,7 @@ export async function updateManualAccessory(
   input: ManualAccessoryInput,
 ) {
   const prisma = getPrisma();
+  const barcodeUpdate = await barcodeUpdateData(input.barcode, variantId);
 
   await prisma.$transaction([
     prisma.product.update({
@@ -345,7 +404,7 @@ export async function updateManualAccessory(
     }),
     prisma.productVariant.update({
       where: { id: variantId },
-      data: { price: input.price, stock: input.stock },
+      data: { price: input.price, stock: input.stock, ...barcodeUpdate },
     }),
   ]);
 
