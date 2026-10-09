@@ -70,7 +70,21 @@ describe("productSearchOr", () => {
         (clause) =>
           clause.variants != null &&
           typeof clause.variants === "object" &&
-          "some" in clause.variants,
+          "some" in clause.variants &&
+          clause.variants.some != null &&
+          typeof clause.variants.some === "object" &&
+          "sku" in clause.variants.some,
+      ),
+    );
+    assert.ok(
+      clauses.some(
+        (clause) =>
+          clause.variants != null &&
+          typeof clause.variants === "object" &&
+          "some" in clause.variants &&
+          clause.variants.some != null &&
+          typeof clause.variants.some === "object" &&
+          "barcode" in clause.variants.some,
       ),
     );
     assert.equal(productSearchOr("   ").length, 0);

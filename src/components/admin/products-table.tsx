@@ -41,6 +41,7 @@ export interface AdminProduct {
     condition: string;
     isFoil: boolean;
     sku?: string;
+    barcode?: string | null;
   }[];
 }
 

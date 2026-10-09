@@ -32,7 +32,7 @@ export interface ProductFilters {
   game?: string;
 }
 
-function enrichProduct<T extends ProductWithVariants>(p: T): T {
+export function enrichProduct<T extends ProductWithVariants>(p: T): T {
   const t = taxonomyFromCard({
     externalCardId: p.externalCardId ?? p.variants[0]?.sku,
     rarity: p.rarity,

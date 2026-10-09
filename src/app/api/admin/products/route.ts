@@ -4,6 +4,7 @@ import {
   createManualAccessory,
   createManualSealed,
   createManualSingle,
+  describeProductWriteError,
 } from "@/lib/admin-products";
 import { productSearchOr } from "@/lib/product-search";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
@@ -95,6 +96,7 @@ export async function POST(request: NextRequest) {
         description: body.description,
         imageUrl: body.imageUrl,
         isFoil: body.isFoil,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -111,6 +113,7 @@ export async function POST(request: NextRequest) {
         stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         description: body.description,
         imageUrl: body.imageUrl,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -122,6 +125,7 @@ export async function POST(request: NextRequest) {
         price: Number.isFinite(Number(body.price)) ? Number(body.price) : 0,
         stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         imageUrl: body.imageUrl,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -131,7 +135,6 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   } catch (err) {
-    const message = err instanceof Error ? err.message : "建立失敗";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: describeProductWriteError(err, "建立失敗") }, { status: 400 });
   }
 }

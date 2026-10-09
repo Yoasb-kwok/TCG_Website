@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,6 +73,7 @@ export function ProductEditDialog({
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
   const [description, setDescription] = useState("");
+  const [barcode, setBarcode] = useState("");
   const [isFoil, setIsFoil] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -97,6 +99,7 @@ export function ProductEditDialog({
     setPrice(v ? String(v.price) : "");
     setStock(v ? String(v.stock) : "");
     setDescription(product.description ?? "");
+    setBarcode(v?.barcode ?? "");
     setIsFoil(v?.isFoil ?? false);
     setImagePreview(product.images[0]?.url ?? null);
     setImageFile(null);
@@ -134,6 +137,7 @@ export function ProductEditDialog({
         price: Number(price),
         stock: Number(stock),
         description: description.trim() || undefined,
+        barcode: barcode.trim() || null,
         ...(imageUrl ? { imageUrl } : {}),
       };
 
@@ -353,6 +357,22 @@ export function ProductEditDialog({
               </div>
             </div>
           )}
+
+          <div>
+            <Label>條碼（選填）</Label>
+            <div className="mt-1 flex gap-2">
+              <Input
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                placeholder="掃碼或輸入，留空代表未設定"
+                className={cn("min-w-0 flex-1", FORM_FIELD_INPUT_CLASS)}
+              />
+              <BarcodeScanButton onDetect={setBarcode} />
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
+              寫入規格 {product?.variants[0]?.sku ?? "（未有 SKU）"}。收銀掃碼會加入這件貨。不可同其他商品重複。
+            </p>
+          </div>
 
           <p className="text-sm text-muted-foreground">售價和數量在收銀的「來貨」點算。</p>
 

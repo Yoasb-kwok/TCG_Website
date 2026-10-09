@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { PosShell } from "@/components/pos/pos-nav";
 import { SET_SERIES_CODES } from "@/lib/card-taxonomy";
 import { PRODUCT_TYPES } from "@/lib/constants";
@@ -193,6 +194,25 @@ export function PosReceiving() {
     await loadReceipts();
   };
 
+  const scanIntoReceiving = async (code: string) => {
+    setQuery(code);
+    setPage(1);
+    try {
+      const res = await fetch(`/api/pos/lookup?q=${encodeURIComponent(code)}`);
+      const data = (await res.json()) as {
+        match?: { product: ProductWithVariants; variantId: string } | null;
+      };
+      const match = data.match;
+      if (!match) return;
+      setProducts((current) =>
+        current.some((product) => product.id === match.product.id) ? current : [match.product, ...current],
+      );
+      choose(match.product, match.variantId);
+    } catch {
+      setError("搜尋失敗，請再試一次");
+    }
+  };
+
   const toggleSet = (value: string) => {
     setPage(1);
     setSetCodes((current) =>
@@ -217,15 +237,19 @@ export function PosReceiving() {
       <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[14rem_minmax(0,1fr)_22rem] lg:overflow-hidden">
         <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[14px] border border-border bg-card p-3">
           <p className="text-sm font-extrabold text-muted-foreground">排序同篩選</p>
-          <input
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setPage(1);
-            }}
-            placeholder="卡名、卡號（083/101）、系列或 SKU"
-            className={fieldClass}
-          />
+          <div className="flex gap-2">
+            <input
+              value={query}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                setPage(1);
+              }}
+              placeholder="條碼 / 卡名、卡號（083/101）、系列或 SKU"
+              aria-label="搜尋來貨"
+              className={cn(fieldClass, "h-11 min-w-0 flex-1")}
+            />
+            <BarcodeScanButton onDetect={(code) => void scanIntoReceiving(code)} />
+          </div>
           <p className="text-xs font-bold text-muted-foreground">
             {searching || setCodes.length > 0 || kind || stockFilter !== "all"
               ? `找到 ${rows.length} 件`

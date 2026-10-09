@@ -14,6 +14,8 @@ export interface ProductVariant {
   price: number;
   stock: number;
   sku: string;
+  /** 未設定時為 null 或缺省 */
+  barcode?: string | null;
 }
 
 export interface ProductWithVariants {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import {
+  describeProductWriteError,
+  setVariantBarcode,
   updateManualAccessory,
   updateManualSealed,
   updateManualSingle,
@@ -65,6 +67,7 @@ export async function PATCH(
     isFoil?: boolean;
     imageUrl?: string;
     type?: string;
+    barcode?: string | null;
   };
 
   const prisma = getPrisma();
@@ -105,6 +108,7 @@ export async function PATCH(
         description: body.description,
         imageUrl: body.imageUrl,
         isFoil: body.isFoil,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -124,6 +128,7 @@ export async function PATCH(
         stock: body.stock,
         description: body.description,
         imageUrl: body.imageUrl,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -141,6 +146,7 @@ export async function PATCH(
         price: body.price,
         stock: body.stock,
         imageUrl: body.imageUrl,
+        barcode: body.barcode,
       });
       return NextResponse.json({ product });
     }
@@ -157,6 +163,9 @@ export async function PATCH(
         },
       });
     }
+    if (body.barcode !== undefined) {
+      await setVariantBarcode(variantId, body.barcode);
+    }
 
     const product = await prisma.product.findUnique({
       where: { id },
@@ -164,8 +173,7 @@ export async function PATCH(
     });
     return NextResponse.json({ product });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "更新失敗";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: describeProductWriteError(err, "更新失敗") }, { status: 400 });
   }
 }
 

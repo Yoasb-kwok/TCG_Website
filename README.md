@@ -72,7 +72,7 @@ npm run db:seed
 - `cardSet`, `rarity`, `pokemonType`
 - `type` — `SINGLE` | `SEALED_BOX` | `BOOSTER_PACK` | `ACCESSORY`
 - `inStock=true`
-- `search`, `language`
+- `search`, `language`（`search` 同時對名稱、卡號、系列、SKU、條碼做包含比對）
 - `game` — 目前只支援 `pokemon`。`one-piece`、`lorcana` 會回傳空清單（選單暫不顯示這兩個遊戲）
 
 ## WhatsApp
@@ -80,6 +80,18 @@ npm run db:seed
 右下角按鈕連到 `https://wa.me/` 加門市號碼。預設使用 `src/lib/constants.ts` 的 `STORE.whatsapp`（`66094893`，即 `https://wa.me/85266094893`）。
 
 要改號碼，在 `.env` 設定 `WHATSAPP_NUMBER`（8 位香港號碼或含 `852` 的國際號碼）。未設定或留空時沿用網站設定。
+
+## 收銀（POS）
+
+店內收銀在 `/pos`（需 ADMIN）。規格可選填 `barcode`：留空代表未設定，有值時全店唯一。收銀搜尋欄可以手打、用掃碼槍（當鍵盤），或者撳「掃描」用 iPhone／iPad 相機讀 EAN-13、UPC、Code 128。讀到條碼後同掃碼槍一樣做精確配對並加入購物車。名稱搜尋維持原有列表。按「收款」後要再選付款方式並確認金額先入帳。相機要 HTTPS，以及 Safari／Chrome 的相機權限；拒絕權限時仍可手打。來貨同商品條碼欄都有同一個掃描按鈕。
+
+套用條碼欄位：
+
+```bash
+npm run db:migrate
+```
+
+未設定資料庫時，示範條碼仍可用，例如補充包 `4891510000010`、Charizard ex `4891511990001`。
 
 ## 專案結構
 

@@ -118,7 +118,7 @@ export function optionMatchesSearch(option: SearchableOption, raw: string): bool
 
 type ContainsFilter = { contains: string; mode: "insensitive" };
 
-/** Prisma OR clauses. Does not query a barcode column (added on the POS barcode branch). */
+/** Prisma OR clauses, including variant SKU and barcode. */
 export function productSearchOr(raw: string): Record<string, unknown>[] {
   const needles = productSearchNeedles(raw);
   const clauses: Record<string, unknown>[] = [];
@@ -129,6 +129,7 @@ export function productSearchOr(raw: string): Record<string, unknown>[] {
       clauses.push({ [field]: contains });
     }
     clauses.push({ variants: { some: { sku: contains } } });
+    clauses.push({ variants: { some: { barcode: contains } } });
   }
 
   return clauses;
