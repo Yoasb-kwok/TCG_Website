@@ -23,6 +23,11 @@ export const STORE = {
   hours: "週一至週日 12:00 – 22:00",
   mtr: "九龍灣站 B 出口，步行約 8 分鐘",
   mapQuery: "Kowloon Bay Industrial Centre, 15 Wang Hoi Road, Kowloon Bay",
+  /**
+   * 門市公開電話（訓練家網站 T&R TCG HK）。
+   * WhatsApp 浮動按鈕用此號碼；設定環境變數 WHATSAPP_NUMBER 可覆寫。
+   */
+  whatsapp: "66094893",
 } as const;
 
 export const PRODUCT_TYPES = [
@@ -53,6 +58,7 @@ export const NAV_ITEMS: {
   { label: "付款方式", href: "/payment" },
 ];
 
+/** 已上架遊戲。One Piece / Lorcana 尚未有商品，選單先不顯示。 */
 export const PRODUCT_CATEGORIES = [
   {
     label: "Pokémon TCG",
@@ -64,14 +70,6 @@ export const PRODUCT_CATEGORIES = [
       { label: "封盒 / 補充包", href: "/products?type=SEALED_BOX" },
       { label: "配件", href: "/products?type=ACCESSORY" },
     ],
-  },
-  {
-    label: "One Piece TCG",
-    href: "/products?game=one-piece",
-  },
-  {
-    label: "Disney Lorcana",
-    href: "/products?game=lorcana",
   },
 ] as const;
 

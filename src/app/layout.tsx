@@ -6,6 +6,7 @@ import { AuthSessionProvider } from "@/providers/session-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { SITE_BRAND, SITE_TAGLINE } from "@/lib/constants";
+import { resolveWhatsAppHref } from "@/lib/whatsapp";
 import {
   resolveThemeClass,
   THEME_COOKIE,
@@ -58,7 +59,7 @@ export default async function RootLayout({
         >
           <AuthSessionProvider>
             <CartProvider>
-              <StorefrontFrame>{children}</StorefrontFrame>
+              <StorefrontFrame whatsappHref={resolveWhatsAppHref()}>{children}</StorefrontFrame>
             </CartProvider>
           </AuthSessionProvider>
         </ThemeProvider>
