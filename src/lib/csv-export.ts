@@ -10,8 +10,8 @@ function serializeValue(value: unknown): unknown {
   return value;
 }
 
-/** 將一組 record 物件序列化為 CSV 字串 */
-function recordsToCsv(records: Record<string, unknown>[]): string {
+/** 將一組 record 物件序列化為 CSV 字串（不含 BOM；下載時由 excelCsvBytes 加上）。 */
+export function recordsToCsv(records: Record<string, unknown>[]): string {
   if (records.length === 0) return "";
 
   const columns = [...new Set(records.flatMap((r) => Object.keys(r)))];

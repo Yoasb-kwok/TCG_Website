@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import JSZip from "jszip";
 import { requireAdmin } from "@/lib/auth-server";
 import { isDatabaseConfigured } from "@/lib/prisma";
+import { excelCsvBytes } from "@/lib/csv-encoding";
 import { exportAllTables } from "@/lib/csv-export";
 
 export async function GET() {
@@ -21,7 +22,9 @@ export async function GET() {
 
     for (const [tableName, csvContent] of Object.entries(csvs)) {
       if (csvContent) {
-        zip.file(`${tableName}.csv`, csvContent);
+        // Raw UTF-8 bytes plus BOM. Passing a string would still be UTF-8, but
+        // without the BOM Excel opens product names/descriptions as ANSI.
+        zip.file(`${tableName}.csv`, excelCsvBytes(csvContent));
       }
     }
 

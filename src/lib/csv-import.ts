@@ -1,4 +1,5 @@
 import { parse } from "csv-parse/sync";
+import { stringify } from "csv-stringify/sync";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { taxonomyFromCard } from "@/lib/card-taxonomy";
 import { getTaxonomySortMaps, getSortIndexFromMap } from "@/lib/taxonomy-db";
@@ -37,27 +38,32 @@ export const CSV_COLUMNS = [
   "isFoil",
   "price",
   "stock",
+  "description",
 ] as const;
 
-/** 產生範本 CSV（header + 一行範例） */
+/** 產生範本 CSV（header + 一行範例）。下載路由會再加上 UTF-8 BOM。 */
 export function generateTemplateCsv(): string {
-  const header = CSV_COLUMNS.join(",");
-  const example = [
-    "皮卡丘",
-    "SINGLE",
-    "SV3",
-    "R",
-    "045",
-    "SV3",
-    "R",
-    "POKEMON",
-    "雷",
-    "Near Mint (NM)",
-    "false",
-    "50",
-    "10",
-  ].join(",");
-  return `\uFEFF${header}\n${example}\n`;
+  return stringify(
+    [
+      {
+        name: "皮卡丘",
+        type: "SINGLE",
+        setCode: "SV3",
+        rarityTier: "R",
+        cardNumber: "045",
+        cardSet: "SV3",
+        rarity: "R",
+        cardCategory: "POKEMON",
+        pokemonType: "雷",
+        condition: "Near Mint (NM)",
+        isFoil: "false",
+        price: "50",
+        stock: "10",
+        description: "特別插畫, 稀有",
+      },
+    ],
+    { header: true, columns: [...CSV_COLUMNS] },
+  );
 }
 
 export async function importProductsFromCsv(
@@ -71,7 +77,7 @@ export async function importProductsFromCsv(
 
   let records: Record<string, string>[];
   try {
-    records = parse(csvText, {
+    records = parse(csvText.replace(/^\uFEFF/, ""), {
       columns: true,
       skip_empty_lines: true,
       trim: true,
@@ -252,6 +258,11 @@ export async function importProductsFromCsv(
           taxonomyData.setCode,
           999,
         );
+      }
+
+      const importedDescription = row.description?.trim();
+      if (importedDescription) {
+        data.description = importedDescription;
       }
 
       // --- 建立 ---

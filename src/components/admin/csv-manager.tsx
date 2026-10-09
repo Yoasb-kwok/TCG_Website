@@ -95,7 +95,8 @@ export function CsvManager() {
           <h2 className="text-lg font-semibold">匯出全部資料</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          下載所有資料表為 ZIP 壓縮檔（不含圖片），可用於備份
+          下載所有資料表為 ZIP 壓縮檔（不含圖片），可用於備份。裡面的 CSV
+          是 UTF-8（含 BOM），Excel 與 Google 試算表可正確顯示中文商品名稱與描述。
         </p>
         <button
           type="button"
@@ -119,7 +120,9 @@ export function CsvManager() {
           <h2 className="text-lg font-semibold">匯入商品 (CSV)</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          上傳 CSV 批量建立商品。每行一筆商品（含一個變體），已存在的 slug 會自動跳過
+          上傳 UTF-8 CSV 批量建立商品（可含 BOM）。Excel
+          請另存為「CSV UTF-8」，避免中文名稱與描述變亂碼。每行一筆商品（含一個變體），已存在的
+          slug 會自動跳過。
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -185,6 +188,7 @@ export function CsvManager() {
                 <tr><td className="py-1 pr-4 font-mono">isFoil</td><td className="py-1 pr-4">否</td><td className="py-1">true / false</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">price</td><td className="py-1 pr-4">是</td><td className="py-1">價格 (HKD)</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">stock</td><td className="py-1 pr-4">是</td><td className="py-1">庫存數量</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">description</td><td className="py-1 pr-4">否</td><td className="py-1">商品描述（繁中）。空白時單卡會用系列／卡號自動產生</td></tr>
               </tbody>
             </table>
           </div>
