@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { PosShell } from "@/components/pos/pos-nav";
 import { PRODUCT_TYPES } from "@/lib/constants";
+import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
 import { PAYMENT_LABELS, type PaymentMethod, type Sale } from "@/lib/pos-shared";
 import type { ProductWithVariants } from "@/lib/types";
@@ -36,6 +37,9 @@ export function PosRegister() {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("");
   const [inStockOnly, setInStockOnly] = useState(true);
+  const [page, setPage] = useState(1);
+  const [matchCount, setMatchCount] = useState(0);
+  const [complete, setComplete] = useState(true);
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
   const [lines, setLines] = useState<TicketLine[]>([]);
   const [discount, setDiscount] = useState(0);
@@ -56,18 +60,40 @@ export function PosRegister() {
     loadRecent().catch(() => undefined);
   }, []);
 
+  const searching = query.trim().length > 0;
+  const needsFullList = searching || kind !== "";
+
   useEffect(() => {
-    const handle = window.setTimeout(() => {
-      const params = new URLSearchParams({ pageSize: "48", search: query });
-      if (kind) params.set("type", kind);
-      if (inStockOnly) params.set("inStock", "true");
-      fetch(`/api/products?${params}`)
-        .then((res) => res.json())
-        .then((data: { products: ProductWithVariants[] }) => setProducts(data.products ?? []))
-        .catch(() => setProducts([]));
+    let cancelled = false;
+    const requestId = window.setTimeout(() => {
+      const run = async () => {
+        const data = await fetchCatalogProducts(
+          {
+            search: query,
+            type: kind || undefined,
+            inStock: searching ? false : inStockOnly,
+          },
+          needsFullList ? { all: true } : { page, pageSize: 48 },
+        );
+        if (cancelled) return;
+        setProducts((current) =>
+          needsFullList || page === 1 ? data.products : [...current, ...data.products],
+        );
+        setMatchCount(data.total);
+        setComplete(needsFullList ? data.complete : page >= data.totalPages);
+      };
+      run().catch(() => {
+        if (cancelled) return;
+        setProducts([]);
+        setMatchCount(0);
+        setComplete(true);
+      });
     }, 250);
-    return () => window.clearTimeout(handle);
-  }, [query, kind, inStockOnly]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(requestId);
+    };
+  }, [query, kind, inStockOnly, page, searching, needsFullList]);
 
   const subtotal = lines.reduce((sum, line) => sum + lineTotal(line), 0);
   const total = Math.max(0, subtotal - discount);
@@ -178,8 +204,11 @@ export function PosRegister() {
           </div>
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="打卡名、系列或編號"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder="卡名、卡號（083/101）、系列或 SKU"
             className={cn(fieldClass, "mt-3")}
           />
           <div className="mt-3 flex flex-wrap gap-2">
@@ -187,7 +216,10 @@ export function PosRegister() {
               <button
                 key={item.value || "all"}
                 type="button"
-                onClick={() => setKind(item.value)}
+                onClick={() => {
+                  setKind(item.value);
+                  setPage(1);
+                }}
                 className={cn(
                   "h-8 rounded-full border px-3 text-sm font-bold",
                   kind === item.value
@@ -203,11 +235,21 @@ export function PosRegister() {
             <input
               type="checkbox"
               checked={inStockOnly}
-              onChange={(event) => setInStockOnly(event.target.checked)}
+              onChange={(event) => {
+                setInStockOnly(event.target.checked);
+                setPage(1);
+              }}
               className="size-4 accent-pink-500"
             />
             淨係有貨
           </label>
+          {searching && (
+            <p className="mt-1 text-xs font-bold text-muted-foreground">搜尋會一併列出缺貨商品</p>
+          )}
+          <p className="mt-1 text-xs font-bold text-muted-foreground">
+            {searching ? `找到 ${matchCount} 件` : `顯示 ${products.length} / ${matchCount}`}
+            {!complete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
+          </p>
           <ul className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1">
             {products.map((product) => {
               const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
@@ -228,10 +270,17 @@ export function PosRegister() {
                       )}
                     </span>
                     <span className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug">{product.name}</span>
+                    {(product.setCode || product.cardNumber) && (
+                      <span className="text-xs font-bold text-muted-foreground">
+                        {[product.setCode, product.cardNumber].filter(Boolean).join(" · ")}
+                      </span>
+                    )}
                     <span className="mt-auto pt-1 text-sm font-extrabold text-pink-400">
                       {variant && variant.price > 0 ? formatPrice(variant.price) : "未定價"}
                     </span>
-                    <span className="text-xs font-bold text-muted-foreground">存 {stock}</span>
+                    <span className="text-xs font-bold text-muted-foreground">
+                      {stock > 0 ? `存 ${stock}` : "缺貨"}
+                    </span>
                   </button>
                 </li>
               );
@@ -242,6 +291,15 @@ export function PosRegister() {
               </li>
             )}
           </ul>
+          {!needsFullList && !complete && (
+            <button
+              type="button"
+              onClick={() => setPage((current) => current + 1)}
+              className="mt-2 h-9 rounded-xl border border-border text-sm font-bold text-muted-foreground hover:border-pink-400"
+            >
+              載入更多
+            </button>
+          )}
           <form
             className="mt-3 grid gap-2 border-t border-border pt-3"
             onSubmit={(event) => {

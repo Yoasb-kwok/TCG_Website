@@ -5,6 +5,7 @@ import {
   createManualSealed,
   createManualSingle,
 } from "@/lib/admin-products";
+import { productSearchOr } from "@/lib/product-search";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import type { ProductSort, ProductType } from "@/lib/types";
 
@@ -20,7 +21,10 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as ProductType | null;
   const search = searchParams.get("search") ?? undefined;
   const page = Number(searchParams.get("page") ?? "1");
-  const pageSize = 30;
+  const requestedSize = Number(searchParams.get("pageSize") ?? "30");
+  const pageSize = Number.isFinite(requestedSize)
+    ? Math.min(100, Math.max(1, Math.floor(requestedSize)))
+    : 30;
   const sort = (searchParams.get("sort") as ProductSort | null) ?? "newest";
   const setCodes = searchParams.getAll("setCode").filter(Boolean);
   const rarityTiers = searchParams.getAll("rarityTier").filter(Boolean);
@@ -30,12 +34,8 @@ export async function GET(request: NextRequest) {
   if (setCodes.length) where.setCode = { in: setCodes };
   if (rarityTiers.length) where.rarityTier = { in: rarityTiers };
   if (search) {
-    where.OR = [
-      { name: { contains: search, mode: "insensitive" } },
-      { cardSet: { contains: search, mode: "insensitive" } },
-      { setCode: { contains: search, mode: "insensitive" } },
-      { rarityTier: { contains: search, mode: "insensitive" } },
-    ];
+    const or = productSearchOr(search);
+    if (or.length > 0) where.OR = or;
   }
 
   const orderBy =

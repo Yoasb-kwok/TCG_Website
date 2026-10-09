@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/sheet";
 import { FilterPanel, type FilterState } from "@/components/marketplace/filter-panel";
 import { ProductCard } from "@/components/marketplace/product-card";
+import { catalogGame } from "@/lib/games";
 import type { ProductType, ProductsResponse } from "@/lib/types";
 
 const DEFAULT_FILTERS: FilterState = {
@@ -51,11 +52,13 @@ export function MarketplaceShell() {
     const urlSet = searchParams.get("cardSet");
     const urlLang = searchParams.get("language");
     const urlSearch = searchParams.get("search")?.trim();
+    const urlGame = searchParams.get("game")?.trim();
 
     if (urlType) params.set("type", urlType);
     if (urlSet) params.set("cardSet", urlSet);
     if (urlLang) params.set("language", urlLang);
     if (urlSearch) params.set("search", urlSearch);
+    if (urlGame) params.set("game", urlGame);
     if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
 
     filters.types.forEach((t) => params.append("type", t));
@@ -80,17 +83,27 @@ export function MarketplaceShell() {
   }, [filters, searchParams]);
 
   const searchQuery = searchParams.get("search")?.trim() ?? "";
+  const game = catalogGame(searchParams.get("game"));
+  const unsupportedGame = Boolean(game && !game.supported);
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
       <div className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
-            {searchQuery ? `搜尋「${searchQuery}」` : "商品"}
+            {searchQuery
+              ? `搜尋「${searchQuery}」`
+              : game
+                ? game.label
+                : "商品"}
           </h1>
           {data && (
             <p className="mt-1 text-sm text-muted-foreground">
-              {searchQuery ? `找到 ${data.total} 件相關商品` : `共 ${data.total} 件商品`}
+              {unsupportedGame
+                ? "此遊戲尚未上架，暫時只提供 Pokémon TCG。"
+                : searchQuery
+                  ? `找到 ${data.total} 件相關商品`
+                  : `共 ${data.total} 件商品`}
             </p>
           )}
         </div>
@@ -136,7 +149,9 @@ export function MarketplaceShell() {
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
           ) : data?.products.length === 0 ? (
-            <p className="py-24 text-center text-muted-foreground">沒有符合條件的商品</p>
+            <p className="py-24 text-center text-muted-foreground">
+              {unsupportedGame ? "此遊戲尚未上架" : "沒有符合條件的商品"}
+            </p>
           ) : (
             <>
               <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">

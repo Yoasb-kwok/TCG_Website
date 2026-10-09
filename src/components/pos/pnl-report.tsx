@@ -1,10 +1,13 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { PnlCompareChart, TrendChartCard } from "@/components/charts/trend-charts";
 import { PosShell } from "@/components/pos/pos-nav";
+import { TREND_DAY_COUNT } from "@/lib/chart-days";
 import { formatDate, formatPrice } from "@/lib/format";
 import {
   EXPENSE_LABELS,
+  type DailySalePoint,
   type Expense,
   type ExpenseCategory,
   type PnlSummary,
@@ -29,19 +32,39 @@ export function PnlReport() {
   const [pnl, setPnl] = useState<PnlSummary | null>(null);
   const [sales, setSales] = useState<Sale[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [trend, setTrend] = useState<DailySalePoint[] | null>(null);
   const [form, setForm] = useState({ category: "RENT" as ExpenseCategory, amount: "", note: "" });
   const [error, setError] = useState("");
 
   const load = async (next = period) => {
     const res = await fetch(`/api/pos?period=${next}`);
-    const data = (await res.json()) as { pnl: PnlSummary; sales: Sale[]; expenses: Expense[] };
+    const data = (await res.json()) as {
+      pnl: PnlSummary;
+      sales: Sale[];
+      expenses: Expense[];
+      trend?: DailySalePoint[];
+    };
     setPnl(data.pnl);
     setSales(data.sales ?? []);
     setExpenses(data.expenses ?? []);
+    setTrend(data.trend ?? []);
   };
 
   useEffect(() => {
-    load(period).catch(() => undefined);
+    let ignore = false;
+    fetch(`/api/pos?period=${period}`)
+      .then((res) => res.json())
+      .then((data: { pnl: PnlSummary; sales?: Sale[]; expenses?: Expense[]; trend?: DailySalePoint[] }) => {
+        if (ignore) return;
+        setPnl(data.pnl);
+        setSales(data.sales ?? []);
+        setExpenses(data.expenses ?? []);
+        setTrend(data.trend ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      ignore = true;
+    };
   }, [period]);
 
   const addExpense = async (event: FormEvent) => {
@@ -117,6 +140,37 @@ export function PnlReport() {
             <p className="mt-1 text-xs font-bold text-muted-foreground">{card.hint}</p>
           </div>
         ))}
+      </div>
+
+      <div className="mt-6 grid gap-4 lg:grid-cols-5">
+        <TrendChartCard
+          className="rounded-[14px] lg:col-span-3"
+          title="店內銷售"
+          description={`近 ${TREND_DAY_COUNT} 日單量與營業額。作廢單據不算在內。直棒是單量，線是營業額。`}
+          points={(trend ?? []).map((point) => ({
+            label: point.label,
+            caption: point.caption,
+            volume: point.saleCount,
+            amount: point.revenue,
+          }))}
+          volumeLabel="單量"
+          amountLabel="營業額"
+          emptyLabel={trend ? "這段時間未有銷售" : "載入店內銷售…"}
+        />
+        {pnl ? (
+          <PnlCompareChart
+            className="rounded-[14px] lg:col-span-2"
+            periodLabel={PERIODS.find((item) => item.id === period)?.label ?? ""}
+            revenue={pnl.revenue}
+            cogs={pnl.cogs}
+            expenses={pnl.expenses}
+            netProfit={pnl.netProfit}
+          />
+        ) : (
+          <section className="rounded-[14px] border border-border bg-card p-4 text-sm text-muted-foreground lg:col-span-2">
+            載入損益…
+          </section>
+        )}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

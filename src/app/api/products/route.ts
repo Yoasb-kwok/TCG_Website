@@ -6,7 +6,10 @@ export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
 
   const page = Number(searchParams.get("page") ?? "1");
-  const pageSize = Number(searchParams.get("pageSize") ?? "24");
+  const requestedSize = Number(searchParams.get("pageSize") ?? "24");
+  const pageSize = Number.isFinite(requestedSize)
+    ? Math.min(100, Math.max(1, Math.floor(requestedSize)))
+    : 24;
   const minPrice = searchParams.get("minPrice");
   const maxPrice = searchParams.get("maxPrice");
   const cardSet = searchParams.get("cardSet") ?? undefined;
@@ -16,6 +19,7 @@ export async function GET(request: NextRequest) {
   const inStock = searchParams.get("inStock") === "true";
   const search = searchParams.get("search") ?? undefined;
   const language = searchParams.get("language") ?? undefined;
+  const game = searchParams.get("game") ?? undefined;
   const sort = (searchParams.get("sort") as ProductSort | null) ?? "newest";
 
   const setCodes = searchParams.getAll("setCode").filter(Boolean);
@@ -35,6 +39,7 @@ export async function GET(request: NextRequest) {
     inStock,
     search,
     language,
+    game,
     sort,
   });
 

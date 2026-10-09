@@ -9,6 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { SearchInput } from "@/components/ui/search-input";
+import { fetchAllAdminProducts } from "@/lib/fetch-catalog-products";
 import { cn } from "@/lib/utils";
 
 interface BannerFormItem {
@@ -30,8 +31,10 @@ interface SectionFormItem {
 interface FeaturedProductOption {
   id: string;
   name: string;
+  cardNumber?: string | null;
+  setCode?: string | null;
   images: { url: string }[];
-  variants: { price: number }[];
+  variants: { price: number; sku?: string }[];
 }
 
 const EMPTY_BANNER: BannerFormItem = {
@@ -163,10 +166,8 @@ export function SiteContentManager() {
     }
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/admin/products?search=${encodeURIComponent(keyword)}`);
-        const data = await parseJsonResponse(res);
-        if (!res.ok) return;
-        setProductResults((data.products as FeaturedProductOption[] | undefined) ?? []);
+        const data = await fetchAllAdminProducts<FeaturedProductOption>(keyword);
+        setProductResults(data.products);
       } catch {
         // ignore search errors
       }
@@ -461,7 +462,7 @@ export function SiteContentManager() {
           <SearchInput
             value={productSearch}
             onValueChange={setProductSearch}
-            placeholder="搜尋商品名稱、系列..."
+            placeholder="搜尋名稱、卡號、系列或 SKU"
             className="max-w-md"
           />
           <div className="grid gap-3 md:grid-cols-2">
@@ -469,6 +470,11 @@ export function SiteContentManager() {
               <div key={product.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <p className="text-sm font-medium">{product.name}</p>
+                  {(product.cardNumber || product.setCode) && (
+                    <p className="text-xs text-muted-foreground">
+                      {[product.setCode, product.cardNumber].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
                   <p className="text-xs text-muted-foreground">
                     {product.variants[0] ? `HK$${product.variants[0].price}` : "未設定價格"}
                   </p>

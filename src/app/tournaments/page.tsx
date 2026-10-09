@@ -1,24 +1,13 @@
 import Link from "next/link";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
-import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
+import { listPublicTournaments } from "@/lib/tournament-registrations";
 
 export const metadata = {
   title: "店賽",
 };
 
-async function getTournaments() {
-  try {
-    const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    const res = await fetch(`${base}/api/tournaments`, { cache: "no-store" });
-    const data = (await res.json()) as { tournaments: typeof DEMO_TOURNAMENTS };
-    return data.tournaments;
-  } catch {
-    return DEMO_TOURNAMENTS;
-  }
-}
-
 export default async function TournamentsPage() {
-  const tournaments = await getTournaments();
+  const tournaments = await listPublicTournaments();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 lg:px-6">

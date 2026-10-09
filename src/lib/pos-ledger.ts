@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { dayCaption, dayKey, eachLocalDay, seriesDayLabel, trendWindow } from "@/lib/chart-days";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_LABELS,
@@ -8,6 +9,7 @@ import {
   roundMoney,
   saleCost,
   saleTotal,
+  type DailySalePoint,
   type Expense,
   type ExpenseCategory,
   type Ledger,
@@ -18,7 +20,7 @@ import {
   type SaleItem,
 } from "@/lib/pos-shared";
 
-export type { Expense, ExpenseCategory, Ledger, PaymentMethod, PnlSummary, Receipt, Sale, SaleItem };
+export type { DailySalePoint, Expense, ExpenseCategory, Ledger, PaymentMethod, PnlSummary, Receipt, Sale, SaleItem };
 export { EXPENSE_LABELS, PAYMENT_LABELS, saleCost, saleTotal };
 
 const filePath = path.join(process.cwd(), "data", "pos-ledger.json");
@@ -218,6 +220,7 @@ export async function deleteExpense(id: string) {
 }
 
 export function periodRange(period: string, now = new Date()) {
+  if (period === "14d") return trendWindow(now);
   const end = new Date(now);
   end.setHours(23, 59, 59, 999);
   const start = new Date(now);
@@ -280,4 +283,30 @@ export function summarizePnl(ledger: Ledger, from: Date, to: Date): PnlSummary {
       ),
     })).filter((row) => row.amount > 0),
   };
+}
+
+export function dailySaleTrend(ledger: Ledger, from: Date, to: Date): DailySalePoint[] {
+  const totals = new Map<string, { saleCount: number; revenue: number }>();
+  for (const sale of ledger.sales) {
+    if (sale.voided) continue;
+    const at = new Date(sale.createdAt);
+    if (Number.isNaN(at.getTime()) || at < from || at > to) continue;
+    const key = dayKey(at);
+    const row = totals.get(key) ?? { saleCount: 0, revenue: 0 };
+    row.saleCount += 1;
+    row.revenue = roundMoney(row.revenue + saleTotal(sale));
+    totals.set(key, row);
+  }
+
+  const days = eachLocalDay(from, to);
+  return days.map((day, index) => {
+    const row = totals.get(dayKey(day));
+    return {
+      date: dayKey(day),
+      label: seriesDayLabel(day, index, days),
+      caption: dayCaption(day),
+      saleCount: row?.saleCount ?? 0,
+      revenue: row?.revenue ?? 0,
+    };
+  });
 }
