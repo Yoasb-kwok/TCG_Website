@@ -40,6 +40,7 @@ export interface AdminProduct {
     stock: number;
     condition: string;
     isFoil: boolean;
+    sku?: string;
   }[];
 }
 
@@ -184,7 +185,7 @@ export function ProductsTable() {
       </div>
       <div className="flex flex-wrap items-center gap-2">
         <SearchInput
-          placeholder="搜尋商品..."
+          placeholder="搜尋名稱、卡號、系列或 SKU"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -343,6 +344,11 @@ export function ProductsTable() {
                       )}
                       <div>
                         <p className="font-medium text-foreground">{p.name}</p>
+                        {(p.cardNumber || v.sku) && (
+                          <p className="text-xs text-muted-foreground">
+                            {[p.cardNumber, v.sku].filter(Boolean).join(" · ")}
+                          </p>
+                        )}
                         <p className="text-xs text-muted-foreground/80">
                           {p.cardSet ?? "—"}
                         </p>
