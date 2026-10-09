@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { PosShell } from "@/components/pos/pos-nav";
 import { SET_SERIES_CODES } from "@/lib/card-taxonomy";
 import { PRODUCT_TYPES } from "@/lib/constants";
@@ -158,6 +159,24 @@ export function PosReceiving() {
     await Promise.all([loadProducts(query, sort, kind), loadReceipts()]);
   };
 
+  const scanIntoReceiving = async (code: string) => {
+    setQuery(code);
+    try {
+      const res = await fetch(`/api/pos/lookup?q=${encodeURIComponent(code)}`);
+      const data = (await res.json()) as {
+        match?: { product: ProductWithVariants; variantId: string } | null;
+      };
+      const match = data.match;
+      if (!match) return;
+      setProducts((current) =>
+        current.some((product) => product.id === match.product.id) ? current : [match.product, ...current],
+      );
+      choose(match.product, match.variantId);
+    } catch {
+      setError("搜尋失敗，請再試一次");
+    }
+  };
+
   const toggleSet = (value: string) => {
     setSetCodes((current) =>
       current.includes(value) ? current.filter((code) => code !== value) : [...current, value],
@@ -182,12 +201,16 @@ export function PosReceiving() {
       <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[14rem_minmax(0,1fr)_22rem] lg:overflow-hidden">
         <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[14px] border border-border bg-card p-3">
           <p className="text-sm font-extrabold text-muted-foreground">排序同篩選</p>
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="打卡名、系列或編號"
-            className={fieldClass}
-          />
+          <div className="flex gap-2">
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="條碼 / 卡名 / 編號"
+              aria-label="搜尋來貨"
+              className={cn(fieldClass, "h-11 min-w-0 flex-1")}
+            />
+            <BarcodeScanButton onDetect={(code) => void scanIntoReceiving(code)} />
+          </div>
           <label className="block text-xs font-bold text-muted-foreground">
             排序
             <select

@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -359,12 +360,15 @@ export function ProductEditDialog({
 
           <div>
             <Label>條碼（選填）</Label>
-            <Input
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              placeholder="掃碼或輸入，留空代表未設定"
-              className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-            />
+            <div className="mt-1 flex gap-2">
+              <Input
+                value={barcode}
+                onChange={(e) => setBarcode(e.target.value)}
+                placeholder="掃碼或輸入，留空代表未設定"
+                className={cn("min-w-0 flex-1", FORM_FIELD_INPUT_CLASS)}
+              />
+              <BarcodeScanButton onDetect={setBarcode} />
+            </div>
             <p className="mt-1 text-xs text-muted-foreground">
               寫入規格 {product?.variants[0]?.sku ?? "（未有 SKU）"}。收銀掃碼會加入這件貨。不可同其他商品重複。
             </p>

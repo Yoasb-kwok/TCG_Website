@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
+import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { PosShell } from "@/components/pos/pos-nav";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { formatPrice } from "@/lib/format";
@@ -310,34 +311,49 @@ export function PosRegister() {
             <p className="text-sm font-extrabold text-muted-foreground">揀貨</p>
             <p className="text-xs font-bold text-muted-foreground">撳一下就加入</p>
           </div>
-          <label className="mt-3 block text-xs font-bold text-muted-foreground" htmlFor="pos-scan">
-            掃碼 / 搜尋
-            <input
-              id="pos-scan"
-              ref={scanRef}
-              autoFocus
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setScanNote(null);
-              }}
-              onKeyDown={(event) => {
-                if (confirmOpen) return;
-                if (event.key === "Enter") {
-                  event.preventDefault();
-                  void scanCode(query);
-                  return;
-                }
-                if (event.key === " " && query.trim() === "" && lines.length > 0) {
-                  event.preventDefault();
-                  openConfirm();
-                }
-              }}
-              placeholder="條碼 / SKU / 卡號 / 品名"
-              className={cn(fieldClass, "mt-1")}
-            />
-          </label>
-          <p className="mt-1 text-xs font-bold text-muted-foreground">掃碼後按 Enter 直接加入。名稱可以打完再喺下面揀。</p>
+          <div className="mt-3">
+            <label className="block text-xs font-bold text-muted-foreground" htmlFor="pos-scan">
+              掃碼 / 搜尋
+            </label>
+            <div className="mt-1 flex gap-2">
+              <input
+                id="pos-scan"
+                ref={scanRef}
+                autoFocus
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setScanNote(null);
+                }}
+                onKeyDown={(event) => {
+                  if (confirmOpen) return;
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    void scanCode(query);
+                    return;
+                  }
+                  if (event.key === " " && query.trim() === "" && lines.length > 0) {
+                    event.preventDefault();
+                    openConfirm();
+                  }
+                }}
+                placeholder="條碼 / SKU / 卡號 / 品名"
+                className={cn(fieldClass, "h-11 min-w-0 flex-1")}
+              />
+              <BarcodeScanButton
+                disabled={confirmOpen}
+                onDetect={(code) => {
+                  if (confirmOpen) return;
+                  setQuery(code);
+                  setScanNote(null);
+                  void scanCode(code);
+                }}
+              />
+            </div>
+          </div>
+          <p className="mt-1 text-xs font-bold text-muted-foreground">
+            掃碼槍按 Enter，或者撳掃描用相機。名稱可以打完再喺下面揀。
+          </p>
           {scanNote && (
             <p className={cn("mt-1 text-sm font-extrabold", scanNote.tone === "ok" ? "text-emerald-400" : "text-amber-300")} role="status">
               {scanNote.text}

@@ -11,6 +11,7 @@ import {
   SEARCH_BAR_SELECT_CLASS,
 } from "@/lib/search-bar-styles";
 import { cn } from "@/lib/utils";
+import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { useTaxonomy } from "@/providers/taxonomy-provider";
 
 interface ManualSingleFormProps {
@@ -247,12 +248,15 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
 
         <div className="sm:col-span-2">
           <Label>條碼（選填）</Label>
-          <Input
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            placeholder="掃碼或輸入，留空代表未設定"
-            className={cn("mt-1", FORM_FIELD_INPUT_CLASS)}
-          />
+          <div className="mt-1 flex gap-2">
+            <Input
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="掃碼或輸入，留空代表未設定"
+              className={cn("min-w-0 flex-1", FORM_FIELD_INPUT_CLASS)}
+            />
+            <BarcodeScanButton onDetect={setBarcode} />
+          </div>
           <p className="mt-1 text-xs text-muted-foreground">收銀掃這個條碼就會加入購物車。不可同其他商品重複。</p>
         </div>
 
