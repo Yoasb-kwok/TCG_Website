@@ -3,11 +3,14 @@ import { ArrowRight } from "lucide-react";
 import { HeroCarousel } from "@/components/layout/hero-carousel";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
-import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
 import { getHomeContent } from "@/lib/site-content";
+import { listPublicTournaments } from "@/lib/tournament-registrations";
 
 export default async function HomePage() {
-  const homeContent = await getHomeContent();
+  const [homeContent, tournaments] = await Promise.all([
+    getHomeContent(),
+    listPublicTournaments(),
+  ]);
   const featured = homeContent.featuredProducts.slice(0, 4);
 
   return (
@@ -48,7 +51,7 @@ export default async function HomePage() {
             </Link>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            {DEMO_TOURNAMENTS.map((t) => (
+            {tournaments.map((t) => (
               <TournamentCard key={t.id} tournament={t} />
             ))}
           </div>
