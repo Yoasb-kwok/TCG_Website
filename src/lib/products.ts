@@ -1,6 +1,7 @@
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { isSupportedCatalogGame, productMatchesGame } from "@/lib/games";
 import { taxonomyFromCard } from "@/lib/card-taxonomy";
+import { productMatchesSearch, productSearchOr } from "@/lib/product-search";
 import {
   getSortIndexFromMap,
   getTaxonomySortMaps,
@@ -131,17 +132,7 @@ function filterDemoProducts(filters: ProductFilters): ProductsResponse {
   let products = DEMO_PRODUCTS.map(enrichProduct);
 
   if (filters.search) {
-    const q = filters.search.toLowerCase();
-    products = products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) ||
-        p.description?.toLowerCase().includes(q) ||
-        p.cardSet?.toLowerCase().includes(q) ||
-        p.cardNumber?.toLowerCase().includes(q) ||
-        p.setCode?.toLowerCase().includes(q) ||
-        p.rarityTier?.toLowerCase().includes(q) ||
-        p.rarity?.toLowerCase().includes(q),
-    );
+    products = products.filter((p) => productMatchesSearch(p, filters.search!));
   }
 
   if (filters.type) {
@@ -235,8 +226,9 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
   }
 
   try {
-    const page = filters.page ?? 1;
-    const pageSize = filters.pageSize ?? 24;
+    const page = Math.max(1, filters.page ?? 1);
+    const requestedSize = filters.pageSize ?? 24;
+    const pageSize = Math.min(100, Math.max(1, Number.isFinite(requestedSize) ? requestedSize : 24));
     const skip = (page - 1) * pageSize;
     const sort = filters.sort ?? "newest";
 
@@ -256,15 +248,8 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
     if (filters.pokemonType) where.pokemonType = filters.pokemonType;
     if (filters.language) where.language = filters.language;
     if (filters.search) {
-      where.OR = [
-        { name: { contains: filters.search, mode: "insensitive" } },
-        { description: { contains: filters.search, mode: "insensitive" } },
-        { cardSet: { contains: filters.search, mode: "insensitive" } },
-        { cardNumber: { contains: filters.search, mode: "insensitive" } },
-        { setCode: { contains: filters.search, mode: "insensitive" } },
-        { rarityTier: { contains: filters.search, mode: "insensitive" } },
-        { rarity: { contains: filters.search, mode: "insensitive" } },
-      ];
+      const or = productSearchOr(filters.search);
+      if (or.length > 0) where.OR = or;
     }
 
     const variantWhere: Record<string, unknown> = {};

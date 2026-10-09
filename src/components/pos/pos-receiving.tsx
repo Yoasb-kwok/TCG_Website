@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { PosShell } from "@/components/pos/pos-nav";
 import { SET_SERIES_CODES } from "@/lib/card-taxonomy";
 import { PRODUCT_TYPES } from "@/lib/constants";
+import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
 import type { Receipt } from "@/lib/pos-shared";
 import type { ProductSort, ProductWithVariants } from "@/lib/types";
@@ -68,6 +69,10 @@ export function PosReceiving() {
   const [kind, setKind] = useState("");
   const [setCodes, setSetCodes] = useState<string[]>([]);
   const [stockFilter, setStockFilter] = useState<StockFilter>("all");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [complete, setComplete] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState("1");
@@ -77,14 +82,14 @@ export function PosReceiving() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
 
-  const loadProducts = async (search: string, nextSort: ProductSort, nextKind: string) => {
-    const params = new URLSearchParams({ pageSize: "96", search });
-    if (nextSort !== "newest") params.set("sort", nextSort);
-    if (nextKind) params.set("type", nextKind);
-    const res = await fetch(`/api/products?${params}`);
-    const data = (await res.json()) as { products: ProductWithVariants[] };
-    setProducts(data.products ?? []);
-  };
+  const searching = query.trim().length > 0;
+  const needsFullList =
+    searching ||
+    kind !== "" ||
+    setCodes.length > 0 ||
+    stockFilter !== "all" ||
+    sort === "priceAsc" ||
+    sort === "priceDesc";
 
   const loadReceipts = async () => {
     const res = await fetch("/api/pos/receipts");
@@ -97,11 +102,37 @@ export function PosReceiving() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     const handle = window.setTimeout(() => {
-      loadProducts(query, sort, kind).catch(() => setProducts([]));
+      const run = async () => {
+        const data = await fetchCatalogProducts(
+          {
+            search: query,
+            type: kind || undefined,
+            setCodes,
+            sort,
+          },
+          needsFullList ? { all: true } : { page, pageSize: 48 },
+        );
+        if (cancelled) return;
+        setProducts((current) =>
+          needsFullList || page === 1 ? data.products : [...current, ...data.products],
+        );
+        setTotal(data.total);
+        setComplete(needsFullList ? data.complete : page >= data.totalPages);
+      };
+      run().catch(() => {
+        if (cancelled) return;
+        setProducts([]);
+        setTotal(0);
+        setComplete(true);
+      });
     }, 250);
-    return () => window.clearTimeout(handle);
-  }, [query, sort, kind]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [query, sort, kind, setCodes, page, needsFullList, refreshKey]);
 
   const selected =
     products.find((product) => product.variants.some((entry) => entry.id === selectedVariantId)) ?? null;
@@ -144,7 +175,9 @@ export function PosReceiving() {
       }
       setQuantity("1");
       setUnitCost("");
-      await Promise.all([loadProducts(query, sort, kind), loadReceipts()]);
+      setPage(1);
+      setRefreshKey((current) => current + 1);
+      await loadReceipts();
     } catch {
       setError("未能入貨，請再試一次");
     } finally {
@@ -155,17 +188,19 @@ export function PosReceiving() {
   const undo = async (id: string) => {
     if (!window.confirm("撤銷這筆來貨？庫存會扣回，進貨成本也不再計入損益。")) return;
     await fetch(`/api/pos/receipts?id=${id}`, { method: "DELETE" });
-    await Promise.all([loadProducts(query, sort, kind), loadReceipts()]);
+    setPage(1);
+    setRefreshKey((current) => current + 1);
+    await loadReceipts();
   };
 
   const toggleSet = (value: string) => {
+    setPage(1);
     setSetCodes((current) =>
       current.includes(value) ? current.filter((code) => code !== value) : [...current, value],
     );
   };
 
   const rows = products
-    .filter((product) => setCodes.length === 0 || (product.setCode != null && setCodes.includes(product.setCode)))
     .flatMap((product) =>
       product.variants
         .filter((item) => matchesStock(item.stock, item.price, stockFilter))
@@ -184,15 +219,27 @@ export function PosReceiving() {
           <p className="text-sm font-extrabold text-muted-foreground">排序同篩選</p>
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="打卡名、系列或編號"
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setPage(1);
+            }}
+            placeholder="卡名、卡號（083/101）、系列或 SKU"
             className={fieldClass}
           />
+          <p className="text-xs font-bold text-muted-foreground">
+            {searching || setCodes.length > 0 || kind || stockFilter !== "all"
+              ? `找到 ${rows.length} 件`
+              : `顯示 ${products.length} / ${total}`}
+            {!complete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
+          </p>
           <label className="block text-xs font-bold text-muted-foreground">
             排序
             <select
               value={sort}
-              onChange={(event) => setSort(event.target.value as ProductSort)}
+              onChange={(event) => {
+                setSort(event.target.value as ProductSort);
+                setPage(1);
+              }}
               className={cn(fieldClass, "mt-1")}
             >
               <option value="newest">最新上架</option>
@@ -207,7 +254,10 @@ export function PosReceiving() {
             <div className="mt-1 flex flex-wrap gap-1">
               <button
                 type="button"
-                onClick={() => setSetCodes([])}
+                onClick={() => {
+                  setSetCodes([]);
+                  setPage(1);
+                }}
                 className={pillClass(setCodes.length === 0)}
               >
                 全部系列
@@ -229,7 +279,10 @@ export function PosReceiving() {
               <button
                 key={item.value || "all-kind"}
                 type="button"
-                onClick={() => setKind(item.value)}
+                onClick={() => {
+                  setKind(item.value);
+                  setPage(1);
+                }}
                 className={pillClass(kind === item.value)}
               >
                 {item.label}
@@ -241,7 +294,10 @@ export function PosReceiving() {
               <button
                 key={item.value}
                 type="button"
-                onClick={() => setStockFilter(item.value)}
+                onClick={() => {
+                  setStockFilter(item.value);
+                  setPage(1);
+                }}
                 className={pillClass(stockFilter === item.value)}
               >
                 {item.label}
@@ -301,6 +357,9 @@ export function PosReceiving() {
                       )}
                     </span>
                     <span className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug">{label}</span>
+                    {product.cardNumber && (
+                      <span className="text-[10px] font-bold text-muted-foreground">{product.cardNumber}</span>
+                    )}
                     {tags.length > 0 && (
                       <span className="mt-1 flex flex-wrap gap-1">
                         {tags.map((tag) => (
@@ -329,6 +388,15 @@ export function PosReceiving() {
               </li>
             )}
           </ul>
+          {!needsFullList && !complete && (
+            <button
+              type="button"
+              onClick={() => setPage((current) => current + 1)}
+              className="mt-2 h-9 rounded-xl border border-border text-sm font-bold text-muted-foreground hover:border-pink-400"
+            >
+              載入更多
+            </button>
+          )}
         </section>
 
         <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">

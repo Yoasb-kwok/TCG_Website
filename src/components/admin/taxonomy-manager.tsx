@@ -19,6 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SearchInput } from "@/components/ui/search-input";
+import { optionMatchesSearch } from "@/lib/product-search";
 import { useTaxonomy } from "@/providers/taxonomy-provider";
 import type { TaxonomyOptionDto } from "@/lib/taxonomy-types";
 import {
@@ -76,6 +78,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
   const [busy, setBusy] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [listQuery, setListQuery] = useState("");
 
   const parentSelectRef = useRef<HTMLSelectElement>(null);
   const minNumInputRef = useRef<HTMLInputElement>(null);
@@ -124,7 +127,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
     });
   }, [activeKind, parentSetCode]);
 
-  const items = useMemo(() => {
+  const scopedItems = useMemo(() => {
     let list = [...(grouped[activeKind] ?? [])].sort(
       (a, b) => a.sortIndex - b.sortIndex,
     );
@@ -134,6 +137,12 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
     }
     return list;
   }, [activeKind, parentSetCode, grouped]);
+
+  const items = useMemo(() => {
+    const query = listQuery.trim();
+    if (!query) return scopedItems;
+    return scopedItems.filter((option) => optionMatchesSearch(option, query));
+  }, [scopedItems, listQuery]);
 
   const meta = TAXONOMY_KIND_META[activeKind];
   const isPage = variant === "page";
@@ -421,6 +430,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
             type="button"
             onClick={() => {
               setActiveKind(kind);
+              setListQuery("");
               resetForm();
               cancelEdit();
             }}
@@ -603,6 +613,23 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
         )}
 
         <div className="min-w-0">
+          <div className="mb-3">
+            <SearchInput
+              value={listQuery}
+              onChange={(event) => setListQuery(event.target.value)}
+              placeholder={
+                activeKind === "CARD_NUMBER"
+                  ? "搜尋卡號，例如 083 或 083/101"
+                  : "搜尋代碼或標籤"
+              }
+              className="max-w-xs"
+            />
+            {listQuery.trim() && scopedItems.length > 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                找到 {items.length} / {scopedItems.length} 筆
+              </p>
+            )}
+          </div>
           {activeKind === "CARD_NUMBER" && (
             <div className="mb-3">
               <Label className="text-xs text-muted-foreground">篩選系列</Label>
@@ -642,7 +669,9 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
               <p className="p-4 text-sm text-muted-foreground">
                 {activeKind === "CARD_NUMBER" && !parentSetCode
                   ? "請先選擇系列"
-                  : "尚無標籤，請左側新增"}
+                  : listQuery.trim()
+                    ? "沒有符合的項目"
+                    : "尚無標籤，請左側新增"}
               </p>
             )}
             {!loading && items.length > 0 && (
