@@ -250,3 +250,73 @@ model TournamentRegistration {
 
   @@unique([tournamentId, phone])
 }
+
+enum PosPaymentMethod {
+  CASH
+  PAYME
+  FPS
+  CARD
+}
+
+enum PosExpenseCategory {
+  GOODS
+  RENT
+  WAGES
+  SUPPLIES
+  UTILITIES
+  OTHER
+}
+
+/** 收銀單。寫入資料庫，因為 Vercel 檔案系統不能持久保存 data/pos-ledger.json。 */
+model PosSale {
+  id            String           @id
+  createdAt     DateTime         @default(now())
+  paymentMethod PosPaymentMethod
+  discount      Float            @default(0)
+  note          String           @default("")
+  voided        Boolean          @default(false)
+  items         PosSaleItem[]
+
+  @@index([createdAt])
+  @@index([voided, createdAt])
+}
+
+model PosSaleItem {
+  id        String  @id
+  saleId    String
+  sale      PosSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  name      String
+  sku       String?
+  quantity  Int
+  unitPrice Float
+  unitCost  Float
+  sortIndex Int     @default(0)
+
+  @@index([saleId, sortIndex])
+}
+
+model PosExpense {
+  id        String             @id
+  createdAt DateTime           @default(now())
+  category  PosExpenseCategory
+  amount    Float
+  note      String             @default("")
+
+  @@index([createdAt])
+}
+
+model PosReceipt {
+  id        String   @id
+  createdAt DateTime @default(now())
+  productId String
+  variantId String
+  name      String
+  sku       String?
+  quantity  Int
+  unitCost  Float
+  unitPrice Float
+  expenseId String   @unique
+
+  @@index([createdAt])
+  @@index([variantId])
+}

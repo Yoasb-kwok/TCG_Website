@@ -101,3 +101,58 @@ export function saleTotal(sale: Pick<Sale, "items" | "discount">) {
 export function saleCost(sale: Pick<Sale, "items">) {
   return roundMoney(sale.items.reduce((sum, item) => sum + item.quantity * item.unitCost, 0));
 }
+
+export type SaleDraftInput = {
+  paymentMethod: string;
+  discount?: number;
+  note?: string;
+  items: { name: string; sku?: string | null; quantity: number; unitPrice: number; unitCost: number }[];
+};
+
+function parseMoney(value: unknown) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return roundMoney(amount);
+}
+
+/** Validates a checkout payload and builds the sale record. Persistence is separate. */
+export function prepareSale(input: SaleDraftInput): { ok: true; sale: Sale } | { ok: false; error: string } {
+  if (!PAYMENT_METHODS.includes(input.paymentMethod as PaymentMethod)) {
+    return { ok: false, error: "請選擇付款方式" };
+  }
+  const discount = parseMoney(input.discount ?? 0);
+  if (discount == null) return { ok: false, error: "折扣不正確" };
+
+  const items: SaleItem[] = [];
+  for (const raw of input.items) {
+    const name = raw.name?.trim();
+    const quantity = Math.floor(Number(raw.quantity));
+    const unitPrice = parseMoney(raw.unitPrice);
+    const unitCost = parseMoney(raw.unitCost);
+    if (!name || quantity < 1 || unitPrice == null || unitCost == null) {
+      return { ok: false, error: "請檢查貨品名稱、數量、售價和成本" };
+    }
+    items.push({
+      id: crypto.randomUUID(),
+      name,
+      sku: raw.sku?.trim() || null,
+      quantity,
+      unitPrice,
+      unitCost,
+    });
+  }
+  if (items.length === 0) return { ok: false, error: "請先加入貨品" };
+
+  return {
+    ok: true,
+    sale: {
+      id: crypto.randomUUID(),
+      createdAt: new Date().toISOString(),
+      paymentMethod: input.paymentMethod as PaymentMethod,
+      discount,
+      note: input.note?.trim() ?? "",
+      voided: false,
+      items,
+    },
+  };
+}

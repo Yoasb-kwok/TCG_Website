@@ -1,11 +1,13 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { dayCaption, dayKey, eachLocalDay, seriesDayLabel, trendWindow } from "@/lib/chart-days";
+import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_LABELS,
   PAYMENT_LABELS,
   PAYMENT_METHODS,
+  prepareSale,
   roundMoney,
   saleCost,
   saleTotal,
@@ -17,6 +19,7 @@ import {
   type PnlSummary,
   type Receipt,
   type Sale,
+  type SaleDraftInput,
   type SaleItem,
 } from "@/lib/pos-shared";
 
@@ -25,12 +28,114 @@ export { EXPENSE_LABELS, PAYMENT_LABELS, saleCost, saleTotal };
 
 const filePath = path.join(process.cwd(), "data", "pos-ledger.json");
 let writeQueue: Promise<unknown> = Promise.resolve();
+const databaseRequired = { ok: false as const, error: "收銀資料庫未設定" };
+
+/** Vercel’s filesystem is read-only, so the JSON ledger is only for local runs without a database. */
+function canUseFileLedger() {
+  return !process.env.VERCEL && !isDatabaseConfigured();
+}
+
+function storeUnavailable() {
+  if (isDatabaseConfigured() || canUseFileLedger()) return null;
+  return databaseRequired;
+}
 
 function emptyLedger(): Ledger {
   return { sales: [], expenses: [], receipts: [] };
 }
 
-export async function readLedger(): Promise<Ledger> {
+function money(value: unknown) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) return null;
+  return roundMoney(amount);
+}
+
+type SaleRow = {
+  id: string;
+  createdAt: Date;
+  paymentMethod: string;
+  discount: number;
+  note: string;
+  voided: boolean;
+  items: {
+    id: string;
+    name: string;
+    sku: string | null;
+    quantity: number;
+    unitPrice: number;
+    unitCost: number;
+    sortIndex: number;
+  }[];
+};
+
+type ExpenseRow = {
+  id: string;
+  createdAt: Date;
+  category: string;
+  amount: number;
+  note: string;
+};
+
+type ReceiptRow = {
+  id: string;
+  createdAt: Date;
+  productId: string;
+  variantId: string;
+  name: string;
+  sku: string | null;
+  quantity: number;
+  unitCost: number;
+  unitPrice: number;
+  expenseId: string;
+};
+
+function toSale(row: SaleRow): Sale {
+  return {
+    id: row.id,
+    createdAt: row.createdAt.toISOString(),
+    paymentMethod: row.paymentMethod as PaymentMethod,
+    discount: row.discount,
+    note: row.note,
+    voided: row.voided,
+    items: [...row.items]
+      .sort((a, b) => a.sortIndex - b.sortIndex)
+      .map((item) => ({
+        id: item.id,
+        name: item.name,
+        sku: item.sku,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        unitCost: item.unitCost,
+      })),
+  };
+}
+
+function toExpense(row: ExpenseRow): Expense {
+  return {
+    id: row.id,
+    createdAt: row.createdAt.toISOString(),
+    category: row.category as ExpenseCategory,
+    amount: row.amount,
+    note: row.note,
+  };
+}
+
+function toReceipt(row: ReceiptRow): Receipt {
+  return {
+    id: row.id,
+    createdAt: row.createdAt.toISOString(),
+    productId: row.productId,
+    variantId: row.variantId,
+    name: row.name,
+    sku: row.sku,
+    quantity: row.quantity,
+    unitCost: row.unitCost,
+    unitPrice: row.unitPrice,
+    expenseId: row.expenseId,
+  };
+}
+
+async function readLedgerFromFile(): Promise<Ledger> {
   try {
     const raw = await readFile(filePath, "utf8");
     const parsed = JSON.parse(raw) as Partial<Ledger>;
@@ -44,10 +149,32 @@ export async function readLedger(): Promise<Ledger> {
   }
 }
 
-async function updateLedger(update: (ledger: Ledger) => Ledger | Promise<Ledger>) {
+async function readLedgerFromDb(): Promise<Ledger> {
+  const prisma = getPrisma();
+  const [sales, expenses, receipts] = await Promise.all([
+    prisma.posSale.findMany({
+      include: { items: { orderBy: { sortIndex: "asc" } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.posExpense.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.posReceipt.findMany({ orderBy: { createdAt: "desc" } }),
+  ]);
+  return {
+    sales: sales.map(toSale),
+    expenses: expenses.map(toExpense),
+    receipts: receipts.map(toReceipt),
+  };
+}
+
+export async function readLedger(): Promise<Ledger> {
+  if (isDatabaseConfigured()) return readLedgerFromDb();
+  return readLedgerFromFile();
+}
+
+async function updateFileLedger(update: (ledger: Ledger) => Ledger | Promise<Ledger>) {
   let next = emptyLedger();
   const run = writeQueue.then(async () => {
-    const current = await readLedger();
+    const current = await readLedgerFromFile();
     next = await update(current);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, JSON.stringify(next, null, 2), "utf8");
@@ -60,69 +187,67 @@ async function updateLedger(update: (ledger: Ledger) => Ledger | Promise<Ledger>
   return next;
 }
 
-function money(value: unknown) {
-  const amount = Number(value);
-  if (!Number.isFinite(amount) || amount < 0) return null;
-  return roundMoney(amount);
+function saleItemsData(sale: Sale) {
+  return sale.items.map((item, sortIndex) => ({
+    id: item.id,
+    name: item.name,
+    sku: item.sku,
+    quantity: item.quantity,
+    unitPrice: item.unitPrice,
+    unitCost: item.unitCost,
+    sortIndex,
+  }));
 }
 
-export async function createSale(input: {
-  paymentMethod: string;
-  discount?: number;
-  note?: string;
-  items: { name: string; sku?: string | null; quantity: number; unitPrice: number; unitCost: number }[];
-}): Promise<{ ok: true; sale: Sale } | { ok: false; error: string }> {
-  if (!PAYMENT_METHODS.includes(input.paymentMethod as PaymentMethod)) {
-    return { ok: false, error: "請選擇付款方式" };
+async function saveSale(sale: Sale) {
+  const prisma = getPrisma();
+  await prisma.posSale.create({
+    data: {
+      id: sale.id,
+      createdAt: new Date(sale.createdAt),
+      paymentMethod: sale.paymentMethod,
+      discount: sale.discount,
+      note: sale.note,
+      voided: sale.voided,
+      items: { create: saleItemsData(sale) },
+    },
+  });
+}
+
+export async function createSale(
+  input: SaleDraftInput,
+): Promise<{ ok: true; sale: Sale } | { ok: false; error: string }> {
+  const prepared = prepareSale(input);
+  if (!prepared.ok) return prepared;
+  if (storeUnavailable()) return databaseRequired;
+  if (!isDatabaseConfigured()) {
+    await updateFileLedger((ledger) => ({ ...ledger, sales: [prepared.sale, ...ledger.sales] }));
+    return prepared;
   }
-  const discount = money(input.discount ?? 0);
-  if (discount == null) return { ok: false, error: "折扣不正確" };
-
-  const items: SaleItem[] = [];
-  for (const raw of input.items) {
-    const name = raw.name?.trim();
-    const quantity = Math.floor(Number(raw.quantity));
-    const unitPrice = money(raw.unitPrice);
-    const unitCost = money(raw.unitCost);
-    if (!name || quantity < 1 || unitPrice == null || unitCost == null) {
-      return { ok: false, error: "請檢查貨品名稱、數量、售價和成本" };
-    }
-    items.push({
-      id: crypto.randomUUID(),
-      name,
-      sku: raw.sku?.trim() || null,
-      quantity,
-      unitPrice,
-      unitCost,
-    });
-  }
-  if (items.length === 0) return { ok: false, error: "請先加入貨品" };
-
-  const sale: Sale = {
-    id: crypto.randomUUID(),
-    createdAt: new Date().toISOString(),
-    paymentMethod: input.paymentMethod as PaymentMethod,
-    discount,
-    note: input.note?.trim() ?? "",
-    voided: false,
-    items,
-  };
-
-  await updateLedger((ledger) => ({ ...ledger, sales: [sale, ...ledger.sales] }));
-  return { ok: true, sale };
+  await saveSale(prepared.sale);
+  return prepared;
 }
 
 export async function voidSale(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
-  let found = false;
-  await updateLedger((ledger) => ({
-    ...ledger,
-    sales: ledger.sales.map((sale) => {
-      if (sale.id !== id) return sale;
-      found = true;
-      return { ...sale, voided: true };
-    }),
-  }));
-  if (!found) return { ok: false, error: "找不到這張單" };
+  if (storeUnavailable()) return databaseRequired;
+  if (!isDatabaseConfigured()) {
+    let found = false;
+    await updateFileLedger((ledger) => ({
+      ...ledger,
+      sales: ledger.sales.map((sale) => {
+        if (sale.id !== id) return sale;
+        found = true;
+        return { ...sale, voided: true };
+      }),
+    }));
+    if (!found) return { ok: false, error: "找不到這張單" };
+    return { ok: true };
+  }
+
+  const prisma = getPrisma();
+  const existing = await prisma.posSale.findUnique({ where: { id }, select: { id: true } });
+  if (!existing) return { ok: false, error: "找不到這張單" };
+  await prisma.posSale.update({ where: { id }, data: { voided: true } });
   return { ok: true };
 }
 
@@ -147,7 +272,21 @@ export async function createExpense(input: {
     amount,
     note: input.note?.trim() ?? "",
   };
-  await updateLedger((ledger) => ({ ...ledger, expenses: [expense, ...ledger.expenses] }));
+  if (storeUnavailable()) return databaseRequired;
+  if (!isDatabaseConfigured()) {
+    await updateFileLedger((ledger) => ({ ...ledger, expenses: [expense, ...ledger.expenses] }));
+    return { ok: true, expense };
+  }
+  const prisma = getPrisma();
+  await prisma.posExpense.create({
+    data: {
+      id: expense.id,
+      createdAt,
+      category: expense.category,
+      amount: expense.amount,
+      note: expense.note,
+    },
+  });
   return { ok: true, expense };
 }
 
@@ -188,35 +327,84 @@ export async function createReceipt(input: {
     amount: roundMoney(quantity * unitCost),
     note: `來貨 ${name} × ${quantity}`,
   };
-  await updateLedger((ledger) => ({
-    ...ledger,
-    receipts: [receipt, ...ledger.receipts],
-    expenses: [expense, ...ledger.expenses],
-  }));
+  if (storeUnavailable()) return databaseRequired;
+  if (!isDatabaseConfigured()) {
+    await updateFileLedger((ledger) => ({
+      ...ledger,
+      receipts: [receipt, ...ledger.receipts],
+      expenses: [expense, ...ledger.expenses],
+    }));
+    return { ok: true, receipt };
+  }
+  const prisma = getPrisma();
+  const createdAt = new Date(now);
+  await prisma.$transaction([
+    prisma.posExpense.create({
+      data: {
+        id: expense.id,
+        createdAt,
+        category: expense.category,
+        amount: expense.amount,
+        note: expense.note,
+      },
+    }),
+    prisma.posReceipt.create({
+      data: {
+        id: receipt.id,
+        createdAt,
+        productId: receipt.productId,
+        variantId: receipt.variantId,
+        name: receipt.name,
+        sku: receipt.sku,
+        quantity: receipt.quantity,
+        unitCost: receipt.unitCost,
+        unitPrice: receipt.unitPrice,
+        expenseId: receipt.expenseId,
+      },
+    }),
+  ]);
   return { ok: true, receipt };
 }
 
 export async function deleteReceipt(id: string): Promise<{ ok: true; receipt: Receipt } | { ok: false; error: string }> {
-  let removed: Receipt | null = null;
-  await updateLedger((ledger) => {
-    const receipt = ledger.receipts.find((item) => item.id === id);
-    if (!receipt) return ledger;
-    removed = receipt;
-    return {
-      ...ledger,
-      receipts: ledger.receipts.filter((item) => item.id !== id),
-      expenses: ledger.expenses.filter((expense) => expense.id !== receipt.expenseId),
-    };
-  });
-  if (!removed) return { ok: false, error: "找不到這筆來貨" };
-  return { ok: true, receipt: removed };
+  if (storeUnavailable()) return databaseRequired;
+  if (!isDatabaseConfigured()) {
+    let removed: Receipt | null = null;
+    await updateFileLedger((ledger) => {
+      const receipt = ledger.receipts.find((item) => item.id === id);
+      if (!receipt) return ledger;
+      removed = receipt;
+      return {
+        ...ledger,
+        receipts: ledger.receipts.filter((item) => item.id !== id),
+        expenses: ledger.expenses.filter((expense) => expense.id !== receipt.expenseId),
+      };
+    });
+    if (!removed) return { ok: false, error: "找不到這筆來貨" };
+    return { ok: true, receipt: removed };
+  }
+
+  const prisma = getPrisma();
+  const row = await prisma.posReceipt.findUnique({ where: { id } });
+  if (!row) return { ok: false, error: "找不到這筆來貨" };
+  await prisma.$transaction([
+    prisma.posReceipt.delete({ where: { id } }),
+    prisma.posExpense.deleteMany({ where: { id: row.expenseId } }),
+  ]);
+  return { ok: true, receipt: toReceipt(row) };
 }
 
 export async function deleteExpense(id: string) {
-  await updateLedger((ledger) => ({
-    ...ledger,
-    expenses: ledger.expenses.filter((expense) => expense.id !== id),
-  }));
+  if (storeUnavailable()) throw new Error(databaseRequired.error);
+  if (!isDatabaseConfigured()) {
+    await updateFileLedger((ledger) => ({
+      ...ledger,
+      expenses: ledger.expenses.filter((expense) => expense.id !== id),
+    }));
+    return;
+  }
+  const prisma = getPrisma();
+  await prisma.posExpense.deleteMany({ where: { id } });
 }
 
 export function periodRange(period: string, now = new Date()) {
