@@ -16,17 +16,22 @@ export async function POST(request: NextRequest) {
     }[];
   } | null;
 
-  const result = await createSale({
-    paymentMethod: body?.paymentMethod ?? "",
-    discount: body?.discount,
-    note: body?.note,
-    items: body?.items ?? [],
-  });
-  if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
-  for (const item of result.sale.items) {
-    await adjustStockBySku(item.sku, -item.quantity);
+  try {
+    const result = await createSale({
+      paymentMethod: body?.paymentMethod ?? "",
+      discount: body?.discount,
+      note: body?.note,
+      items: body?.items ?? [],
+    });
+    if (!result.ok) return NextResponse.json({ error: result.error }, { status: 400 });
+    for (const item of result.sale.items) {
+      await adjustStockBySku(item.sku, -item.quantity);
+    }
+    return NextResponse.json({ sale: result.sale });
+  } catch (error) {
+    console.error("POST /api/pos/sales failed", error);
+    return NextResponse.json({ error: "未能入帳，請再試一次" }, { status: 500 });
   }
-  return NextResponse.json({ sale: result.sale });
 }
 
 export async function DELETE(request: NextRequest) {

@@ -1,22 +1,18 @@
 /**
- * 收銀示範資料：貨品寫入資料庫，銷售和開支寫入 data/pos-ledger.json。
+ * 收銀示範資料：貨品、銷售和開支都寫入資料庫。
  * 重跑會更新同一批 demo- 貨品和單據，不會刪掉你自己開過的單。
  * 用法：npm run db:seed-pos-demo
  */
 import "dotenv/config";
-import { mkdir, readFile, writeFile } from "fs/promises";
-import path from "path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { DEMO_PRODUCTS } from "../src/lib/demo-products";
-import type { Expense, Ledger, Sale } from "../src/lib/pos-shared";
+import type { Expense, Sale } from "../src/lib/pos-shared";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
-
-const ledgerPath = path.join(process.cwd(), "data", "pos-ledger.json");
 
 type DemoProduct = (typeof DEMO_PRODUCTS)[number];
 
@@ -222,20 +218,59 @@ async function upsertProducts() {
 }
 
 async function writeLedger() {
-  let current: Ledger = { sales: [], expenses: [], receipts: [] };
-  try {
-    current = JSON.parse(await readFile(ledgerPath, "utf8")) as Ledger;
-  } catch {
-    current = { sales: [], expenses: [], receipts: [] };
-  }
   const demo = demoLedger();
-  const next: Ledger = {
-    sales: [...demo.sales, ...(current.sales ?? []).filter((entry) => !entry.id.startsWith("demo-"))],
-    expenses: [...demo.expenses, ...(current.expenses ?? []).filter((entry) => !entry.id.startsWith("demo-"))],
-    receipts: current.receipts ?? [],
-  };
-  await mkdir(path.dirname(ledgerPath), { recursive: true });
-  await writeFile(ledgerPath, JSON.stringify(next, null, 2), "utf8");
+  for (const entry of demo.sales) {
+    const items = entry.items.map((line, sortIndex) => ({
+      id: line.id,
+      name: line.name,
+      sku: line.sku,
+      quantity: line.quantity,
+      unitPrice: line.unitPrice,
+      unitCost: line.unitCost,
+      sortIndex,
+    }));
+    await prisma.$transaction(async (tx) => {
+      await tx.posSaleItem.deleteMany({ where: { saleId: entry.id } });
+      await tx.posSale.upsert({
+        where: { id: entry.id },
+        create: {
+          id: entry.id,
+          createdAt: new Date(entry.createdAt),
+          paymentMethod: entry.paymentMethod,
+          discount: entry.discount,
+          note: entry.note,
+          voided: entry.voided,
+          items: { create: items },
+        },
+        update: {
+          createdAt: new Date(entry.createdAt),
+          paymentMethod: entry.paymentMethod,
+          discount: entry.discount,
+          note: entry.note,
+          voided: entry.voided,
+          items: { create: items },
+        },
+      });
+    });
+  }
+  for (const expense of demo.expenses) {
+    await prisma.posExpense.upsert({
+      where: { id: expense.id },
+      create: {
+        id: expense.id,
+        createdAt: new Date(expense.createdAt),
+        category: expense.category,
+        amount: expense.amount,
+        note: expense.note,
+      },
+      update: {
+        createdAt: new Date(expense.createdAt),
+        category: expense.category,
+        amount: expense.amount,
+        note: expense.note,
+      },
+    });
+  }
   console.log(`✓ 收銀單據 ${demo.sales.length} 張，開支 ${demo.expenses.length} 筆`);
 }
 
