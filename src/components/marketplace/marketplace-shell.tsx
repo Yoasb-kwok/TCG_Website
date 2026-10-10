@@ -11,6 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { CatalogHitStrip } from "@/components/catalog/catalog-hit-strip";
 import { FilterPanel, type FilterState } from "@/components/marketplace/filter-panel";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { catalogGame } from "@/lib/games";
@@ -102,7 +103,9 @@ export function MarketplaceShell() {
               {unsupportedGame
                 ? "此遊戲尚未上架，暫時只提供 Pokémon TCG。"
                 : searchQuery
-                  ? `找到 ${data.total} 件相關商品`
+                  ? `找到 ${data.total} 件相關商品${
+                      data.catalog && data.catalog.total > 0 ? `，卡表 ${data.catalog.total} 張` : ""
+                    }`
                   : `共 ${data.total} 件商品`}
             </p>
           )}
@@ -148,40 +151,55 @@ export function MarketplaceShell() {
             <div className="flex items-center justify-center py-24">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : data?.products.length === 0 ? (
-            <p className="py-24 text-center text-muted-foreground">
-              {unsupportedGame ? "此遊戲尚未上架" : "沒有符合條件的商品"}
-            </p>
           ) : (
             <>
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
-                {data?.products.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              {searchQuery && data?.catalog && (
+                <CatalogHitStrip
+                  cards={data.catalog.cards}
+                  total={data.catalog.total}
+                  hint="官方卡名對照。未上架的卡沒有售價，也不會加入購物車。"
+                />
+              )}
+              {data?.products.length === 0 ? (
+                <p className="py-24 text-center text-muted-foreground">
+                  {unsupportedGame
+                    ? "此遊戲尚未上架"
+                    : data.catalog && data.catalog.total > 0
+                      ? "沒有上架商品。上面是卡表對照。"
+                      : "沒有符合條件的商品"}
+                </p>
+              ) : (
+                <>
+                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
+                    {data?.products.map((product) => (
+                      <ProductCard key={product.id} product={product} />
+                    ))}
+                  </div>
 
-              {data && data.totalPages > 1 && (
-                <div className="mt-8 flex items-center justify-center gap-2">
-                  <Button
-                    variant="outline"
-                    className="border-border text-foreground"
-                    disabled={page <= 1}
-                    onClick={() => setPage((p) => p - 1)}
-                  >
-                    上一頁
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    {page} / {data.totalPages}
-                  </span>
-                  <Button
-                    variant="outline"
-                    className="border-border text-foreground"
-                    disabled={page >= data.totalPages}
-                    onClick={() => setPage((p) => p + 1)}
-                  >
-                    下一頁
-                  </Button>
-                </div>
+                  {data && data.totalPages > 1 && (
+                    <div className="mt-8 flex items-center justify-center gap-2">
+                      <Button
+                        variant="outline"
+                        className="border-border text-foreground"
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => p - 1)}
+                      >
+                        上一頁
+                      </Button>
+                      <span className="text-sm text-muted-foreground">
+                        {page} / {data.totalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        className="border-border text-foreground"
+                        disabled={page >= data.totalPages}
+                        onClick={() => setPage((p) => p + 1)}
+                      >
+                        下一頁
+                      </Button>
+                    </div>
+                  )}
+                </>
               )}
             </>
           )}

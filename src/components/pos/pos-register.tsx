@@ -3,12 +3,13 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
+import { CatalogHitStrip, catalogHitManualName, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
 import { PAYMENT_LABELS, roundMoney, type PaymentMethod, type Sale } from "@/lib/pos-shared";
-import type { ProductWithVariants } from "@/lib/types";
+import type { CatalogSearchHit, ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type TicketLine = {
@@ -26,6 +27,12 @@ type ScanNote = { tone: "ok" | "warn"; text: string };
 type LookupMatch = {
   product: ProductWithVariants;
   variantId: string;
+};
+
+type LookupResponse = {
+  match?: LookupMatch | null;
+  catalog?: CatalogSearchHit[];
+  error?: string;
 };
 
 const METHODS = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
@@ -67,6 +74,8 @@ export function PosRegister() {
   const [matchCount, setMatchCount] = useState(0);
   const [complete, setComplete] = useState(true);
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
+  const [catalogCards, setCatalogCards] = useState<CatalogSearchHit[]>([]);
+  const [catalogTotal, setCatalogTotal] = useState(0);
   const [lines, setLines] = useState<TicketLine[]>([]);
   const [discount, setDiscount] = useState(0);
   const [method, setMethod] = useState<PaymentMethod>("CASH");
@@ -117,12 +126,16 @@ export function PosRegister() {
         setProducts((current) =>
           needsFullList || page === 1 ? data.products : [...current, ...data.products],
         );
+        setCatalogCards(searching ? data.catalogCards : []);
+        setCatalogTotal(searching ? data.catalogTotal : 0);
         setMatchCount(data.total);
         setComplete(needsFullList ? data.complete : page >= data.totalPages);
       };
       run().catch(() => {
         if (cancelled) return;
         setProducts([]);
+        setCatalogCards([]);
+        setCatalogTotal(0);
         setMatchCount(0);
         setComplete(true);
       });
@@ -192,7 +205,7 @@ export function PosRegister() {
     const seq = ++scanSeq.current;
     try {
       const res = await fetch(`/api/pos/lookup?q=${encodeURIComponent(q)}`);
-      const data = (await res.json()) as { match?: LookupMatch | null; error?: string };
+      const data = (await res.json()) as LookupResponse;
       if (seq !== scanSeq.current) return;
       if (!res.ok) {
         setScanNote({ tone: "warn", text: data.error ?? "搜尋失敗，請再試一次" });
@@ -200,7 +213,23 @@ export function PosRegister() {
       }
       const match = data.match;
       if (!match) {
-        setScanNote({ tone: "warn", text: "沒有完全相符嘅條碼、SKU 或卡號，請喺下面揀" });
+        const cards = data.catalog ?? [];
+        if (cards.length === 1) {
+          const card = cards[0];
+          setManual((current) => ({ ...current, name: catalogHitManualName(card) }));
+          setScanNote({
+            tone: "warn",
+            text: `卡表：${catalogHitName(card)}（${card.setCode} ${card.collectorNumber}）。沒有完全相符嘅條碼或 SKU，名稱已填到下面，請輸入售價。`,
+          });
+          return;
+        }
+        setScanNote({
+          tone: "warn",
+          text:
+            cards.length > 1
+              ? `卡表有 ${cards.length} 張相符，沒有完全相符嘅條碼或 SKU。請喺下面揀。`
+              : "沒有完全相符嘅條碼、SKU 或卡號，請喺下面揀",
+        });
         return;
       }
       const variant = match.product.variants.find((item) => item.id === match.variantId);
@@ -424,8 +453,24 @@ export function PosRegister() {
           )}
           <p className="mt-1 text-xs font-bold text-muted-foreground">
             {searching ? `找到 ${matchCount} 件` : `顯示 ${products.length} / ${matchCount}`}
+            {searching && catalogTotal > 0 ? `，卡表 ${catalogTotal} 張` : ""}
             {!complete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
           </p>
+          {searching && (
+            <CatalogHitStrip
+              cards={catalogCards}
+              total={catalogTotal}
+              hint="撳一下把官方卡名填到手動貨品，售價要自己輸入。"
+              onPick={(card) => {
+                setManual((current) => ({ ...current, name: catalogHitManualName(card) }));
+                setScanNote({
+                  tone: "warn",
+                  text: `卡表：${catalogHitName(card)}（${card.setCode} ${card.collectorNumber}）。未有上架 SKU，請輸入售價後加入。`,
+                });
+              }}
+              className="mt-3 mb-0"
+            />
+          )}
           <ul className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1">
             {products.map((product) => {
               const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];

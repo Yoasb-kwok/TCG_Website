@@ -74,10 +74,10 @@ npm run db:seed
 - `cardSet`, `rarity`, `pokemonType`
 - `type` — `SINGLE` | `SEALED_BOX` | `BOOSTER_PACK` | `ACCESSORY`
 - `inStock=true`
-- `search`, `language`（`search` 同時對名稱、卡號、系列、SKU、條碼做包含比對）
+- `search`, `language`（`search` 對名稱、卡號、系列、SKU、條碼做包含比對；有字時一併對照卡表）
 - `game` — 目前只支援 `pokemon`。`one-piece`、`lorcana` 會回傳空清單（選單暫不顯示這兩個遊戲）
 
-卡表（系列代碼、卡名、卡圖、稀有度）在 `/api/sets` 與 `/api/cards`，資料來自 Postgres，用後台 CSV 更新。商品搜尋仍只回可售 SKU。匯入方式見 [docs/catalog-import.md](docs/catalog-import.md)。
+卡表（系列代碼、卡名、卡圖、稀有度）在 `/api/sets` 與 `/api/cards`，資料來自 Postgres，用後台 CSV 更新。商品搜尋的可售結果仍只回 SKU。`search` 另外附上 `catalog` 卡表對照：完整卡號可以用官方卡名找到單卡，卡名也可以用收集編號找到單卡。8 位以上的純數字當條碼，不會查卡表。匯入方式見 [docs/catalog-import.md](docs/catalog-import.md)。
 
 ## WhatsApp
 

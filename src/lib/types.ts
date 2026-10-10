@@ -39,6 +39,20 @@ export interface ProductWithVariants {
   images: ProductImage[];
 }
 
+/** A card from the self-hosted catalog. It is not a sellable SKU. */
+export interface CatalogSearchHit {
+  id: string;
+  setCode: string;
+  setNameZhTw: string | null;
+  collectorNumber: string;
+  altCollectorNumber: string | null;
+  nameZhTw: string | null;
+  nameJa: string | null;
+  nameEn: string | null;
+  imageUrl: string | null;
+  rarity: string | null;
+}
+
 export interface ProductsResponse {
   products: ProductWithVariants[];
   total: number;
@@ -51,6 +65,11 @@ export interface ProductsResponse {
     pokemonTypes: string[];
     setCodes: string[];
     rarityTiers: string[];
+  };
+  /** Present when the search also checked the card catalog. */
+  catalog?: {
+    cards: CatalogSearchHit[];
+    total: number;
   };
 }
 

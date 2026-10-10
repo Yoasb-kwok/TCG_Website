@@ -267,7 +267,8 @@ export function splitPrintedNumbers(raw: string): string[] {
 
 export function collectorSortIndex(collectorNumber: string): number {
   const match = collectorNumber.match(/^(\d+)/);
-  return match ? Number.parseInt(match[1], 10) : 0;
+  // Energy codes such as GRA have no index. Keep them after the numbered list.
+  return match ? Number.parseInt(match[1], 10) : 100_000;
 }
 
 export function splitMissingFields(value: string | null | undefined): string[] {

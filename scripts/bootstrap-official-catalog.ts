@@ -7,7 +7,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { toCatalogCsv } from "../src/lib/catalog-csv";
+import { splitPrintedNumbers, toCatalogCsv } from "../src/lib/catalog-csv";
 
 const UA = "TCG-Website catalog bootstrap (ops CSV only; not a runtime source)";
 const HK = "https://asia.pokemon-card.com";
@@ -81,12 +81,18 @@ function padNumber(raw: string): string {
   return `${match[1].padStart(width, "0")}/${match[2].padStart(width, "0")}`;
 }
 
-function printedNumbers(raw: string): string[] {
-  const found = [...raw.matchAll(/(\d+)\s*\/\s*(\d+)/g)].map((match) => {
-    const width = Math.max(3, match[1].length, match[2].length);
-    return `${match[1].padStart(width, "0")}/${match[2].padStart(width, "0")}`;
-  });
-  return [...new Set(found)];
+function plainText(value: string): string {
+  return value
+    .replace(/<span class="pcg pcg-megamark"><\/span>/gi, "M")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0*39;/g, "'")
+    .replace(/&nbsp;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function rarityFromFile(file: string): string {
@@ -139,14 +145,14 @@ async function readHkCard(id: string): Promise<HkCard> {
         .trim()
     : "";
   const number = html.match(/class="collectorNumber">\s*([^<]+?)\s*</);
-  const numbers = printedNumbers(number?.[1] ?? "");
+  const numbers = splitPrintedNumbers(number?.[1] ?? "");
   const image = html.match(/class="cardImage">\s*<img src="([^"]+)"/);
   const illustrator = html.match(/class="illustrator"[\s\S]*?<a[^>]*>([^<]+)<\/a>/);
   const alpha = html.match(/class="alpha">\s*([^<]+?)\s*</);
   return {
     numbers,
     collectorNumber: numbers[0] ?? "",
-    nameZhTw: name,
+    nameZhTw: plainText(name),
     imageUrl: image?.[1] ?? "",
     illustrator: illustrator?.[1].trim() ?? "",
     regulationMark: alpha?.[1].trim() ?? "",
@@ -182,7 +188,10 @@ async function listJp(pg: string): Promise<{ cards: Array<{ cardID: string; card
       searchCondition?: string[];
     };
     if (!setName) {
-      const label = (payload.searchCondition ?? []).find((item) => item.includes("「"));
+      const conditions = payload.searchCondition ?? [];
+      const label =
+        conditions.find((item) => item.includes("「")) ??
+        conditions.find((item) => item.trim() && !item.includes("レギュレーション"));
       setName = label ? bracketName(label) : "";
     }
     const list = payload.cardList ?? [];
@@ -200,7 +209,7 @@ async function readJpCard(card: { cardID: string; cardNameViewText?: string; car
   const image = card.cardThumbFile ?? "";
   return {
     collectorNumber: number ? padNumber(`${number[1]}/${number[2]}`) : "",
-    nameJa: card.cardNameViewText ?? "",
+    nameJa: plainText(card.cardNameViewText ?? ""),
     imageUrlJa: image.startsWith("/") ? `${JP}${image}` : image,
     rarity: rarity ? rarityFromFile(rarity[1]) : "",
     illustrator: illustrator?.[1].trim() ?? "",

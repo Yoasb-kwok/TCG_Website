@@ -122,6 +122,52 @@ export async function listCatalogSets(rawSearch?: string | null): Promise<Catalo
   }));
 }
 
+/** Exact set code or collector code, so M6 does not include M6a and GRA does not match "Graphics". */
+export async function listCatalogCardsForCode(code: string): Promise<{
+  cards: CatalogCardDto[];
+  total: number;
+}> {
+  const prisma = getPrisma();
+  const where = {
+    OR: [
+      { collectorNumber: { equals: code, mode: "insensitive" as const } },
+      { set: { code: { equals: code, mode: "insensitive" as const } } },
+    ],
+  };
+  const [rows, total] = await Promise.all([
+    prisma.catalogCard.findMany({
+      where,
+      include: { set: true },
+      orderBy: [{ set: { code: "asc" } }, { sortIndex: "asc" }, { collectorNumber: "asc" }],
+      take: 12,
+    }),
+    prisma.catalogCard.count({ where }),
+  ]);
+  return {
+    cards: rows.map((card) => ({
+      id: card.id,
+      setCode: card.set.code,
+      setNameZhTw: card.set.nameZhTw,
+      setNameJa: card.set.nameJa,
+      setNameEn: card.set.nameEn,
+      collectorNumber: card.collectorNumber,
+      altCollectorNumber: card.altCollectorNumber,
+      sortIndex: card.sortIndex,
+      nameZhTw: card.nameZhTw,
+      nameJa: card.nameJa,
+      nameEn: card.nameEn,
+      imageUrl: card.imageUrl,
+      imageUrlJa: card.imageUrlJa,
+      rarity: card.rarity,
+      illustrator: card.illustrator,
+      regulationMark: card.regulationMark,
+      pendingTranslation: card.pendingTranslation,
+      missingFields: splitMissingFields(card.missingFields),
+    })),
+    total,
+  };
+}
+
 export async function listCatalogCards(input: {
   setCode?: string | null;
   number?: string | null;

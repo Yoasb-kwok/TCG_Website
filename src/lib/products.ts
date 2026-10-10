@@ -1,6 +1,7 @@
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { isSupportedCatalogGame, productMatchesGame } from "@/lib/games";
 import { taxonomyFromCard } from "@/lib/card-taxonomy";
+import { resolveCatalogProductSearch } from "@/lib/catalog-product-search";
 import { productMatchesSearch, productSearchOr } from "@/lib/product-search";
 import {
   getSortIndexFromMap,
@@ -233,6 +234,7 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
     const sort = filters.sort ?? "newest";
 
     const where: Record<string, unknown> = {};
+    let catalog: ProductsResponse["catalog"];
 
     if (filters.type) where.type = filters.type;
     if (filters.cardSet) {
@@ -249,7 +251,12 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
     if (filters.language) where.language = filters.language;
     if (filters.search) {
       const or = productSearchOr(filters.search);
-      if (or.length > 0) where.OR = or;
+      const resolved = await resolveCatalogProductSearch(filters.search);
+      if (resolved.total > 0) {
+        catalog = { cards: resolved.cards, total: resolved.total };
+      }
+      const combined = [...or, ...resolved.productOr];
+      if (combined.length > 0) where.OR = combined;
     }
 
     const variantWhere: Record<string, unknown> = {};
@@ -319,6 +326,7 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
       pageSize,
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
       filters: buildFilterMeta(allMapped),
+      ...(catalog ? { catalog } : {}),
     };
   } catch {
     return filterDemoProducts(filters);
