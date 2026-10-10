@@ -16,12 +16,23 @@
 - <https://www.pokemon-card.com/card-search/>
 - M6「ストームエメラルダ」的商品篩選值（`pg`）在 2026-10 是 `955`。新系列要在官方搜尋頁的商品名裡核對，不要寫死。
 
-系列代碼照官方原文保存。`M6` 和 `M6a` 是不同系列。2026-10 在香港官方卡牌搜尋裡：
+系列代碼照官方原文保存。`M6` 和 `M6a` 是不同系列。2026-10 在香港官方卡牌搜尋的超級進化擴充包裡核對過這些代碼（發售日是商品列上的 `datetime`，月-日-年）：
 
-| 代碼 | 官方商品名 |
-|------|------------|
-| M6 | 擴充包「綠寶石風暴」 |
-| M6a | 擴充包「30th CELEBRATION」 |
+| 代碼 | 香港官方商品名 | 發售日 | 日本官方商品（`pg`） | 樣本 |
+|------|----------------|--------|----------------------|------|
+| M1L | 擴充包「超級勇氣」 | 2025-08-15 | 拡張パック「メガブレイブ」（944） | `m1l.csv`，92 列 |
+| M1S | 擴充包「超級交響樂」 | 2025-08-15 | 拡張パック「メガシンフォニア」（945） | `m1s.csv`，92 列 |
+| M2 | 擴充包「烈獄狂火X」 | 2025-10-09 | 拡張パック「インフェルノX」（949） | `m2.csv`，116 列 |
+| M2a | 高級擴充包「超級進化夢想ex」 | 2025-12-05 | ハイクラスパック「MEGAドリームex」（950） | `m2a.csv`，250 列 |
+| M3 | 擴充包「虛無歸零」 | 2026-02-06 | 拡張パック「ムニキスゼロ」（952） | `m3.csv`，117 列 |
+| M4 | 擴充包「忍者飛旋」 | 2026-03-27 | 拡張パック「ニンジャスピナー」（953） | `m4.csv`，120 列 |
+| M5 | 擴充包「深淵之瞳」 | 2026-06-05 | 拡張パック「アビスアイ」（954） | `m5.csv`，118 列 |
+| M6 | 擴充包「綠寶石風暴」 | 2026-08-07 | 拡張パック「ストームエメラルダ」（955） | `m6.csv`，110 列 |
+| M6a | 擴充包「30th CELEBRATION」 | 2026-09-16 | 拡張パック 30th CELEBRATION（961） | `m6a.csv`，168 列 |
+
+香港官方篩選裡沒有代碼 `M1`、`M1a`。同一條超級進化擴充包的第一彈是 `M1L`、`M1S`。這次樣本是上表的擴充包。戰術牌組、挑戰牌組、初階牌組和特典卡（`MTL`、`MBG`、`MC`、`M-P` 等）仍只在官方篩選裡。
+
+CSV 的 `setNameJa` 用日本篩選標籤「」裡面的名稱，和 M6 一樣。M6a 的日本標籤沒有「」，所以保留整段「拡張パック 30th CELEBRATION」。
 
 如果老闆說的代碼和公開網站不一樣，仍用他提供的 CSV 裡的代碼匯入。匯入程式不認識特定代碼，也不會等某一包的檔案。
 
@@ -53,7 +64,18 @@
 - 日本 `pg=961` 對到 132 張。`104/103`–`135/103` 其中 28 張，以及上面 8 張能量，在這個日本商品篩選裡沒有對應列，所以日文名是空的。
 - 日本詳細頁多數卡沒有稀有度圖示。這份樣本只有 10 張有圖示的 RR（例如 `047/103` 皮卡丘ex）。其餘稀有度留空，匯入後 `missingFields` 會含 `rarity`，沒有猜。
 
-把樣本寫進資料庫（M6 和 M6a 都會匯入；`template.csv` 會略過）：
+## 已附的 M1L–M5 樣本
+
+`m1l.csv`、`m1s.csv`、`m2.csv`、`m2a.csv`、`m3.csv`、`m4.csv`、`m5.csv` 用同一支 `db:bootstrap-catalog`，從香港官方收集編號、繁中名稱、香港卡圖，加上日本官方卡名、卡圖、稀有度圖示。列數和 `pg` 見上面的表。M6、M6a 的檔案沒有改。
+
+2026-10 核對時的幾件例外：
+
+- `M2a` 香港搜尋結果是 **486** 個詳細頁，收集編號只有 **250** 個（`001/193`–`250/193`）。其中 118 個編號各有 3 個詳細頁，卡名相同、圖片檔不同。資料庫一個系列加一個收集編號只能有一列，所以 CSV 每個編號留一列，張數和日本 `pg=950` 的 250 張一致。
+- `M2a` 的日本詳細頁只有 84 張有稀有度圖示（含 `RR`、`AR`、`SR`、`SAR`、`MA`、`MUR`）。其餘留空，匯入後 `missingFields` 含 `rarity`，沒有猜。`MA` 是圖示檔名，不是另外編的等級。
+- 訓練家的寶可夢，香港官方標題寫成 `<阿響的>凱羅斯` 這種樣子（頁面上是 `&lt;阿響的&gt;`）。CSV 照該標題保存。
+- 賽制字母跟每張卡的官方頁。`M2a` 裡有 `I` 和 `H`；`M3`、`M4`、`M5` 多數是 `J`，少數是 `I`。
+
+把樣本寫進資料庫（上表的 CSV 都會匯入；`template.csv` 會略過）：
 
 ```bash
 npm run db:migrate
@@ -62,9 +84,17 @@ npm run db:seed-catalog
 
 `CATALOG_CSV` 可以改指向另一份 CSV，那時只匯入那一檔。
 
-重新產生 M6a（只寫檔，不寫資料庫）：
+重新產生這些樣本（只寫檔，不寫資料庫）：
 
 ```bash
+npm run db:bootstrap-catalog -- --code M1L --jp-pg 944 --release 2025-08-15 --out prisma/catalog/samples/m1l.csv
+npm run db:bootstrap-catalog -- --code M1S --jp-pg 945 --release 2025-08-15 --out prisma/catalog/samples/m1s.csv
+npm run db:bootstrap-catalog -- --code M2 --jp-pg 949 --release 2025-10-09 --out prisma/catalog/samples/m2.csv
+npm run db:bootstrap-catalog -- --code M2a --jp-pg 950 --release 2025-12-05 --out prisma/catalog/samples/m2a.csv
+npm run db:bootstrap-catalog -- --code M3 --jp-pg 952 --release 2026-02-06 --out prisma/catalog/samples/m3.csv
+npm run db:bootstrap-catalog -- --code M4 --jp-pg 953 --release 2026-03-27 --out prisma/catalog/samples/m4.csv
+npm run db:bootstrap-catalog -- --code M5 --jp-pg 954 --release 2026-06-05 --out prisma/catalog/samples/m5.csv
+npm run db:bootstrap-catalog -- --code M6 --jp-pg 955 --release 2026-08-07 --out prisma/catalog/samples/m6.csv
 npm run db:bootstrap-catalog -- --code M6a --jp-pg 961 --release 2026-09-16 --name-en "30th CELEBRATION" --out prisma/catalog/samples/m6a.csv
 ```
 

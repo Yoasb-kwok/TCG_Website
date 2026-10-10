@@ -112,7 +112,7 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin) and log in.
 | `npm run db:seed-taxonomy` | Seed default taxonomy if table is empty |
 | `npm run db:seed-admin` | Create/update admin user from `.env` |
 | `npm run db:seed-content` | Seed default banners & about page (only if tables empty) |
-| `npm run db:seed-catalog` | Import official sample card catalogs (`prisma/catalog/samples/m6.csv` and `m6a.csv`; skips `template.csv`). `CATALOG_CSV` limits this to one file |
+| `npm run db:seed-catalog` | Import official sample card catalogs in `prisma/catalog/samples/` (`m1l`, `m1s`, `m2`, `m2a`, `m3`, `m4`, `m5`, `m6`, `m6a`; skips `template.csv`). `CATALOG_CSV` limits this to one file |
 | `npm run db:clear` | **Dangerous** — wipes data. Supervisor only. |
 
 ---
