@@ -8,7 +8,7 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/tournament-board.test.ts src/lib/pos-sale.test.ts",
+    "test": "tsx --test src/lib/tournament-board.test.ts src/lib/pos-sale.test.ts src/lib/catalog-csv.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",
@@ -17,6 +17,8 @@
     "db:clear": "tsx prisma/clear-db.ts",
     "db:seed-taxonomy": "tsx prisma/seed-taxonomy.ts",
     "db:seed-pos-demo": "tsx prisma/seed-pos-demo.ts",
+    "db:seed-catalog": "tsx prisma/seed-catalog.ts",
+    "db:bootstrap-catalog": "tsx scripts/bootstrap-official-catalog.ts",
     "db:push": "prisma db push"
   },
   "prisma": {

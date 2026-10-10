@@ -320,3 +320,73 @@ model PosReceipt {
   @@index([createdAt])
   @@index([variantId])
 }
+
+/**
+ * 自建系列卡表。執行時的來源是這張表加上後台 CSV 匯入，
+ * 不是 TCGdex 或其他第三方 API。
+ * code 照官方原文保存（M6、M6a、M-P 都可以），不要強制改大寫。
+ */
+model CatalogSet {
+  id             String    @id @default(uuid())
+  code           String    @unique
+  nameZhTw       String?
+  nameJa         String?
+  nameEn         String?
+  releaseDate    DateTime? @db.Date
+  /** 賽制字母，例如 J。不是系列代碼。 */
+  regulationMark String?
+  officialUrl    String?
+  totalCards     Int?
+  cards          CatalogCard[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([releaseDate])
+}
+
+/**
+ * 一張官方印刷的卡。collectorNumber 是匯入時採用的地區編號
+ * （香港店以 asia.pokemon-card.com/hk 的收集編號為準）。
+ */
+model CatalogCard {
+  id                 String     @id @default(uuid())
+  setId              String
+  set                CatalogSet @relation(fields: [setId], references: [id], onDelete: Cascade)
+  /** 例如 001/076 */
+  collectorNumber    String
+  /** 另一地區官方編號，只在與 collectorNumber 不同時填寫。 */
+  altCollectorNumber String?
+  sortIndex          Int        @default(0)
+  /** 缺繁中譯名時寫「待補」。 */
+  nameZhTw           String?
+  nameJa             String?
+  nameEn             String?
+  imageUrl           String?
+  imageUrlJa         String?
+  rarity             String?
+  illustrator        String?
+  regulationMark     String?
+  pendingTranslation Boolean    @default(false)
+  /** 逗號分隔的缺欄，例如 nameZhTw,rarity。空字串代表沒有缺欄。 */
+  missingFields      String     @default("")
+  createdAt          DateTime   @default(now())
+  updatedAt          DateTime   @updatedAt
+
+  @@unique([setId, collectorNumber])
+  @@index([collectorNumber])
+  @@index([altCollectorNumber])
+  @@index([pendingTranslation])
+  @@index([setId, sortIndex])
+}
+
+/** 每次卡表匯入或修正留一筆，供後台查看最近更新了哪個系列。 */
+model CatalogChangelog {
+  id        String   @id @default(uuid())
+  date      DateTime @default(now())
+  setCode   String
+  note      String
+  createdAt DateTime @default(now())
+
+  @@index([date])
+  @@index([setCode])
+}
