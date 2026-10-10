@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
+import { resolveCatalogProductSearch } from "@/lib/catalog-product-search";
 import { lookupPosScan } from "@/lib/pos-lookup";
 
 export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q") ?? "";
   if (!q.trim()) {
-    return NextResponse.json({ match: null });
+    return NextResponse.json({ match: null, catalog: [] });
   }
 
   try {
     const match = await lookupPosScan(q);
-    return NextResponse.json({ match });
+    const catalog = match ? [] : (await resolveCatalogProductSearch(q)).cards;
+    return NextResponse.json({ match, catalog });
   } catch (err) {
     const message = err instanceof Error ? err.message : "";
     if (message.includes("barcode") || message.includes("column")) {

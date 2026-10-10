@@ -85,7 +85,7 @@ export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
               ref={inputRef}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="搜尋商品名稱、系列、卡號…"
+              placeholder="搜尋商品、卡名或卡號…"
               className="flex-1"
             />
             <Button type="submit" className="shrink-0">

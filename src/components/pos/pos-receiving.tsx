@@ -3,13 +3,14 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
+import { CatalogHitStrip } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import { SET_SERIES_CODES } from "@/lib/card-taxonomy";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
 import type { Receipt } from "@/lib/pos-shared";
-import type { ProductSort, ProductWithVariants } from "@/lib/types";
+import type { CatalogSearchHit, ProductSort, ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { usePublicTaxonomy } from "@/hooks/use-public-taxonomy";
 
@@ -75,6 +76,8 @@ export function PosReceiving() {
   const [complete, setComplete] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
   const [products, setProducts] = useState<ProductWithVariants[]>([]);
+  const [catalogCards, setCatalogCards] = useState<CatalogSearchHit[]>([]);
+  const [catalogTotal, setCatalogTotal] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [quantity, setQuantity] = useState("1");
   const [unitCost, setUnitCost] = useState("");
@@ -119,12 +122,16 @@ export function PosReceiving() {
         setProducts((current) =>
           needsFullList || page === 1 ? data.products : [...current, ...data.products],
         );
+        setCatalogCards(searching ? data.catalogCards : []);
+        setCatalogTotal(searching ? data.catalogTotal : 0);
         setTotal(data.total);
         setComplete(needsFullList ? data.complete : page >= data.totalPages);
       };
       run().catch(() => {
         if (cancelled) return;
         setProducts([]);
+        setCatalogCards([]);
+        setCatalogTotal(0);
         setTotal(0);
         setComplete(true);
       });
@@ -133,7 +140,7 @@ export function PosReceiving() {
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [query, sort, kind, setCodes, page, needsFullList, refreshKey]);
+  }, [query, searching, sort, kind, setCodes, page, needsFullList, refreshKey]);
 
   const selected =
     products.find((product) => product.variants.some((entry) => entry.id === selectedVariantId)) ?? null;
@@ -203,7 +210,10 @@ export function PosReceiving() {
         match?: { product: ProductWithVariants; variantId: string } | null;
       };
       const match = data.match;
-      if (!match) return;
+      if (!match) {
+        setError("沒有完全相符嘅條碼或 SKU。卡表如果有這張，請先在後台上架，再入貨。");
+        return;
+      }
       setProducts((current) =>
         current.some((product) => product.id === match.product.id) ? current : [match.product, ...current],
       );
@@ -332,6 +342,14 @@ export function PosReceiving() {
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-[14px] border border-border bg-card p-3">
           <p className="text-sm font-extrabold text-muted-foreground">已上架貨品 · 撳一下就點算</p>
+          {searching && (
+            <CatalogHitStrip
+              cards={catalogCards}
+              total={catalogTotal}
+              hint="只供對名。入貨要揀已上架的 SKU 或條碼。"
+              className="mt-3"
+            />
+          )}
           <ul
             className="mt-3 grid min-h-0 flex-1 content-start justify-start gap-2 overflow-auto pr-1"
             style={{ gridTemplateColumns: "repeat(auto-fill, 7.25rem)" }}

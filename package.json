@@ -8,7 +8,7 @@
     "postinstall": "prisma generate",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test src/lib/tournament-board.test.ts src/lib/pos-sale.test.ts src/lib/catalog-csv.test.ts",
+    "test": "tsx --test src/lib/tournament-board.test.ts src/lib/pos-sale.test.ts src/lib/catalog-csv.test.ts src/lib/catalog-resolve.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "tsx prisma/seed.ts",

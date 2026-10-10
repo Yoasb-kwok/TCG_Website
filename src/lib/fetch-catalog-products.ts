@@ -1,4 +1,4 @@
-import type { ProductSort, ProductWithVariants } from "@/lib/types";
+import type { CatalogSearchHit, ProductSort, ProductWithVariants } from "@/lib/types";
 
 export interface CatalogQuery {
   search?: string;
@@ -14,6 +14,8 @@ export interface CatalogPage {
   page: number;
   totalPages: number;
   complete: boolean;
+  catalogCards: CatalogSearchHit[];
+  catalogTotal: number;
 }
 
 const MAX_PAGES = 40;
@@ -41,6 +43,7 @@ async function readCatalogPage(params: URLSearchParams): Promise<CatalogPage> {
     total?: number;
     page?: number;
     totalPages?: number;
+    catalog?: { cards?: CatalogSearchHit[]; total?: number };
   };
   const products = data.products ?? [];
   const total = data.total ?? products.length;
@@ -52,6 +55,8 @@ async function readCatalogPage(params: URLSearchParams): Promise<CatalogPage> {
     page,
     totalPages,
     complete: page >= totalPages,
+    catalogCards: data.catalog?.cards ?? [],
+    catalogTotal: data.catalog?.total ?? 0,
   };
 }
 
@@ -69,11 +74,17 @@ export async function fetchCatalogProducts(
   let page = 1;
   let total = 0;
   let totalPages = 1;
+  let catalogCards: CatalogSearchHit[] = [];
+  let catalogTotal = 0;
   do {
     const next = await readCatalogPage(toParams(query, page, pageSize));
     products.push(...next.products);
     total = next.total;
     totalPages = next.totalPages;
+    if (page === 1) {
+      catalogCards = next.catalogCards;
+      catalogTotal = next.catalogTotal;
+    }
     page += 1;
   } while (page <= totalPages && page <= MAX_PAGES);
 
@@ -83,6 +94,8 @@ export async function fetchCatalogProducts(
     page: 1,
     totalPages,
     complete: page > totalPages,
+    catalogCards,
+    catalogTotal,
   };
 }
 

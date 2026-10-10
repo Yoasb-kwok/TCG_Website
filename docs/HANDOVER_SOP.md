@@ -112,7 +112,7 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin) and log in.
 | `npm run db:seed-taxonomy` | Seed default taxonomy if table is empty |
 | `npm run db:seed-admin` | Create/update admin user from `.env` |
 | `npm run db:seed-content` | Seed default banners & about page (only if tables empty) |
-| `npm run db:seed-catalog` | Import the official sample card catalog (`prisma/catalog/samples/m6.csv`) |
+| `npm run db:seed-catalog` | Import official sample card catalogs (`prisma/catalog/samples/m6.csv` and `m6a.csv`; skips `template.csv`). `CATALOG_CSV` limits this to one file |
 | `npm run db:clear` | **Dangerous** — wipes data. Supervisor only. |
 
 ---
@@ -276,7 +276,9 @@ Run `npm run db:seed-content` only on a fresh database to populate defaults.
 
 ### 6.6 Card catalog (`/admin/catalog`)
 
-The sellable product list is separate from the card catalog. Import an official set CSV (for example M6, or any later code such as M6a) from **卡表目錄**. Missing Traditional Chinese names are stored as 待補. This does not create SKUs, prices, stock, or barcodes.
+The sellable product list is separate from the card catalog. Import an official set CSV (for example M6, or M6a「30th CELEBRATION」) from **卡表目錄**. Missing Traditional Chinese names are stored as 待補. This does not create SKUs, prices, stock, or barcodes.
+
+Storefront search and POS card lookup also read this catalog: hits show beside products, and a specific card number or name can find singles stored under the other field. Barcode and SKU lookup still uses the product list. A catalog-only hit is not added to a sale until someone enters a price on a manual line.
 
 See [catalog-import.md](catalog-import.md).
 

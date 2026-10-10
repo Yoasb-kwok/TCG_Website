@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   PENDING_TRANSLATION_LABEL,
+  collectorSortIndex,
   mergeCatalogCard,
   parseCatalogCsv,
+  splitPrintedNumbers,
   templateCatalogCsv,
   toCatalogCsv,
 } from "./catalog-csv";
@@ -35,6 +37,15 @@ describe("parseCatalogCsv", () => {
     assert.equal(card.rarity, "MUR");
     assert.equal(card.pendingTranslation, false);
     assert.equal(card.missingFields, "imageUrl");
+  });
+
+  it("keeps basic-energy codes and sorts them after numbered cards", () => {
+    assert.deepEqual(splitPrintedNumbers("GRA"), ["GRA"]);
+    assert.equal(collectorSortIndex("001/103"), 1);
+    assert.equal(collectorSortIndex("GRA"), 100_000);
+    const csv = "setCode,collectorNumber,nameZhTw\nM6a,GRA,基本【草】能量\nM6a,001/103,蛋蛋\n";
+    const numbers = parseCatalogCsv(csv).sets[0].cards.map((card) => card.collectorNumber);
+    assert.deepEqual(numbers, ["001/103", "GRA"]);
   });
 
   it("splits a two-sided official collector number into the primary and alternate", () => {
