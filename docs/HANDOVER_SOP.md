@@ -112,6 +112,7 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin) and log in.
 | `npm run db:seed-taxonomy` | Seed default taxonomy if table is empty |
 | `npm run db:seed-admin` | Create/update admin user from `.env` |
 | `npm run db:seed-content` | Seed default banners & about page (only if tables empty) |
+| `npm run db:seed-catalog` | Import the official sample card catalog (`prisma/catalog/samples/m6.csv`) |
 | `npm run db:clear` | **Dangerous** — wipes data. Supervisor only. |
 
 ---
@@ -270,6 +271,14 @@ Run `npm run db:seed-content` only on a fresh database to populate defaults.
 1. **Create** — title, format, max players, entry fee (HKD), location, start time, registration deadline
 2. **Monitor** registrations — expand row to see player name, email, phone
 3. Update tournament status as event progresses (`OPEN` → `FULL` → `IN_PROGRESS` → `COMPLETED`)
+
+---
+
+### 6.6 Card catalog (`/admin/catalog`)
+
+The sellable product list is separate from the card catalog. Import an official set CSV (for example M6, or any later code such as M6a) from **卡表目錄**. Missing Traditional Chinese names are stored as 待補. This does not create SKUs, prices, stock, or barcodes.
+
+See [catalog-import.md](catalog-import.md).
 
 ---
 

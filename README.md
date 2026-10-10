@@ -61,6 +61,8 @@ npm run db:seed
 | 商品列表 + 進階篩選 | `/products` |
 | 商品詳情 | `/products/[slug]` |
 | 商品 API | `/api/products` |
+| 卡表系列 / 卡牌 | `/api/sets`、`/api/cards` |
+| 卡表匯入 | `/admin/catalog`（見 `docs/catalog-import.md`） |
 | 購物車（localStorage） | 右上角購物袋 |
 | Stripe 結帳 | `/api/checkout` |
 | 店賽列表 | `/tournaments` |
@@ -74,6 +76,8 @@ npm run db:seed
 - `inStock=true`
 - `search`, `language`（`search` 同時對名稱、卡號、系列、SKU、條碼做包含比對）
 - `game` — 目前只支援 `pokemon`。`one-piece`、`lorcana` 會回傳空清單（選單暫不顯示這兩個遊戲）
+
+卡表（系列代碼、卡名、卡圖、稀有度）在 `/api/sets` 與 `/api/cards`，資料來自 Postgres，用後台 CSV 更新。商品搜尋仍只回可售 SKU。匯入方式見 [docs/catalog-import.md](docs/catalog-import.md)。
 
 ## WhatsApp
 

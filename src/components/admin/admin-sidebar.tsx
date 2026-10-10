@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
+  Library,
   Package,
   Tags,
   Trophy,
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 const LINKS = [
   { href: "/admin", label: "總覽", icon: LayoutDashboard, exact: true },
   { href: "/admin/taxonomy", label: "標籤管理", icon: Tags },
+  { href: "/admin/catalog", label: "卡表目錄", icon: Library },
   { href: "/admin/products", label: "商品名單", icon: Package },
   { href: "/admin/accounts", label: "帳戶", icon: Users },
   { href: "/admin/content", label: "網站內容", icon: FilePenLine },
