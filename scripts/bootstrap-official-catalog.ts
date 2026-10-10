@@ -92,7 +92,8 @@ function plainText(value: string): string {
     .replace(/&#0*39;/g, "'")
     .replace(/&nbsp;/g, " ")
     .replace(/\s+/g, " ")
-    .trim();
+    .trim()
+    .normalize("NFC");
 }
 
 function rarityFromFile(file: string): string {
@@ -102,7 +103,8 @@ function rarityFromFile(file: string): string {
 
 function bracketName(label: string): string {
   const match = label.match(/「([^」]+)」/);
-  return (match?.[1] ?? label).trim();
+  // JP product labels sometimes use decomposed kana. NFC matches the M6 sample.
+  return (match?.[1] ?? label).trim().normalize("NFC");
 }
 
 async function hkSetName(code: string): Promise<string> {
