@@ -6,7 +6,7 @@ export function PosShell({
   current,
   children,
 }: {
-  current: "register" | "receiving" | "pnl" | "orders";
+  current: "register" | "receiving" | "buyback" | "pnl" | "orders";
   children: React.ReactNode;
 }) {
   const tab = (href: string, label: string, active: boolean) => (
@@ -43,6 +43,7 @@ export function PosShell({
           <nav className="flex gap-1">
             {tab("/pos", "收銀", current === "register")}
             {tab("/pos/receiving", "來貨", current === "receiving")}
+            {tab("/pos/buyback", "收卡", current === "buyback")}
             {tab("/pos/pnl", "損益表", current === "pnl")}
             {tab("/pos/orders", "交易紀錄", current === "orders")}
           </nav>

@@ -324,6 +324,37 @@ model PosReceipt {
 }
 
 /**
+ * 收銀收卡。客人把卡賣給店，店方加庫存並記一筆來源為 buyback 的帳。
+ * 收購價是成本，不會改已上架售價。
+ */
+model PosBuyback {
+  id             String   @id
+  createdAt      DateTime @default(now())
+  /** MVP 固定 buyback。之後寄賣可以用另一個來源，不必改表。 */
+  source         String   @default("buyback")
+  name           String
+  sku            String?
+  quantity       Int
+  unitBuyPrice   Float
+  totalAmount    Float
+  productId      String?
+  variantId      String?
+  catalogCardId  String?
+  customerName   String   @default("")
+  customerPhone  String   @default("")
+  pokemonId      String   @default("")
+  note           String   @default("")
+  voided         Boolean  @default(false)
+  /** 對應一筆進貨開支，撤銷收卡時一併刪除。 */
+  expenseId      String?  @unique
+
+  @@index([createdAt])
+  @@index([voided, createdAt])
+  @@index([variantId])
+  @@index([catalogCardId])
+}
+
+/**
  * 自建系列卡表。執行時的來源是這張表加上後台 CSV 匯入，
  * 不是 TCGdex 或其他第三方 API。
  * code 照官方原文保存（M6、M6a、M-P 都可以），不要強制改大寫。

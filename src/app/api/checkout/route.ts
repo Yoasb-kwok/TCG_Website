@@ -76,6 +76,9 @@ export async function POST(request: NextRequest) {
         if (variant.stock < item.quantity) {
           throw new Error(`${variant.product.name} 庫存不足（剩餘 ${variant.stock}）`);
         }
+        if (!(variant.price > 0)) {
+          throw new Error(`${variant.product.name} 未定價`);
+        }
         subtotal += variant.price * item.quantity;
         orderItems.push({
           variantId: variant.id,
@@ -108,6 +111,7 @@ export async function POST(request: NextRequest) {
           const variant = product.variants.find((v) => v.id === item.variantId);
           if (variant) {
             found = true;
+            if (!(variant.price > 0)) throw new Error(`${product.name} 未定價`);
             subtotal += variant.price * item.quantity;
             orderItems.push({
               variantId: variant.id,

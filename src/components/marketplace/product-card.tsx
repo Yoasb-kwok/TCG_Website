@@ -18,16 +18,17 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { labelFor } = usePublicTaxonomy();
   const { addItem } = useCart();
-  const cheapest = product.variants.reduce((min, v) =>
-    v.price < min.price ? v : min,
+  const priced = product.variants.filter((variant) => variant.price > 0);
+  const cheapest = (priced.length > 0 ? priced : product.variants).reduce((min, variant) =>
+    variant.price < min.price ? variant : min,
   );
-  const inStock = product.variants.some((v) => v.stock > 0);
+  const sellable = product.variants.find((variant) => variant.stock > 0 && variant.price > 0);
   const imageUrl = product.images[0]?.url;
   const href = `/products/${product.slug}`;
 
   const handleAdd = () => {
-    if (!inStock) return;
-    const variant = product.variants.find((v) => v.stock > 0) ?? cheapest;
+    if (!sellable) return;
+    const variant = sellable;
     addItem({
       variantId: variant.id,
       productId: product.id,
@@ -99,9 +100,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <div className="mt-auto flex items-center justify-between pt-3">
           <span className="text-base font-semibold text-foreground">
-            {formatPrice(cheapest.price)}
+            {cheapest.price > 0 ? formatPrice(cheapest.price) : "未定價"}
           </span>
-          <Button size="sm" disabled={!inStock} onClick={handleAdd}>
+          <Button size="sm" disabled={!sellable} onClick={handleAdd}>
             <ShoppingCart className="h-3.5 w-3.5" />
             <span className="sr-only sm:not-sr-only sm:inline">加入</span>
           </Button>
