@@ -34,6 +34,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   const variant =
     product.variants.find((item) => item.id === variantId) ?? product.variants[0];
   const inStock = Boolean(variant && variant.stock > 0);
+  const purchasable = Boolean(variant && variant.stock > 0 && variant.price > 0);
 
   const meta = [
     getProductTypeDisplayLabel(product.type, labelFor),
@@ -43,7 +44,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
   ].filter(Boolean);
 
   const handleAdd = () => {
-    if (!variant || !inStock) return;
+    if (!variant || !purchasable) return;
     addItem({
       variantId: variant.id,
       productId: product.id,
@@ -171,7 +172,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
                           {item.stock > 0 ? `庫存 ${item.stock}` : "缺貨"}
                         </span>
                       </span>
-                      <span className="font-semibold">{formatPrice(item.price)}</span>
+                      <span className="font-semibold">{item.price > 0 ? formatPrice(item.price) : "未定價"}</span>
                     </button>
                   );
                 })}
@@ -179,11 +180,11 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
               <div className="flex items-center justify-between pt-2">
                 <span className="text-2xl font-semibold text-foreground">
-                  {formatPrice(variant.price)}
+                  {variant.price > 0 ? formatPrice(variant.price) : "未定價"}
                 </span>
-                <Button size="lg" disabled={!inStock} onClick={handleAdd}>
+                <Button size="lg" disabled={!purchasable} onClick={handleAdd}>
                   <ShoppingCart className="h-4 w-4" />
-                  {inStock ? "加入購物車" : "缺貨"}
+                  {!inStock ? "缺貨" : variant.price > 0 ? "加入購物車" : "未定價"}
                 </Button>
               </div>
             </div>

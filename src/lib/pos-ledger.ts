@@ -11,6 +11,7 @@ import {
   roundMoney,
   saleCost,
   saleTotal,
+  type Buyback,
   type DailySalePoint,
   type Expense,
   type ExpenseCategory,
@@ -23,7 +24,7 @@ import {
   type SaleItem,
 } from "@/lib/pos-shared";
 
-export type { DailySalePoint, Expense, ExpenseCategory, Ledger, PaymentMethod, PnlSummary, Receipt, Sale, SaleItem };
+export type { Buyback, DailySalePoint, Expense, ExpenseCategory, Ledger, PaymentMethod, PnlSummary, Receipt, Sale, SaleItem };
 export { EXPENSE_LABELS, PAYMENT_LABELS, saleCost, saleTotal };
 
 const filePath = path.join(process.cwd(), "data", "pos-ledger.json");
@@ -41,7 +42,7 @@ function storeUnavailable() {
 }
 
 function emptyLedger(): Ledger {
-  return { sales: [], expenses: [], receipts: [] };
+  return { sales: [], expenses: [], receipts: [], buybacks: [] };
 }
 
 function money(value: unknown) {
@@ -143,6 +144,7 @@ async function readLedgerFromFile(): Promise<Ledger> {
       sales: Array.isArray(parsed.sales) ? parsed.sales : [],
       expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
       receipts: Array.isArray(parsed.receipts) ? parsed.receipts : [],
+      buybacks: Array.isArray(parsed.buybacks) ? parsed.buybacks : [],
     };
   } catch {
     return emptyLedger();
@@ -163,6 +165,9 @@ async function readLedgerFromDb(): Promise<Ledger> {
     sales: sales.map(toSale),
     expenses: expenses.map(toExpense),
     receipts: receipts.map(toReceipt),
+    // Postgres buybacks are read by the buyback store. Leaving this empty keeps
+    // sale and P&L queries working before the PosBuyback migration is applied.
+    buybacks: [],
   };
 }
 
@@ -405,6 +410,43 @@ export async function deleteExpense(id: string) {
   }
   const prisma = getPrisma();
   await prisma.posExpense.deleteMany({ where: { id } });
+}
+
+/** File-ledger only. Database buybacks are written in the same transaction as stock. */
+export async function rememberBuyback(
+  buyback: Buyback,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (isDatabaseConfigured()) return { ok: false, error: "收卡應寫入資料庫" };
+  if (storeUnavailable()) return databaseRequired;
+  await updateFileLedger((ledger) => ({ ...ledger, buybacks: [buyback, ...ledger.buybacks] }));
+  return { ok: true };
+}
+
+export async function voidFileBuyback(
+  id: string,
+): Promise<
+  | { ok: true; buyback: Buyback; alreadyVoided: boolean }
+  | { ok: false; error: string }
+> {
+  if (storeUnavailable()) return databaseRequired;
+  let outcome: "missing" | "already" | "voided" = "missing";
+  let buyback: Buyback | null = null;
+  await updateFileLedger((ledger) => ({
+    ...ledger,
+    buybacks: ledger.buybacks.map((row) => {
+      if (row.id !== id) return row;
+      if (row.voided) {
+        outcome = "already";
+        buyback = row;
+        return row;
+      }
+      outcome = "voided";
+      buyback = { ...row, voided: true };
+      return buyback;
+    }),
+  }));
+  if (!buyback || outcome === "missing") return { ok: false, error: "找不到這筆收卡" };
+  return { ok: true, buyback, alreadyVoided: outcome === "already" };
 }
 
 export function periodRange(period: string, now = new Date()) {

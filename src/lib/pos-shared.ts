@@ -60,10 +60,32 @@ export type Receipt = {
   expenseId: string;
 };
 
+/** 收卡帳。source 在 MVP 固定為 buyback。 */
+export type Buyback = {
+  id: string;
+  createdAt: string;
+  source: "buyback";
+  name: string;
+  sku: string | null;
+  quantity: number;
+  unitBuyPrice: number;
+  totalAmount: number;
+  productId: string | null;
+  variantId: string | null;
+  catalogCardId: string | null;
+  customerName: string;
+  customerPhone: string;
+  pokemonId: string;
+  note: string;
+  voided: boolean;
+  expenseId: string | null;
+};
+
 export type Ledger = {
   sales: Sale[];
   expenses: Expense[];
   receipts: Receipt[];
+  buybacks: Buyback[];
 };
 
 export type DailySalePoint = {
