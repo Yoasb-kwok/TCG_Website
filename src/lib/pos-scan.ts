@@ -1,3 +1,10 @@
+import {
+  collectorIndexMatches,
+  parseSetCollectorCode,
+  productMatchesSetCollector,
+  setCollectorCodeForms,
+} from "@/lib/card-number-format";
+
 export const BARCODE_MAX_LENGTH = 64;
 
 export type PosScanMatchBy = "barcode" | "sku" | "cardNumber";
@@ -11,6 +18,8 @@ export interface PosScanVariant {
 
 export interface PosScanProduct {
   cardNumber?: string | null;
+  setCode?: string | null;
+  externalCardId?: string | null;
   variants: PosScanVariant[];
 }
 
@@ -22,6 +31,27 @@ export interface PosScanMatch<T extends PosScanProduct> {
 
 function sameCode(value: string | null | undefined, query: string) {
   return (value ?? "").trim().toLowerCase() === query;
+}
+
+/** Exact cashier filters. Card numbers also accept M6a 001 / M6a-001 / M6a001. */
+export function posScanOr(raw: string): Record<string, unknown>[] {
+  const query = raw.trim();
+  if (!query) return [];
+  const or: Record<string, unknown>[] = [
+    { variants: { some: { barcode: { equals: query, mode: "insensitive" } } } },
+    { variants: { some: { sku: { equals: query, mode: "insensitive" } } } },
+    { cardNumber: { in: setCollectorCodeForms(query, { unpadded: true }), mode: "insensitive" } },
+  ];
+  const parsed = parseSetCollectorCode(query);
+  if (parsed) {
+    or.push({
+      AND: [
+        { setCode: { equals: parsed.setCode, mode: "insensitive" } },
+        { OR: collectorIndexMatches(parsed.index).map((filter) => ({ cardNumber: filter })) },
+      ],
+    });
+  }
+  return or;
 }
 
 /** Empty or whitespace becomes null. Throws on an over-long or invalid code. */
@@ -68,7 +98,10 @@ export function matchPosScan<T extends PosScanProduct>(
     }
   }
 
-  const byCard = products.filter((product) => product.cardNumber && sameCode(product.cardNumber, query));
+  const byCard = products.filter((product) => {
+    if (product.cardNumber && sameCode(product.cardNumber, query)) return true;
+    return productMatchesSetCollector(product, raw);
+  });
   if (byCard.length !== 1) return null;
   const product = byCard[0];
   const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];

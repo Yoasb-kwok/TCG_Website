@@ -1,3 +1,4 @@
+import { collectorNumberOr, setIndexCatalogAnd } from "@/lib/card-number-format";
 import { formatReleaseDate, splitMissingFields } from "@/lib/catalog-csv";
 import { productSearchNeedles } from "@/lib/product-search";
 import { getPrisma } from "@/lib/prisma";
@@ -56,7 +57,7 @@ export function pageWindow(rawPage: string | null, rawSize: string | null, fallb
 }
 
 function cardSearchOr(raw: string): Record<string, unknown>[] {
-  return productSearchNeedles(raw).flatMap((needle) => {
+  const clauses: Record<string, unknown>[] = productSearchNeedles(raw).flatMap((needle) => {
     const filter = contains(needle);
     return [
       { nameZhTw: filter },
@@ -72,6 +73,9 @@ function cardSearchOr(raw: string): Record<string, unknown>[] {
       { set: { nameEn: filter } },
     ];
   });
+  const setIndex = setIndexCatalogAnd(raw);
+  if (setIndex) clauses.push(setIndex);
+  return clauses;
 }
 
 function numberOr(raw: string): Record<string, unknown>[] {
@@ -188,8 +192,12 @@ export async function listCatalogCards(input: {
 
   const number = input.number?.trim() ?? "";
   if (number) {
-    const or = numberOr(number);
-    if (or.length > 0) and.push({ OR: or });
+    if (setCode && /^\d{1,4}$/.test(number)) {
+      and.push({ OR: collectorNumberOr(number) });
+    } else {
+      const or = numberOr(number);
+      if (or.length > 0) and.push({ OR: or });
+    }
   }
 
   const search = input.search?.trim() ?? "";

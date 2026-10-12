@@ -6,7 +6,17 @@
  * Card numbers match the stored text plus common staff input:
  * 083/101, #083/101, 083-101, 083 / 101, and a partial index such as 083.
  * A padded query also matches an unpadded stored number (083/101 → 83/101).
+ * Set code plus index ignores spaces, hyphens, and underscores between them:
+ * M6a 001, M6a001, M6a-001, and m6a_001 match the same card.
  */
+
+import {
+  collectorIndexMatches,
+  normalizeSetCollectorCode,
+  parseSetCollectorCode,
+  productMatchesSetCollector,
+  setCollectorCodeForms,
+} from "@/lib/card-number-format";
 
 export interface SearchableVariant {
   sku?: string | null;
@@ -73,13 +83,20 @@ export function productSearchNeedles(raw: string): string[] {
     addNeedle(needles, `${index.padStart(3, "0")}/${suffix.padStart(3, "0")}`);
   }
 
+  for (const form of setCollectorCodeForms(trimmed)) {
+    addNeedle(needles, form);
+  }
+
   return [...needles];
 }
 
 function fieldContains(value: string | null | undefined, needles: string[]): boolean {
   if (!value) return false;
   const haystack = value.toLowerCase();
-  return needles.some((needle) => haystack.includes(needle));
+  if (needles.some((needle) => haystack.includes(needle))) return true;
+  const foldedHay = normalizeSetCollectorCode(value);
+  if (!foldedHay) return false;
+  return needles.some((needle) => normalizeSetCollectorCode(needle) === foldedHay);
 }
 
 export function productMatchesSearch(product: SearchableProduct, raw: string): boolean {
@@ -98,9 +115,15 @@ export function productMatchesSearch(product: SearchableProduct, raw: string): b
   ];
   if (fields.some((field) => fieldContains(field, needles))) return true;
 
-  return (product.variants ?? []).some(
-    (variant) => fieldContains(variant.sku, needles) || fieldContains(variant.barcode, needles),
-  );
+  if (
+    (product.variants ?? []).some(
+      (variant) => fieldContains(variant.sku, needles) || fieldContains(variant.barcode, needles),
+    )
+  ) {
+    return true;
+  }
+
+  return productMatchesSetCollector(product, raw);
 }
 
 export function optionMatchesSearch(option: SearchableOption, raw: string): boolean {
@@ -130,6 +153,16 @@ export function productSearchOr(raw: string): Record<string, unknown>[] {
     }
     clauses.push({ variants: { some: { sku: contains } } });
     clauses.push({ variants: { some: { barcode: contains } } });
+  }
+
+  const parsed = parseSetCollectorCode(raw);
+  if (parsed) {
+    clauses.push({
+      AND: [
+        { setCode: { equals: parsed.setCode, mode: "insensitive" } },
+        { OR: collectorIndexMatches(parsed.index).map((filter) => ({ cardNumber: filter })) },
+      ],
+    });
   }
 
   return clauses;
