@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import type { ResolvedSocialLink } from "@/lib/social";
 
 function WhatsAppButton({ href }: { href: string }) {
   return (
@@ -23,9 +24,11 @@ function WhatsAppButton({ href }: { href: string }) {
 export function StorefrontFrame({
   children,
   whatsappHref,
+  socialLinks,
 }: {
   children: React.ReactNode;
   whatsappHref: string | null;
+  socialLinks: ResolvedSocialLink[];
 }) {
   const pathname = usePathname();
 
@@ -35,9 +38,9 @@ export function StorefrontFrame({
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <SiteHeader />
+      <SiteHeader socialLinks={socialLinks} />
       <main className="flex-1">{children}</main>
-      <SiteFooter />
+      <SiteFooter socialLinks={socialLinks} />
       {whatsappHref ? <WhatsAppButton href={whatsappHref} /> : null}
     </div>
   );

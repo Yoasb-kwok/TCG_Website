@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { SocialLinks } from "@/components/layout/social-links";
 import { SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
+import type { ResolvedSocialLink } from "@/lib/social";
 
-export function SiteFooter() {
+export function SiteFooter({ socialLinks }: { socialLinks: ResolvedSocialLink[] }) {
   return (
     <footer className="mt-auto border-t border-border bg-background py-12 text-muted-foreground">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-6">
@@ -11,6 +13,7 @@ export function SiteFooter() {
           {SHOW_STORE_ADDRESS && (
             <p className="mt-3 text-sm">{STORE.address.zh}</p>
           )}
+          <SocialLinks links={socialLinks} variant="footer" />
         </div>
         <div>
           <p className="mb-3 text-sm font-semibold text-foreground">商店</p>

@@ -17,12 +17,14 @@ import { LocaleCurrencyMenu } from "@/components/layout/locale-currency-menu";
 import { MegaMenu } from "@/components/layout/mega-menu";
 import { UserMenu } from "@/components/layout/user-menu";
 import { CartSheet } from "@/components/cart/cart-sheet";
+import { SocialLinks } from "@/components/layout/social-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useCart } from "@/providers/cart-provider";
 import { NAV_ITEMS, SITE_BRAND } from "@/lib/constants";
+import type { ResolvedSocialLink } from "@/lib/social";
 import { getStoreMapsUrl } from "@/lib/store-maps";
 
-export function SiteHeader() {
+export function SiteHeader({ socialLinks }: { socialLinks: ResolvedSocialLink[] }) {
   const { data: session } = useSession();
   const { itemCount, isOpen: cartOpen, setIsOpen } = useCart();
   const storeMapsUrl = getStoreMapsUrl();
@@ -104,27 +106,30 @@ export function SiteHeader() {
       />
 
       <nav className="hidden border-t border-border lg:block">
-        <div className="mx-auto flex max-w-7xl gap-6 px-6 py-2">
-          {NAV_ITEMS.map((item) =>
-            item.hasMegaMenu ? (
-              <button
-                key={item.href}
-                type="button"
-                className="text-sm text-muted-foreground transition hover:text-foreground"
-                onMouseEnter={() => setMegaOpen(true)}
-              >
-                {item.label} ▾
-              </button>
-            ) : (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="text-sm text-muted-foreground transition hover:text-foreground"
-              >
-                {item.label}
-              </Link>
-            ),
-          )}
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-2">
+          <div className="flex gap-6">
+            {NAV_ITEMS.map((item) =>
+              item.hasMegaMenu ? (
+                <button
+                  key={item.href}
+                  type="button"
+                  className="text-sm text-muted-foreground transition hover:text-foreground"
+                  onMouseEnter={() => setMegaOpen(true)}
+                >
+                  {item.label} ▾
+                </button>
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-sm text-muted-foreground transition hover:text-foreground"
+                >
+                  {item.label}
+                </Link>
+              ),
+            )}
+          </div>
+          <SocialLinks links={socialLinks} variant="header" />
         </div>
       </nav>
 
@@ -179,6 +184,12 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          {socialLinks.length > 0 && (
+            <div className="mt-3 border-t border-border pt-3">
+              <p className="mb-1 text-xs font-semibold text-foreground">社交媒體</p>
+              <SocialLinks links={socialLinks} variant="header" />
+            </div>
+          )}
         </div>
       )}
 

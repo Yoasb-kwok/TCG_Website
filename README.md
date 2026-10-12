@@ -83,7 +83,22 @@ npm run db:seed
 
 右下角按鈕連到 `https://wa.me/` 加門市號碼。預設使用 `src/lib/constants.ts` 的 `STORE.whatsapp`（`66094893`，即 `https://wa.me/85266094893`）。
 
-要改號碼，在 `.env` 設定 `WHATSAPP_NUMBER`（8 位香港號碼或含 `852` 的國際號碼）。未設定或留空時沿用網站設定。
+要改號碼，在 `.env` 設定 `WHATSAPP_NUMBER`（8 位香港號碼或含 `852` 的國際號碼）。未設定或留空時沿用網站設定。有號碼時，頁尾「社交媒體」和桌面導覽列也會列出同一個 WhatsApp 連結；右下角浮動按鈕維持不變。
+
+## 社交媒體
+
+Instagram、Facebook 的圖示列在頁尾品牌欄（標題「社交媒體」），桌面版導覽列右側，以及手機選單底部。沒有網址的項目不會渲染。
+
+在 `.env` 填入完整網址（也可只寫 `instagram.com/帳號`，會補上 `https://`）：
+
+```
+SOCIAL_INSTAGRAM_URL="https://www.instagram.com/your-handle"
+SOCIAL_FACEBOOK_URL="https://www.facebook.com/your-page"
+```
+
+留空或填了無效網址就隱藏該圖示。預設 `src/lib/social.ts` 的 `href` 是空字串，所以未設定環境變數時店面不會出現壞掉的 Instagram / Facebook 連結。
+
+要再加一個平台（例如 YouTube），在 `SOCIAL_LINK_SLOTS` 加 `{ id, label, accessibleName, href, icon, envVar }`，並在同一個檔案的 `SOCIAL_ENV` 讀取該環境變數。未知的 `icon` 會顯示一般連結圖示。
 
 ## 收銀（POS）
 

@@ -6,6 +6,7 @@ import { AuthSessionProvider } from "@/providers/session-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { SITE_BRAND, SITE_TAGLINE } from "@/lib/constants";
+import { resolveSocialLinks } from "@/lib/social";
 import { resolveWhatsAppHref } from "@/lib/whatsapp";
 import {
   resolveThemeClass,
@@ -44,6 +45,7 @@ export default async function RootLayout({
   const resolved = resolveThemeClass(pref, "dark");
   const themePreference: ThemePreference =
     pref === "light" || pref === "dark" || pref === "system" ? pref : "dark";
+  const whatsappHref = resolveWhatsAppHref();
 
   return (
     <html
@@ -59,7 +61,12 @@ export default async function RootLayout({
         >
           <AuthSessionProvider>
             <CartProvider>
-              <StorefrontFrame whatsappHref={resolveWhatsAppHref()}>{children}</StorefrontFrame>
+              <StorefrontFrame
+                whatsappHref={whatsappHref}
+                socialLinks={resolveSocialLinks({ whatsappHref })}
+              >
+                {children}
+              </StorefrontFrame>
             </CartProvider>
           </AuthSessionProvider>
         </ThemeProvider>
