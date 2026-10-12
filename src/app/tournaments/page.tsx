@@ -35,11 +35,15 @@ export default async function TournamentsPage() {
         </div>
       </div>
 
-      <div className="mt-8 grid gap-4 md:grid-cols-2">
-        {tournaments.map((t) => (
-          <TournamentCard key={t.id} tournament={t} />
-        ))}
-      </div>
+      {tournaments.length === 0 ? (
+        <p className="mt-8 text-sm text-muted-foreground">暫無即將舉行的店賽</p>
+      ) : (
+        <div className="mt-8 grid gap-4 md:grid-cols-2">
+          {tournaments.map((t) => (
+            <TournamentCard key={t.id} tournament={t} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -50,11 +50,15 @@ export default async function HomePage() {
               全部賽事 <ArrowRight className="ml-1 h-4 w-4" />
             </Link>
           </div>
-          <div className="grid gap-4 md:grid-cols-2">
-            {tournaments.map((t) => (
-              <TournamentCard key={t.id} tournament={t} />
-            ))}
-          </div>
+          {tournaments.length === 0 ? (
+            <p className="text-sm text-muted-foreground">暫無即將舉行的店賽</p>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2">
+              {tournaments.map((t) => (
+                <TournamentCard key={t.id} tournament={t} />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
