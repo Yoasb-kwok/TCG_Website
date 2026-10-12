@@ -96,7 +96,7 @@ export function CatalogManager() {
       <section className="rounded-xl border border-border bg-card p-5">
         <h2 className="text-lg font-semibold">匯入官方卡表</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          用 Excel 另存「CSV UTF-8」再上傳。程式會去掉 BOM。收集編號請設成文字，避免 001/076 被 Excel 變成日期。
+          用 Excel 另存「CSV UTF-8」再上傳。UTF-8 的 BOM 可有可無；Excel 若存成帶 BOM 的 UTF-16 也可以。其他編碼會被拒絕，不會把亂碼寫進卡表。收集編號請設成文字，避免 001/076 被 Excel 變成日期。
           沒有繁中名稱的列會標成「待補」。已有的譯名不會被空白列蓋掉。CSV 沒有的卡不會刪除。
         </p>
         <p className="mt-2 text-sm">

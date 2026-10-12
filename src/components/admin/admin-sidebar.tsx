@@ -6,6 +6,7 @@ import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Library,
+  FileSpreadsheet,
   Package,
   Tags,
   Trophy,
@@ -23,6 +24,7 @@ const LINKS = [
   { href: "/admin/taxonomy", label: "標籤管理", icon: Tags },
   { href: "/admin/catalog", label: "卡表目錄", icon: Library },
   { href: "/admin/products", label: "商品名單", icon: Package },
+  { href: "/admin/data", label: "商品 CSV", icon: FileSpreadsheet },
   { href: "/admin/accounts", label: "帳戶", icon: Users },
   { href: "/admin/content", label: "網站內容", icon: FilePenLine },
   { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },

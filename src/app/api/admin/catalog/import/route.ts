@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { importCatalogCsv, isCatalogImportError } from "@/lib/catalog-import";
+import { CsvEncodingError, decodeCsvUpload } from "@/lib/csv-encoding";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 
 const MAX_CSV_BYTES = 2_000_000;
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
         if (file.size > MAX_CSV_BYTES) {
           return NextResponse.json({ error: "CSV 超過 2MB" }, { status: 400 });
         }
-        csv = await file.text();
+        csv = decodeCsvUpload(new Uint8Array(await file.arrayBuffer()));
       } else if (typeof pasted === "string") {
         csv = pasted;
       }
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     const result = await importCatalogCsv(getPrisma(), csv, { setCode, note });
     return NextResponse.json(result);
   } catch (err) {
-    if (isCatalogImportError(err)) {
+    if (err instanceof CsvEncodingError || isCatalogImportError(err)) {
       return NextResponse.json({ error: err.message }, { status: 400 });
     }
     const message = err instanceof Error ? err.message : "匯入失敗";
