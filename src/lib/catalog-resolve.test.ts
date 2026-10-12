@@ -1,5 +1,9 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { leadingCollectorIndex } from "./card-number-format";
+import { parseCatalogCsv } from "./catalog-csv";
+import { productSearchNeedles } from "./product-search";
 import {
   cardMatchesExactNumber,
   catalogResolvesProducts,
@@ -35,7 +39,28 @@ describe("classifyCatalogQuery", () => {
       setCode: "M6a",
       number: "001/086",
     });
+    assert.deepEqual(classifyCatalogQuery("M6a-001/086"), {
+      kind: "number",
+      setCode: "M6a",
+      number: "001/086",
+    });
     assert.deepEqual(classifyCatalogQuery("083"), { kind: "number", number: "083" });
+  });
+
+  it("reads a set code plus collector index with spaces, hyphens, or neither", () => {
+    for (const query of ["M6a 001", "M6a001", "M6a-001", "M6a_001"]) {
+      assert.deepEqual(classifyCatalogQuery(query), {
+        kind: "number",
+        setCode: "M6a",
+        number: "001",
+      });
+    }
+    assert.deepEqual(classifyCatalogQuery("m6a 001"), {
+      kind: "number",
+      setCode: "m6a",
+      number: "001",
+    });
+    assert.deepEqual(classifyCatalogQuery("M6a"), { kind: "text", search: "M6a" });
   });
 
   it("treats short set and energy codes as exact codes", () => {
@@ -50,6 +75,46 @@ describe("classifyCatalogQuery", () => {
       kind: "text",
       search: "30th CELEBRATION",
     });
+  });
+});
+
+describe("M6a catalog sample", () => {
+  const parsed = parseCatalogCsv(readFileSync("prisma/catalog/samples/m6a.csv", "utf8"));
+
+  function cardsForSetIndex(query: string) {
+    const classified = classifyCatalogQuery(query);
+    assert.equal(classified.kind, "number");
+    if (classified.kind !== "number" || !classified.setCode) return [];
+    return parsed.sets.flatMap((set) =>
+      set.code.toLowerCase() === classified.setCode?.toLowerCase()
+        ? set.cards.filter((card) => leadingCollectorIndex(card.collectorNumber) === classified.number)
+        : [],
+    );
+  }
+
+  it("finds the same printed card for spaced, compact, and hyphen queries", () => {
+    for (const query of ["M6a 001", "M6a001", "m6a 001", "M6a-001", "M6a_001"]) {
+      const hits = cardsForSetIndex(query);
+      assert.equal(hits.length, 1, query);
+      assert.equal(hits[0]?.nameZhTw, "蛋蛋", query);
+      assert.equal(hits[0]?.nameJa, "タマタマ", query);
+    }
+  });
+
+  it("still finds Traditional Chinese names and the English set name", () => {
+    assert.deepEqual(classifyCatalogQuery("皮卡丘"), { kind: "text", search: "皮卡丘" });
+    assert.deepEqual(classifyCatalogQuery("30th CELEBRATION"), {
+      kind: "text",
+      search: "30th CELEBRATION",
+    });
+    const needles = productSearchNeedles("皮卡丘").map((needle) => needle.toLowerCase());
+    const pikachu = parsed.sets.flatMap((set) =>
+      set.cards.filter((card) =>
+        needles.some((needle) => (card.nameZhTw ?? "").toLowerCase().includes(needle)),
+      ),
+    );
+    assert.ok(pikachu.length > 1);
+    assert.ok(parsed.sets.some((set) => set.nameEn === "30th CELEBRATION"));
   });
 });
 

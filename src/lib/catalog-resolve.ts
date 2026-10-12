@@ -4,6 +4,8 @@
  * Barcode-shaped queries stay on Product / ProductVariant only.
  */
 
+import { parseSetCollectorCode } from "@/lib/card-number-format";
+
 export interface CatalogResolveCard {
   setCode: string;
   collectorNumber: string;
@@ -19,8 +21,30 @@ export type CatalogQueryClass =
   | { kind: "text"; search: string };
 
 const BARCODE = /^\d{8,}$/;
-const FULL_NUMBER =
-  /^(?:([A-Za-z][A-Za-z0-9._-]*)[ \t]+)?#?[ \t]*0*(\d{1,4})[ \t]*[/／\-\\][ \t]*0*(\d{1,4})$/;
+const FRACTION = /^#?[ \t]*0*(\d{1,4})[ \t]*[/／\-\\][ \t]*0*(\d{1,4})$/;
+const SET_FRACTION_SEPARATED =
+  /^([A-Za-z][A-Za-z0-9.]*)[\s\-_]+#?[ \t]*0*(\d{1,4})[ \t]*[/／\-\\][ \t]*0*(\d{1,4})$/;
+const SET_FRACTION_COMPACT =
+  /^([A-Za-z][A-Za-z0-9.]*[A-Za-z])#?0*(\d{1,4})[ \t]*[/／\-\\][ \t]*0*(\d{1,4})$/;
+
+function fractionNumber(index: string, total: string): string {
+  const width = Math.max(3, index.length, total.length);
+  return `${index.padStart(width, "0")}/${total.padStart(width, "0")}`;
+}
+
+function parseFractionQuery(raw: string): { setCode?: string; number: string } | null {
+  const separated = raw.match(SET_FRACTION_SEPARATED);
+  if (separated) {
+    return { setCode: separated[1], number: fractionNumber(separated[2], separated[3]) };
+  }
+  const compact = raw.match(SET_FRACTION_COMPACT);
+  if (compact) {
+    return { setCode: compact[1], number: fractionNumber(compact[2], compact[3]) };
+  }
+  const plain = raw.match(FRACTION);
+  if (plain) return { number: fractionNumber(plain[1], plain[2]) };
+  return null;
+}
 
 export function classifyCatalogQuery(raw: string): CatalogQueryClass {
   const trimmed = raw.trim();
@@ -29,14 +53,14 @@ export function classifyCatalogQuery(raw: string): CatalogQueryClass {
   const compact = trimmed.replace(/\s+/g, "");
   if (BARCODE.test(compact)) return { kind: "skip" };
 
-  const full = trimmed.match(FULL_NUMBER);
-  if (full) {
-    const width = Math.max(3, full[2].length, full[3].length);
-    return {
-      kind: "number",
-      setCode: full[1],
-      number: `${full[2].padStart(width, "0")}/${full[3].padStart(width, "0")}`,
-    };
+  const fraction = parseFractionQuery(trimmed);
+  if (fraction) {
+    return { kind: "number", setCode: fraction.setCode, number: fraction.number };
+  }
+
+  const setIndex = parseSetCollectorCode(trimmed);
+  if (setIndex) {
+    return { kind: "number", setCode: setIndex.setCode, number: setIndex.index };
   }
 
   if (/^\d{2,4}$/.test(compact)) return { kind: "number", number: compact };

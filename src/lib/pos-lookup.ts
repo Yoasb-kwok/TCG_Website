@@ -1,5 +1,5 @@
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
-import { matchPosScan, type PosScanMatch } from "@/lib/pos-scan";
+import { matchPosScan, posScanOr, type PosScanMatch } from "@/lib/pos-scan";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { enrichProduct } from "@/lib/products";
 import type { ProductWithVariants } from "@/lib/types";
@@ -17,13 +17,7 @@ export async function lookupPosScan(raw: string): Promise<PosLookupMatch | null>
 
   const prisma = getPrisma();
   const products = await prisma.product.findMany({
-    where: {
-      OR: [
-        { variants: { some: { barcode: { equals: query, mode: "insensitive" } } } },
-        { variants: { some: { sku: { equals: query, mode: "insensitive" } } } },
-        { cardNumber: { equals: query, mode: "insensitive" } },
-      ],
-    },
+    where: { OR: posScanOr(query) },
     include: {
       variants: { orderBy: { price: "asc" } },
       images: { orderBy: { sortOrder: "asc" } },
