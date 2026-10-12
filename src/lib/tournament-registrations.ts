@@ -2,25 +2,44 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
-import type { TournamentItem } from "@/lib/types";
+import {
+  parseRegistrationInput,
+  registrationConflict,
+  registrationClosedLabel,
+} from "@/lib/registration-input";
+import type { RegistrationInput, TournamentItem } from "@/lib/types";
 
 export type RegistrationRecord = {
   id: string;
   slug: string;
   playerName: string;
   phone: string;
+  email?: string;
   createdAt: string;
 };
 
 const filePath = path.join(process.cwd(), "data", "tournament-registrations.json");
 
+const DB_CONNECTION_ERRORS = new Set([
+  "ECONNREFUSED",
+  "ETIMEDOUT",
+  "ENOTFOUND",
+  "P1001",
+  "P1002",
+  "P1017",
+]);
+
 let writeQueue: Promise<unknown> = Promise.resolve();
 
-function normalizePhone(input: string): string | null {
-  let digits = input.replace(/\D/g, "");
-  if (digits.startsWith("852") && digits.length === 11) digits = digits.slice(3);
-  if (!/^\d{8}$/.test(digits)) return null;
-  return digits;
+function errorCode(error: unknown): string {
+  if (typeof error === "object" && error !== null && "code" in error) {
+    return String((error as { code: unknown }).code);
+  }
+  return "";
+}
+
+function isDbConnectionError(error: unknown): boolean {
+  return DB_CONNECTION_ERRORS.has(errorCode(error));
 }
 
 async function readFileRegistrations(): Promise<RegistrationRecord[]> {
@@ -113,48 +132,46 @@ export async function getPublicTournament(slug: string): Promise<TournamentItem 
   return tournaments.find((tournament) => tournament.slug === slug) ?? null;
 }
 
-export function registrationOpen(tournament: TournamentItem, now = new Date()) {
-  if (tournament.status !== "OPEN") return false;
-  if (tournament.registeredCount >= tournament.maxPlayers) return false;
-  return new Date(tournament.registrationDeadline).getTime() > now.getTime();
-}
-
 type RegisterResult =
   | { ok: true; registration: RegistrationRecord }
   | { ok: false; error: string; status: number };
 
 export async function registerForTournament(
   slug: string,
-  playerName: string,
-  phoneInput: string,
+  input: {
+    playerName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+  },
 ): Promise<RegisterResult> {
-  const name = playerName.trim();
-  if (!name || name.length > 40) {
-    return { ok: false, error: "請填寫名字", status: 400 };
-  }
-  const phone = normalizePhone(phoneInput);
-  if (!phone) {
-    return { ok: false, error: "請填寫 8 位香港手機號碼", status: 400 };
-  }
+  const parsed = parseRegistrationInput(input);
+  if (!parsed.ok) return parsed;
 
   if (isDatabaseConfigured()) {
     try {
-      const saved = await registerInDatabase(slug, name, phone);
+      const saved = await registerInDatabase(slug, parsed.value);
       if (saved) return saved;
-    } catch {
-      // The database is configured but unavailable; keep the local list working.
+    } catch (error) {
+      const demo = demoBySlug(slug);
+      if (!isDbConnectionError(error) || !demo) {
+        if (isDbConnectionError(error)) {
+          return { ok: false, error: "數據庫連接失敗，請稍後再試", status: 503 };
+        }
+        console.error("Registration error:", error);
+        return { ok: false, error: "報名失敗，請重試", status: 500 };
+      }
+      // The database is configured but unreachable. Demo events still accept a local signup.
     }
   }
 
   const tournament = demoBySlug(slug);
   if (!tournament) return { ok: false, error: "找不到賽事", status: 404 };
-  return registerInFile(tournament, name, phone);
+  return registerInFile(tournament, parsed.value);
 }
 
 async function registerInDatabase(
   slug: string,
-  playerName: string,
-  phone: string,
+  input: RegistrationInput,
 ): Promise<RegisterResult | null> {
   const prisma = getPrisma();
   const tournament = await prisma.tournament.findUnique({
@@ -164,69 +181,81 @@ async function registerInDatabase(
   if (!tournament) return null;
 
   const publicTournament = mapDbTournament(tournament);
-  if (publicTournament.status !== "OPEN") {
-    return { ok: false, error: "這場賽事未有開放報名", status: 400 };
-  }
-  if (new Date(publicTournament.registrationDeadline).getTime() <= Date.now()) {
-    return { ok: false, error: "報名已截止", status: 400 };
-  }
-  if (publicTournament.registeredCount >= publicTournament.maxPlayers) {
-    return { ok: false, error: "名額已滿", status: 400 };
+  const closed = registrationClosedLabel(publicTournament);
+  if (closed) {
+    const error =
+      closed === "賽事已取消" || closed === "賽事已結束" ? "此賽事已不再接受報名" : closed;
+    return { ok: false, error, status: 400 };
   }
 
-  const existing = await prisma.tournamentRegistration.findFirst({
-    where: { tournamentId: tournament.id, phone },
-  });
-  if (existing) return { ok: false, error: "此號碼已報名", status: 409 };
+  try {
+    const outcome = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM "Tournament" WHERE id = ${tournament.id} FOR UPDATE`;
+      const existing = await tx.tournamentRegistration.findMany({
+        where: { tournamentId: tournament.id },
+        select: { email: true, phone: true },
+      });
+      const conflict = registrationConflict(existing, input, tournament.maxPlayers);
+      if (conflict) return { ok: false as const, error: conflict.error, status: conflict.status };
 
-  const created = await prisma.tournamentRegistration.create({
-    data: {
-      tournamentId: tournament.id,
-      playerName,
-      phone,
-    },
-  });
+      const created = await tx.tournamentRegistration.create({
+        data: {
+          tournamentId: tournament.id,
+          playerName: input.playerName,
+          email: input.email,
+          phone: input.phone,
+        },
+      });
+      return { ok: true as const, created };
+    });
 
-  return {
-    ok: true,
-    registration: {
-      id: created.id,
-      slug,
-      playerName: created.playerName,
-      phone: created.phone,
-      createdAt: created.createdAt.toISOString(),
-    },
-  };
+    if (!outcome.ok) return outcome;
+
+    return {
+      ok: true,
+      registration: {
+        id: outcome.created.id,
+        slug,
+        playerName: outcome.created.playerName,
+        email: outcome.created.email ?? input.email,
+        phone: outcome.created.phone,
+        createdAt: outcome.created.createdAt.toISOString(),
+      },
+    };
+  } catch (error) {
+    if (errorCode(error) === "P2002") {
+      return { ok: false, error: "此電郵或電話已報名此賽事", status: 409 };
+    }
+    throw error;
+  }
 }
 
 async function registerInFile(
   tournament: (typeof DEMO_TOURNAMENTS)[number],
-  playerName: string,
-  phone: string,
+  input: RegistrationInput,
 ): Promise<RegisterResult> {
   if (tournament.status !== "OPEN") {
-    return { ok: false, error: "這場賽事未有開放報名", status: 400 };
+    return { ok: false, error: "此賽事已不再接受報名", status: 400 };
   }
-  if (new Date(tournament.registrationDeadline).getTime() <= Date.now()) {
+  const deadline = new Date(tournament.registrationDeadline).getTime();
+  if (Number.isNaN(deadline) || deadline <= Date.now()) {
     return { ok: false, error: "報名已截止", status: 400 };
   }
 
-  let result: RegisterResult = { ok: false, error: "報名失敗", status: 500 };
+  let result: RegisterResult = { ok: false, error: "報名失敗，請重試", status: 500 };
   await updateFileRegistrations((records) => {
     const mine = records.filter((record) => record.slug === tournament.slug);
-    if (mine.length >= tournament.maxPlayers) {
-      result = { ok: false, error: "名額已滿", status: 400 };
-      return records;
-    }
-    if (mine.some((record) => record.phone === phone)) {
-      result = { ok: false, error: "此號碼已報名", status: 409 };
+    const conflict = registrationConflict(mine, input, tournament.maxPlayers);
+    if (conflict) {
+      result = { ok: false, error: conflict.error, status: conflict.status };
       return records;
     }
     const registration: RegistrationRecord = {
       id: crypto.randomUUID(),
       slug: tournament.slug,
-      playerName,
-      phone,
+      playerName: input.playerName,
+      email: input.email,
+      phone: input.phone,
       createdAt: new Date().toISOString(),
     };
     result = { ok: true, registration };
@@ -250,6 +279,7 @@ export async function listRegistrationRosters() {
           registrations: tournament.registrations.map((registration) => ({
             id: registration.id,
             playerName: registration.playerName,
+            email: registration.email,
             phone: registration.phone,
             createdAt: registration.createdAt.toISOString(),
           })),
@@ -269,6 +299,7 @@ export async function listRegistrationRosters() {
       .map((record) => ({
         id: record.id,
         playerName: record.playerName,
+        email: record.email ?? null,
         phone: record.phone,
         createdAt: record.createdAt,
       })),

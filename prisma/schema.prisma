@@ -244,11 +244,13 @@ model TournamentRegistration {
   userId       String?
   user         User?      @relation(fields: [userId], references: [id])
   playerName   String
+  /** 新報名必填。舊的只留電話的紀錄可以是 NULL，PostgreSQL unique 允許多個 NULL。 */
   email        String?
   phone        String
   createdAt    DateTime   @default(now())
 
   @@unique([tournamentId, phone])
+  @@unique([tournamentId, email])
 }
 
 enum PosPaymentMethod {

@@ -3,6 +3,7 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { formatDate, formatPrice } from "@/lib/format";
+import { registrationClosedLabel } from "@/lib/registration-input";
 import { liveBoardHref } from "@/lib/tournament-board";
 import type { TournamentItem } from "@/lib/types";
 
@@ -20,8 +21,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export function TournamentCard({ tournament }: TournamentCardProps) {
-  const spotsLeft = tournament.maxPlayers - tournament.registeredCount;
-  const isOpen = tournament.status === "OPEN" && spotsLeft > 0;
+  const closedLabel = registrationClosedLabel(tournament);
+  const isOpen = closedLabel === null;
+  const detailsHref = isOpen
+    ? `/tournaments/${tournament.slug}/register`
+    : `/tournaments/${tournament.slug}`;
 
   return (
     <Card className="border-border bg-card text-foreground">
@@ -71,7 +75,7 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
             開始店賽
           </Link>
           <Link
-            href={`/tournaments/${tournament.slug}`}
+            href={detailsHref}
             className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
           >
             {isOpen ? "立即報名" : "查看詳情"}

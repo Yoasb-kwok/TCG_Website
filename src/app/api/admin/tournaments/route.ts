@@ -35,7 +35,7 @@ export async function GET() {
         registrations: registrations.map((registration) => ({
           id: registration.id,
           playerName: registration.playerName,
-          email: null,
+          email: registration.email,
           phone: registration.phone,
           createdAt: registration.createdAt,
         })),
