@@ -108,3 +108,10 @@ export interface TournamentItem {
   status: string;
   registeredCount: number;
 }
+
+/** Body of a tournament signup. The route identifies the event by slug. */
+export interface RegistrationInput {
+  playerName: string;
+  email: string;
+  phone: string;
+}
