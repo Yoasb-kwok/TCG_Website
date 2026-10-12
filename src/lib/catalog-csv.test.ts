@@ -9,6 +9,7 @@ import {
   templateCatalogCsv,
   toCatalogCsv,
 } from "./catalog-csv";
+import { decodeCsvUpload, excelCsvBytes } from "./csv-encoding";
 
 describe("parseCatalogCsv", () => {
   it("strips a UTF-8 BOM and accepts Excel CRLF", () => {
@@ -71,6 +72,16 @@ describe("parseCatalogCsv", () => {
     assert.equal(parsed.sets[0].code, "M6");
     assert.equal(card.nameZhTw, "赫拉,克羅斯");
     assert.equal(card.nameJa, "ヘラクロス");
+  });
+
+  it("download bytes are UTF-8 with one BOM so Excel keeps Traditional Chinese", () => {
+    const bytes = excelCsvBytes(templateCatalogCsv());
+    assert.deepEqual(Array.from(bytes.subarray(0, 3)), [0xef, 0xbb, 0xbf]);
+    assert.notDeepEqual(Array.from(bytes.subarray(3, 6)), [0xef, 0xbb, 0xbf]);
+    const parsed = parseCatalogCsv(decodeCsvUpload(bytes));
+    assert.equal(parsed.sets[0].nameZhTw, "綠寶石風暴");
+    assert.equal(parsed.sets[0].cards[0].nameZhTw, "赫拉克羅斯");
+    assert.equal(parsed.sets[0].cards[0].nameJa, "ヘラクロス");
   });
 
   it("round-trips the template, including a blank zh-tw name", () => {
