@@ -38,7 +38,13 @@ npm run dev
 npm run db:migrate
 ```
 
-4. （可選）從 Pokémon TCG API 匯入卡牌：
+4. （可選）把固定示範店賽寫進資料庫。只需要 `DATABASE_URL`。已存在的 slug 不會被覆蓋：
+
+```bash
+npm run db:seed-tournaments
+```
+
+5. （可選）從 Pokémon TCG API 匯入卡牌：
 
 ```bash
 npm run db:seed
