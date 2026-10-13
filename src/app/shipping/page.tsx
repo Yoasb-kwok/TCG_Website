@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { InfoPageLayout, InfoSection } from "@/components/info/info-page-layout";
 import { SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
+import { getStoreMapsUrl } from "@/lib/store-maps";
 
 export const metadata = {
   title: "送貨方式",
@@ -21,7 +22,16 @@ export default function ShippingPage() {
         {SHOW_STORE_ADDRESS ? (
           <>
             <p className="font-medium text-foreground">自取地址</p>
-            <p>{STORE.address.zh}</p>
+            <p>
+              <a
+                href={getStoreMapsUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline-offset-4 hover:underline"
+              >
+                {STORE.address.zh}
+              </a>
+            </p>
             <p className="text-muted-foreground">{STORE.address.en}</p>
             <p className="text-muted-foreground">{STORE.mtr}</p>
           </>

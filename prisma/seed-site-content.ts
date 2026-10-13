@@ -63,6 +63,23 @@ async function seedAbout() {
     where: { id: "default" },
   });
   if (existing) {
+    const legacy =
+      (existing.storeAddressZh ?? "").includes("宏開道") ||
+      (existing.storeAddressEn ?? "").toLowerCase().includes("wang hoi") ||
+      (existing.mapEmbedUrl ?? "").toLowerCase().includes("wang hoi");
+    if (legacy) {
+      await prisma.aboutPageContent.update({
+        where: { id: "default" },
+        data: {
+          storeAddressZh: DEFAULT_ABOUT_CONTENT.storeAddressZh,
+          storeAddressEn: DEFAULT_ABOUT_CONTENT.storeAddressEn,
+          mapEmbedUrl: DEFAULT_ABOUT_CONTENT.mapEmbedUrl,
+          showStoreInfo: true,
+        },
+      });
+      console.log("✓ 已更新關於我們門市地址");
+      return;
+    }
     console.log("✓ 關於我們已有內容，略過");
     return;
   }

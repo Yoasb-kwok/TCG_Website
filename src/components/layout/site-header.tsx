@@ -20,7 +20,7 @@ import { CartSheet } from "@/components/cart/cart-sheet";
 import { SocialLinks } from "@/components/layout/social-links";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useCart } from "@/providers/cart-provider";
-import { NAV_ITEMS, SITE_BRAND } from "@/lib/constants";
+import { NAV_ITEMS, SITE_BRAND, STORE } from "@/lib/constants";
 import type { ResolvedSocialLink } from "@/lib/social";
 import { getStoreMapsUrl } from "@/lib/store-maps";
 
@@ -54,8 +54,8 @@ export function SiteHeader({ socialLinks }: { socialLinks: ResolvedSocialLink[] 
             target="_blank"
             rel="noopener noreferrer"
             className="hidden rounded-md p-2 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:inline-flex"
-            aria-label="開啟門市地圖"
-            title="開啟門市地圖"
+            aria-label={`開啟門市地圖：${STORE.address.zh}`}
+            title={STORE.address.zh}
           >
             <MapPin className="h-5 w-5" aria-hidden="true" />
           </a>

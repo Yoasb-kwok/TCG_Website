@@ -1,6 +1,7 @@
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { HERO_BANNERS, SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
+import { getStoreMapEmbedUrl } from "@/lib/store-maps";
 import type { ProductWithVariants } from "@/lib/types";
 
 export interface MenuBannerItem {
@@ -81,7 +82,7 @@ export const DEFAULT_ABOUT_CONTENT: AboutContent = {
   storeAddressEn: STORE.address.en,
   storeHours: STORE.hours,
   storeMtr: STORE.mtr,
-  mapEmbedUrl: "",
+  mapEmbedUrl: getStoreMapEmbedUrl(),
   contactBody:
     "如有商品查詢、預留或賽事報名問題，歡迎透過網站右下角 WhatsApp 按鈕與我們聯絡。\n\n線上訂單一般於 1–2 個工作天內處理；門市自取請待收到「可取貨」通知後前往。",
   showStoreInfo: SHOW_STORE_ADDRESS,
@@ -133,6 +134,18 @@ function normalizeSections(raw: unknown): AboutSectionItem[] {
     })
     .filter(Boolean) as AboutSectionItem[];
   return sections.length ? sections : DEFAULT_ABOUT_CONTENT.sections;
+}
+
+/** Stored copy that still names the previous street address. */
+function isLegacyStoreCopy(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return /宏開道|wang hoi/i.test(value);
+}
+
+function resolveStoreAddress(stored: string | null | undefined, fallback: string): string {
+  const value = stored?.trim() ?? "";
+  if (!value || isLegacyStoreCopy(value)) return fallback;
+  return value;
 }
 
 function normalizeMapEmbedUrl(raw: string | null | undefined): string {
@@ -226,17 +239,25 @@ export async function getAboutContent(): Promise<AboutContent> {
     });
     if (!row) return DEFAULT_ABOUT_CONTENT;
 
+    const legacyAddress =
+      isLegacyStoreCopy(row.storeAddressZh) || isLegacyStoreCopy(row.storeAddressEn);
+    const storedMap = normalizeMapEmbedUrl(row.mapEmbedUrl);
+    const mapEmbedUrl =
+      !storedMap || isLegacyStoreCopy(row.mapEmbedUrl)
+        ? DEFAULT_ABOUT_CONTENT.mapEmbedUrl
+        : storedMap;
+
     return {
       pageTitle: row.pageTitle || DEFAULT_ABOUT_CONTENT.pageTitle,
       pageSubtitle: row.pageSubtitle || DEFAULT_ABOUT_CONTENT.pageSubtitle,
       sections: normalizeSections(row.sections),
-      storeAddressZh: row.storeAddressZh || DEFAULT_ABOUT_CONTENT.storeAddressZh,
-      storeAddressEn: row.storeAddressEn || DEFAULT_ABOUT_CONTENT.storeAddressEn,
+      storeAddressZh: resolveStoreAddress(row.storeAddressZh, DEFAULT_ABOUT_CONTENT.storeAddressZh),
+      storeAddressEn: resolveStoreAddress(row.storeAddressEn, DEFAULT_ABOUT_CONTENT.storeAddressEn),
       storeHours: row.storeHours || DEFAULT_ABOUT_CONTENT.storeHours,
       storeMtr: row.storeMtr || DEFAULT_ABOUT_CONTENT.storeMtr,
-      mapEmbedUrl: normalizeMapEmbedUrl(row.mapEmbedUrl),
+      mapEmbedUrl,
       contactBody: row.contactBody || DEFAULT_ABOUT_CONTENT.contactBody,
-      showStoreInfo: row.showStoreInfo,
+      showStoreInfo: legacyAddress ? SHOW_STORE_ADDRESS : row.showStoreInfo,
     };
   } catch {
     return DEFAULT_ABOUT_CONTENT;
