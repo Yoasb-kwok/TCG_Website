@@ -3,6 +3,7 @@ import { InfoPageLayout, InfoSection } from "@/components/info/info-page-layout"
 import { GoogleMapEmbed } from "@/components/info/google-map-embed";
 import { SITE_BRAND } from "@/lib/constants";
 import { getAboutContent } from "@/lib/site-content";
+import { getStoreMapsUrl } from "@/lib/store-maps";
 import { resolveWhatsAppHref, whatsappDisplayNumber } from "@/lib/whatsapp";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,7 +34,16 @@ export default async function AboutPage() {
 
       {about.showStoreInfo && (
         <InfoSection title="門市資訊">
-          <p className="font-medium text-foreground">{about.storeAddressZh}</p>
+          <p className="font-medium text-foreground">
+            <a
+              href={getStoreMapsUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline-offset-4 hover:underline"
+            >
+              {about.storeAddressZh}
+            </a>
+          </p>
           <p className="mt-1 text-muted-foreground">{about.storeAddressEn}</p>
           <p className="mt-2">{about.storeMtr}</p>
           <p className="mt-2">營業時間：{about.storeHours}</p>

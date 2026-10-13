@@ -2,6 +2,7 @@ import Link from "next/link";
 import { SocialLinks } from "@/components/layout/social-links";
 import { SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
 import type { ResolvedSocialLink } from "@/lib/social";
+import { getStoreMapsUrl } from "@/lib/store-maps";
 
 export function SiteFooter({ socialLinks }: { socialLinks: ResolvedSocialLink[] }) {
   return (
@@ -11,7 +12,16 @@ export function SiteFooter({ socialLinks }: { socialLinks: ResolvedSocialLink[] 
           <p className="font-semibold text-foreground">{SITE_BRAND}</p>
           <p className="mt-2 text-sm">香港 Pokémon TCG 專門店 · 單卡買賣 · 店賽舉辦</p>
           {SHOW_STORE_ADDRESS && (
-            <p className="mt-3 text-sm">{STORE.address.zh}</p>
+            <p className="mt-3 text-sm">
+              <a
+                href={getStoreMapsUrl()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-foreground"
+              >
+                {STORE.address.zh}
+              </a>
+            </p>
           )}
           <SocialLinks links={socialLinks} variant="footer" />
         </div>

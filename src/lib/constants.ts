@@ -8,8 +8,8 @@ export const SITE_NAME_EN = SITE_BRAND;
 
 export const SITE_TAGLINE = "香港 Pokémon TCG 專門店";
 
-/** 是否顯示門市實際地址（暫時關閉） */
-export const SHOW_STORE_ADDRESS = false;
+/** 前台顯示門市地址（頁尾、送貨頁、關於我們預設內容） */
+export const SHOW_STORE_ADDRESS = true;
 export const CURRENCY = "HKD";
 export const LOCALE = "zh-HK";
 
@@ -17,12 +17,13 @@ export const STORE = {
   name: SITE_NAME,
   nameEn: SITE_NAME_EN,
   address: {
-    zh: "九龍灣宏開道15號九龍灣工業中心7樓28室",
-    en: "Unit 28, 7/F, Kowloon Bay Industrial Centre, 15 Wang Hoi Road, Kowloon Bay",
+    zh: "九龍灣工業中心7樓28室",
+    en: "Kowloon Bay Industrial Centre, 7/F Room 28",
   },
   hours: "週一至週日 12:00 – 22:00",
   mtr: "九龍灣站 B 出口，步行約 8 分鐘",
-  mapQuery: "Kowloon Bay Industrial Centre, 15 Wang Hoi Road, Kowloon Bay",
+  /** Geocodable building query for the map pin and embed. */
+  mapQuery: "Kowloon Bay Industrial Centre Room 28 7/F Hong Kong",
   /**
    * 門市公開電話（訓練家網站 T&R TCG HK）。
    * WhatsApp 浮動按鈕用此號碼；設定環境變數 WHATSAPP_NUMBER 可覆寫。
