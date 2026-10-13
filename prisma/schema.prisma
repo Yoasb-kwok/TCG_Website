@@ -257,6 +257,13 @@ model TournamentRegistration {
   @@unique([tournamentId, email])
 }
 
+/// 店賽現場計分板。職員由 /pos/scoreboard 寫入，公開 /tournaments/live 讀取。
+model ShopBoard {
+  id        String   @id
+  state     Json
+  updatedAt DateTime @updatedAt
+}
+
 enum PosPaymentMethod {
   CASH
   PAYME

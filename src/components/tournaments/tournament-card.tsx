@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { formatDate, formatPrice } from "@/lib/format";
 import { registrationClosedLabel } from "@/lib/registration-input";
-import { liveBoardHref } from "@/lib/tournament-board";
 import type { TournamentItem } from "@/lib/types";
 
 interface TournamentCardProps {
@@ -69,10 +68,10 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
         </span>
         <div className="flex flex-wrap items-center gap-2">
           <Link
-            href={liveBoardHref(tournament)}
+            href="/tournaments/live"
             className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
           >
-            開始店賽
+            現場計分板
           </Link>
           <Link
             href={detailsHref}

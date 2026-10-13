@@ -30,7 +30,13 @@ export default async function TournamentsPage() {
             href="/tournaments/live"
             className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
           >
-            計分板 / 計時
+            現場計分板
+          </Link>
+          <Link
+            href="/pos/scoreboard"
+            className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm font-medium"
+          >
+            職員計分
           </Link>
         </div>
       </div>

@@ -29,6 +29,7 @@ import {
   parseClockInput,
   playerName,
   roundMatches,
+  publishBoardInput,
   saveBoard,
   setMatchResult,
   startTimerState,
@@ -112,7 +113,7 @@ function scoreLabel(match: Match) {
   return `${match.winsA}–${match.winsB}`;
 }
 
-export function LiveBoard() {
+export function LiveBoard({ remote = false }: { remote?: boolean }) {
   const searchParams = useSearchParams();
   const searchKey = searchParams.toString();
   const [board, setBoard] = useState<BoardState | null>(null);
@@ -131,10 +132,15 @@ export function LiveBoard() {
   const [fullscreen, setFullscreen] = useState(false);
   const [alarmOn, setAlarmOn] = useState(false);
   const [clockDraft, setClockDraft] = useState<string | null>(null);
+  const [syncState, setSyncState] = useState<"idle" | "ok" | "error" | "denied">("idle");
   const expiredRef = useRef(false);
   const skipClockCommit = useRef(false);
   const clockDraftRef = useRef<string | null>(null);
   const storageKeyRef = useRef("default");
+  const remoteReady = useRef(false);
+  const loadedJson = useRef("");
+  const saveTimer = useRef(0);
+  const saveChain = useRef(Promise.resolve());
 
   const setClockText = (value: string | null) => {
     clockDraftRef.current = value;
@@ -142,6 +148,38 @@ export function LiveBoard() {
   };
 
   useEffect(() => {
+    if (remote) {
+      let cancelled = false;
+      remoteReady.current = false;
+      fetch("/api/tournaments/board", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error("board"))))
+        .then((data: { board?: unknown }) => {
+          if (cancelled) return;
+          const loaded = publishBoardInput(data.board);
+          loadedJson.current = JSON.stringify(loaded);
+          remoteReady.current = true;
+          storageKeyRef.current = "remote";
+          setBoard(loaded);
+          setStoredKey("remote");
+          setEventSlug("");
+          setEventTitle("");
+          setViewRound(Math.max(1, latestRound(loaded.matches)));
+        })
+        .catch(() => {
+          if (cancelled) return;
+          const loaded = defaultBoard();
+          loadedJson.current = JSON.stringify(loaded);
+          remoteReady.current = true;
+          storageKeyRef.current = "remote";
+          setBoard(loaded);
+          setStoredKey("remote");
+          setSyncState("error");
+        });
+      return () => {
+        cancelled = true;
+      };
+    }
+
     const params = new URLSearchParams(searchKey);
     const slug = params.get("slug")?.trim() ?? "";
     const title = params.get("title")?.trim() ?? "";
@@ -160,15 +198,41 @@ export function LiveBoard() {
     setEventSlug(slug);
     setEventTitle(title);
     setViewRound(Math.max(1, latestRound(loaded.matches)));
-  }, [searchKey]);
+  }, [searchKey, remote]);
 
   useEffect(() => () => stopAlarm(), []);
 
   useEffect(() => {
-    if (board && storedKey && storedKey === storageKeyRef.current) {
+    if (!board || !storedKey || storedKey !== storageKeyRef.current) return;
+    if (!remote) {
       saveBoard(board, storedKey);
+      return;
     }
-  }, [board, storedKey]);
+    if (!remoteReady.current) return;
+    const snapshot = board;
+    const json = JSON.stringify(snapshot);
+    if (json === loadedJson.current) return;
+    window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(() => {
+      saveChain.current = saveChain.current
+        .catch(() => undefined)
+        .then(async () => {
+          const res = await fetch("/api/tournaments/board", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: json,
+          });
+          if (res.ok) {
+            loadedJson.current = json;
+            setSyncState("ok");
+            return;
+          }
+          setSyncState(res.status === 401 || res.status === 403 ? "denied" : "error");
+        })
+        .catch(() => setSyncState("error"));
+    }, 200);
+    return () => window.clearTimeout(saveTimer.current);
+  }, [board, storedKey, remote]);
 
   useEffect(() => {
     if (!board?.timerRunning || board.timerEndsAt == null) return;
@@ -280,7 +344,7 @@ export function LiveBoard() {
   const missingRoster = rosterSignups.filter(
     (signup) => !board.players.some((player) => player.name === signup.playerName),
   );
-  const canLoadTest = board.matches.length === 0 && activeCount < 2;
+  const canLoadTest = !remote && board.matches.length === 0 && activeCount < 2;
 
   const loadTestPlayers = () => {
     if (!canLoadTest) return;
@@ -395,9 +459,24 @@ export function LiveBoard() {
       <header className="grid shrink-0 gap-4 border-b border-white/10 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-6">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3">
-            <Link href="/tournaments" className="text-xs font-medium text-pink-300 hover:text-pink-200">
-              ← 店賽
-            </Link>
+            {remote ? (
+              <Link href="/pos" className="text-xs font-medium text-pink-300 hover:text-pink-200">
+                ← 收銀
+              </Link>
+            ) : (
+              <Link href="/tournaments" className="text-xs font-medium text-pink-300 hover:text-pink-200">
+                ← 店賽
+              </Link>
+            )}
+            {remote && (
+              <Link
+                href="/tournaments/live"
+                target="_blank"
+                className="text-xs font-medium text-pink-300 hover:text-pink-200"
+              >
+                公開計分板
+              </Link>
+            )}
             <p className="text-xs text-zinc-400">瑞士輪 · 勝 3 · 和 1 · 負 0 · 同分比 OMP、GWP、OGP</p>
           </div>
           <input
@@ -466,6 +545,17 @@ export function LiveBoard() {
           <p className={cn("text-sm font-semibold", timeUp ? "text-red-400" : "text-zinc-400")}>
             {timeUp ? "時間到" : board.timerRunning ? "計時中" : "計時暫停 · 點擊時間可修改"}
           </p>
+          {remote && (
+            <p className={cn("text-xs", syncState === "ok" ? "text-emerald-300" : syncState === "idle" ? "text-zinc-500" : "text-red-300")}>
+              {syncState === "ok"
+                ? "已同步公開計分板"
+                : syncState === "denied"
+                  ? "需要職員登入先可以同步"
+                  : syncState === "error"
+                    ? "未能同步到公開計分板"
+                    : "改動會送到公開計分板"}
+            </p>
+          )}
           {board.timerRunning ? (
             <p
               className={cn(
@@ -808,7 +898,9 @@ export function LiveBoard() {
           <DialogHeader>
             <DialogTitle>選手名單</DialogTitle>
             <DialogDescription className="text-zinc-400">
-              資料只存在這部電腦的瀏覽器，大螢幕請用同一部電腦開啟。退賽選手不會再被配對。
+              {remote
+                ? "名單、比分同計時會同步到公開計分板，電視請開現場計分板。退賽選手不會再被配對。"
+                : "資料只存在這部電腦的瀏覽器，大螢幕請用同一部電腦開啟。退賽選手不會再被配對。"}
             </DialogDescription>
           </DialogHeader>
           <form

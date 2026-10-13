@@ -52,4 +52,5 @@ next-env.d.ts
 # local JSON stores when no database is configured
 /data/tournament-registrations.json
 /data/pos-ledger.json
+/data/shop-board.json
 .neon
