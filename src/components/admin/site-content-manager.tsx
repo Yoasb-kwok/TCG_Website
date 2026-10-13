@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ExternalLink, Plus, Trash2, Upload } from "lucide-react";
+import { MapVideoEditor } from "@/components/admin/map-video-editor";
 import { MenuBannerEditor } from "@/components/admin/menu-banner-editor";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -573,6 +574,7 @@ export function SiteContentManager() {
           <Input value={storeHours} onValueChange={setStoreHours} placeholder="營業時間" />
           <Input value={storeMtr} onValueChange={setStoreMtr} placeholder="地鐵資訊" />
           <Input value={mapEmbedUrl} onValueChange={setMapEmbedUrl} placeholder="Google map iframe src 或完整 iframe 字串" />
+          <MapVideoEditor />
           <textarea
             value={contactBody}
             onChange={(e) => setContactBody(e.target.value)}

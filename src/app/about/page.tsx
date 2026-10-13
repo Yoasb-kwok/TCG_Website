@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { InfoPageLayout, InfoSection } from "@/components/info/info-page-layout";
 import { GoogleMapEmbed } from "@/components/info/google-map-embed";
+import { MapLocationVideo } from "@/components/info/map-location-video";
 import { SITE_BRAND } from "@/lib/constants";
 import { getAboutContent } from "@/lib/site-content";
 import { getStoreMapsUrl } from "@/lib/store-maps";
@@ -52,6 +53,10 @@ export default async function AboutPage() {
           </div>
         </InfoSection>
       )}
+
+      <InfoSection title="門市路線">
+        <MapLocationVideo url={about.mapVideoUrl} />
+      </InfoSection>
 
       <InfoSection title="聯絡我們">
         {about.contactBody.split(/\n{2,}/).map((paragraph, index) => (

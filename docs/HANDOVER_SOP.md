@@ -247,6 +247,7 @@ Three sub-tabs:
 - Store address (ZH/EN), hours, MTR directions
 - Google Maps: paste **iframe `src` URL** only (no API key needed)
 - Toggle **顯示門市資訊** to show/hide store block
+- **門市地圖影片:** upload, replace, or clear an MP4/WebM (max 50MB) in the same About tab. It saves immediately and does not use the address fields. `/about` shows the player only after a video is stored; otherwise it shows the placeholder「地圖影片稍後上載」. Production must set `BLOB_READ_WRITE_TOKEN` (Vercel Blob). Local dev without that token writes to `public/uploads/map-video/`.
 
 Run `npm run db:seed-content` only on a fresh database to populate defaults.
 
