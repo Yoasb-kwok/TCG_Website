@@ -344,7 +344,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
   const missingRoster = rosterSignups.filter(
     (signup) => !board.players.some((player) => player.name === signup.playerName),
   );
-  const canLoadTest = board.matches.length === 0 && activeCount < 2;
+  const canLoadTest = !remote && board.matches.length === 0 && activeCount < 2;
 
   const loadTestPlayers = () => {
     if (!canLoadTest) return;
