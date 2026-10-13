@@ -4,7 +4,6 @@ import { Calendar, MapPin, Users } from "lucide-react";
 import { GoogleCalendarLink } from "@/components/tournaments/google-calendar-link";
 import { formatDate, formatPrice } from "@/lib/format";
 import { decodeRouteSlug, registrationClosedLabel } from "@/lib/registration-input";
-import { liveBoardHref } from "@/lib/tournament-board";
 import { getPublicTournament } from "@/lib/tournament-registrations";
 
 interface PageProps {
@@ -74,10 +73,10 @@ export default async function TournamentDetailPage({ params }: PageProps) {
 
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <Link
-          href={liveBoardHref(tournament)}
+          href="/tournaments/live"
           className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
         >
-          開始店賽
+          現場計分板
         </Link>
         {closedLabel ? (
           <p className="text-sm text-muted-foreground">{closedLabel}</p>

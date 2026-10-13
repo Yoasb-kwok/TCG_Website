@@ -80,6 +80,86 @@ function sanitizeBoard(parsed: Partial<BoardState>): BoardState {
   };
 }
 
+const MAX_BOARD_PLAYERS = 128;
+const MAX_BOARD_MATCHES = 400;
+
+function clampNumber(value: unknown, min: number, max: number, fallback: number) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.min(max, Math.max(min, value));
+}
+
+function optionalScore(value: unknown) {
+  if (value == null) return null;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0 || value > 9) return null;
+  return value;
+}
+
+/** Network/database board. Drops malformed rows so a bad payload cannot crash the TV. */
+export function coerceBoard(input: unknown): BoardState {
+  const fallback = defaultBoard();
+  if (!input || typeof input !== "object") return fallback;
+  const parsed = input as Partial<BoardState>;
+  const players = (Array.isArray(parsed.players) ? parsed.players : [])
+    .map((value) => {
+      if (!value || typeof value !== "object") return null;
+      const row = value as Partial<Player>;
+      if (typeof row.id !== "string" || row.id.length === 0 || row.id.length > 80) return null;
+      if (typeof row.name !== "string") return null;
+      const name = row.name.trim().slice(0, 80);
+      if (!name) return null;
+      return { id: row.id, name, dropped: Boolean(row.dropped) };
+    })
+    .filter((row): row is Player => row != null)
+    .slice(0, MAX_BOARD_PLAYERS);
+  const known = new Set(players.map((player) => player.id));
+  const matches = (Array.isArray(parsed.matches) ? parsed.matches : [])
+    .map((value) => {
+      if (!value || typeof value !== "object") return null;
+      const row = value as Partial<Match>;
+      if (typeof row.id !== "string" || row.id.length === 0 || row.id.length > 80) return null;
+      if (typeof row.aId !== "string" || !known.has(row.aId)) return null;
+      if (row.bId != null && (typeof row.bId !== "string" || !known.has(row.bId))) return null;
+      const round = Math.round(clampNumber(row.round, 1, 99, 0));
+      const table = Math.round(clampNumber(row.table, 1, 99, 0));
+      if (round === 0 || table === 0) return null;
+      return {
+        id: row.id,
+        round,
+        table,
+        aId: row.aId,
+        bId: row.bId ?? null,
+        winsA: optionalScore(row.winsA),
+        winsB: optionalScore(row.winsB),
+      };
+    })
+    .filter((row): row is Match => row != null)
+    .slice(0, MAX_BOARD_MATCHES);
+  const roundMinutes = Math.round(clampNumber(parsed.roundMinutes, 1, 180, fallback.roundMinutes));
+  const timerRemainingMs = Math.round(
+    clampNumber(parsed.timerRemainingMs, 0, 180 * 60_000, roundMinutes * 60_000),
+  );
+  const timerEndsAt =
+    typeof parsed.timerEndsAt === "number" && Number.isFinite(parsed.timerEndsAt) ? parsed.timerEndsAt : null;
+  const timerRunning = Boolean(parsed.timerRunning) && timerEndsAt != null;
+  const title =
+    typeof parsed.title === "string" && parsed.title.trim()
+      ? parsed.title.trim().slice(0, 120)
+      : fallback.title;
+  return {
+    title,
+    players,
+    matches,
+    roundMinutes,
+    timerRunning,
+    timerEndsAt: timerRunning ? timerEndsAt : null,
+    timerRemainingMs,
+  };
+}
+
+export function publishBoardInput(input: unknown, now = Date.now()) {
+  return normalizeTimer(coerceBoard(input), now);
+}
+
 function emptyStore(): BoardStore {
   return { lastKey: "default", boards: {} };
 }

@@ -78,7 +78,7 @@ export default function AdminTournamentsPage() {
         <div>
           <h1 className="text-2xl font-bold">店賽報名</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            賽事管理、報名名單同店賽計分。計分同計時留喺店內電腦。
+            賽事管理同報名名單。現場計時同比分由收銀「計分」寫入，電視打開公開計分板即可看到。試賽仍然只留喺這部電腦。
           </p>
         </div>
         <div className="flex gap-2">
@@ -90,11 +90,18 @@ export default function AdminTournamentsPage() {
             試賽計分
           </Link>
           <Link
+            href="/pos/scoreboard"
+            target="_blank"
+            className={buttonVariants({ variant: "outline" })}
+          >
+            職員計分 / 計時
+          </Link>
+          <Link
             href="/tournaments/live"
             target="_blank"
             className={buttonVariants({ variant: "outline" })}
           >
-            計分板 / 計時
+            公開計分板
           </Link>
           <Button
             onClick={() => setShowForm(!showForm)}
@@ -220,7 +227,7 @@ export default function AdminTournamentsPage() {
                   target="_blank"
                   className={buttonVariants({ variant: "outline", size: "sm" })}
                 >
-                  計分 / 計時
+                  本機計分
                 </Link>
               </div>
             </div>

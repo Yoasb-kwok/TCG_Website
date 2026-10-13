@@ -7,16 +7,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatDate } from "@/lib/format";
-import { liveBoardHref } from "@/lib/tournament-board";
 import { normalizePhone } from "@/lib/registration-input";
 
-function StartTournamentLink({ slug, title }: { slug: string; title: string }) {
+function StartTournamentLink() {
   return (
     <Link
-      href={liveBoardHref({ slug, title })}
+      href="/tournaments/live"
       className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
     >
-      開始店賽
+      現場計分板
     </Link>
   );
 }
@@ -53,7 +52,7 @@ export function RegistrationForm({
         <p className="text-lg font-medium text-foreground">{closedLabel}</p>
         <p className="mt-2 text-sm text-muted-foreground">此賽事已不再接受報名</p>
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-          <StartTournamentLink slug={slug} title={title} />
+          <StartTournamentLink />
           <Link
             href="/tournaments"
             className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
@@ -91,7 +90,7 @@ export function RegistrationForm({
           請於比賽當日到店，並帶同登記的手機號碼。
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <StartTournamentLink slug={slug} title={title} />
+          <StartTournamentLink />
           <Link
             href="/tournaments"
             className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
@@ -190,7 +189,7 @@ export function RegistrationForm({
         </p>
       )}
       <div className="flex flex-wrap items-center gap-2">
-        <StartTournamentLink slug={slug} title={title} />
+        <StartTournamentLink />
         <Button
           type="submit"
           disabled={pending}

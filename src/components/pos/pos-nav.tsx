@@ -6,7 +6,7 @@ export function PosShell({
   current,
   children,
 }: {
-  current: "register" | "receiving" | "buyback" | "pnl" | "orders";
+  current: "register" | "receiving" | "buyback" | "pnl" | "orders" | "scoreboard";
   children: React.ReactNode;
 }) {
   const tab = (href: string, label: string, active: boolean) => (
@@ -46,6 +46,7 @@ export function PosShell({
             {tab("/pos/buyback", "收卡", current === "buyback")}
             {tab("/pos/pnl", "損益表", current === "pnl")}
             {tab("/pos/orders", "交易紀錄", current === "orders")}
+            {tab("/pos/scoreboard", "計分", current === "scoreboard")}
           </nav>
         </div>
       </header>
