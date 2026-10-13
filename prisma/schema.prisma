@@ -164,6 +164,10 @@ model AboutPageContent {
   storeHours     String?
   storeMtr       String?
   mapEmbedUrl    String?
+  /** 門市路線影片。未上傳時為空，前台顯示佔位而非播放器。 */
+  mapVideoUrl      String?
+  mapVideoFilename String?
+  mapVideoPathname String?
   contactBody    String
   showStoreInfo  Boolean  @default(true)
   updatedAt      DateTime @updatedAt
