@@ -448,6 +448,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
     update({
       ...board,
       roundMinutes: minutes,
+      timerChosen: true,
       timerRunning: false,
       timerEndsAt: null,
       timerRemainingMs: minutes * 60_000,
@@ -464,6 +465,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
     update({
       ...board,
       roundMinutes: minutes > 0 ? minutes : board.roundMinutes,
+      timerChosen: true,
       timerRunning: false,
       timerEndsAt: null,
       timerRemainingMs: parsed,
