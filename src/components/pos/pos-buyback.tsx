@@ -6,8 +6,8 @@ import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
-import { formatDate, formatPrice } from "@/lib/format";
-import { buybackDayTotal } from "@/lib/pos-buyback";
+import { formatDate, formatPrice, formatStaffMoney } from "@/lib/format";
+import { buybackDayTotal, buybackPriceCopy } from "@/lib/pos-buyback";
 import type { Buyback } from "@/lib/pos-shared";
 import type { CatalogSearchHit, ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -185,7 +185,7 @@ export function PosBuyback() {
   };
 
   const undo = async (id: string) => {
-    if (!window.confirm("撤銷這筆收卡？庫存會扣回，收購成本也不再計入損益。")) return;
+    if (!window.confirm("撤銷這筆收卡？庫存會扣回，收取價錢也不再計入損益。")) return;
     const res = await fetch(`/api/pos/buyback?id=${encodeURIComponent(id)}`, { method: "DELETE" });
     const data = (await res.json()) as { error?: string };
     if (!res.ok) {
@@ -229,7 +229,7 @@ export function PosBuyback() {
   const selectionName = selectedProduct?.name ?? (catalogCard ? catalogHitName(catalogCard) : "");
 
   return (
-    <PosShell current="buyback">
+    <PosShell current="buyback" storefrontNav>
       <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden">
         <section className="flex min-h-0 flex-col overflow-hidden rounded-[14px] border border-border bg-card p-3">
           <div className="flex gap-2">
@@ -335,7 +335,7 @@ export function PosBuyback() {
                     。如果店內已有這張卡，庫存會加到 Near Mint。要指定品相，請直接揀已上架的貨。
                   </p>
                 )}
-                <p className="text-xs font-bold text-muted-foreground">收購價是店方付出的成本，不會改現有售價。</p>
+                <p className="text-xs font-bold text-muted-foreground">收取價錢是店方付給客人的成本，不會改現有售價。</p>
                 <label className="block text-xs font-bold text-muted-foreground">
                   數量
                   <input
@@ -348,12 +348,12 @@ export function PosBuyback() {
                   />
                 </label>
                 <label className="block text-xs font-bold text-muted-foreground">
-                  收購價（HKD）
+                  收取價錢（HKD）
                   <input
                     inputMode="decimal"
                     value={unitBuyPrice}
                     onChange={(event) => setUnitBuyPrice(event.target.value)}
-                    placeholder="每張收購價"
+                    placeholder="每張收取價錢"
                     className={cn(fieldClass, "mt-1")}
                   />
                 </label>
@@ -392,8 +392,8 @@ export function PosBuyback() {
                   />
                 </label>
                 <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
-                  <span>今次收購</span>
-                  <span className="text-lg font-extrabold text-foreground tabular-nums">{formatPrice(lineTotal)}</span>
+                  <span>收取合計</span>
+                  <span className="text-lg font-extrabold text-foreground tabular-nums">{formatStaffMoney(lineTotal)}</span>
                 </div>
                 {error && <p className="text-sm font-bold text-red-400">{error}</p>}
                 {message && <p className="text-sm font-bold text-foreground">{message}</p>}
@@ -416,7 +416,7 @@ export function PosBuyback() {
             ) : (
               <div className="mt-3 space-y-3">
                 <p className="text-sm font-bold text-muted-foreground">
-                  搜尋後撳一件已上架的貨，或者撳卡表的卡。再填數量同收購價。
+                  搜尋後撳一件已上架的貨，或者撳卡表的卡。再填數量同收取價錢。
                 </p>
                 {error && <p className="text-sm font-bold text-red-400">{error}</p>}
                 {message && <p className="text-sm font-bold text-foreground">{message}</p>}
@@ -427,7 +427,7 @@ export function PosBuyback() {
           <div className="rounded-[14px] border border-border bg-card p-4">
             <div className="flex items-baseline justify-between gap-2">
               <h3 className="font-extrabold">今日收卡</h3>
-              <p className="text-sm font-extrabold tabular-nums">{formatPrice(buybackDayTotal(buybacks))}</p>
+              <p className="text-sm font-extrabold tabular-nums">{formatStaffMoney(buybackDayTotal(buybacks))}</p>
             </div>
             <p className="mt-1 text-xs font-bold text-muted-foreground">香港時間今日。已撤銷唔計入合計。</p>
             <ul className="mt-3 space-y-3">
@@ -438,9 +438,10 @@ export function PosBuyback() {
                     <p className={cn("font-extrabold", row.voided && "text-muted-foreground line-through")}>
                       {row.name} × {row.quantity}
                     </p>
-                    <p className="font-bold text-muted-foreground">
-                      {formatDate(row.createdAt)} · {row.voided ? "已撤銷" : `收購 ${formatPrice(row.totalAmount)}`}
+                    <p className={cn("font-extrabold tabular-nums", row.voided ? "text-muted-foreground" : "text-foreground")}>
+                      {buybackPriceCopy(row)}
                     </p>
+                    <p className="font-bold text-muted-foreground">{formatDate(row.createdAt)}</p>
                     {(row.customerName || row.customerPhone || row.pokemonId) && (
                       <p className="font-bold text-muted-foreground">
                         {[row.customerName, row.customerPhone, row.pokemonId && `Pokémon ID ${row.pokemonId}`]

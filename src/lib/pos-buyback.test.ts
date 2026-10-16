@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import { commitBuyback } from "./pos-buyback-store";
 import {
   buybackDayTotal,
+  buybackPriceCopy,
   buybackTotal,
   catalogCardMatchesProduct,
   hktDayKey,
@@ -63,7 +64,7 @@ describe("prepareBuyback", () => {
     assert.equal(prepareBuyback({ quantity: 1, unitBuyPrice: 10 }).ok, false);
     assert.deepEqual(prepareBuyback({ variantId: "variant-1", quantity: 1, unitBuyPrice: 0 }), {
       ok: false,
-      error: "請填寫收購價",
+      error: "請填寫收取價錢",
     });
     assert.equal(
       prepareBuyback({ variantId: "variant-1", quantity: 1, unitBuyPrice: -5 }).ok,
@@ -163,6 +164,44 @@ describe("Hong Kong day", () => {
     assert.equal(range.from.toISOString(), "2026-10-11T16:00:00.000Z");
     assert.equal(isWithinHktDay(beforeMidnight.toISOString(), beforeMidnight), true);
     assert.equal(isWithinHktDay(midnight.toISOString(), beforeMidnight), false);
+  });
+});
+
+describe("buybackPriceCopy", () => {
+  it("shows the unit amount the shop pays, and the line total when quantity is more than one", () => {
+    const several = buybackPriceCopy({
+      voided: false,
+      quantity: 2,
+      unitBuyPrice: 12.5,
+      totalAmount: 25,
+    });
+    assert.match(several, /收取價錢/);
+    assert.match(several, /12\.50/);
+    assert.match(several, /合計/);
+    assert.match(several, /25\.00/);
+
+    const single = buybackPriceCopy({
+      voided: false,
+      quantity: 1,
+      unitBuyPrice: 80,
+      totalAmount: 80,
+    });
+    assert.match(single, /收取價錢/);
+    assert.match(single, /80\.00/);
+    assert.equal(single.includes("合計"), false);
+    assert.equal(single.includes("已撤銷"), false);
+  });
+
+  it("keeps the buy price visible after a void", () => {
+    const line = buybackPriceCopy({
+      voided: true,
+      quantity: 1,
+      unitBuyPrice: 40,
+      totalAmount: 40,
+    });
+    assert.match(line, /收取價錢/);
+    assert.match(line, /40\.00/);
+    assert.match(line, /已撤銷/);
   });
 });
 
