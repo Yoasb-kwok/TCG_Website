@@ -124,7 +124,66 @@ test("a new session uses the 25 minute pre-time and still offers 50, 30, and 25"
   assert.equal(DEFAULT_ROUND_MINUTES, 25);
   assert.equal(board.roundMinutes, 25);
   assert.equal(board.timerRemainingMs, 25 * 60_000);
+  assert.equal(board.timerChosen, false);
   assert.deepEqual([...TIMER_PRESETS_MINUTES], [50, 30, 25]);
+});
+
+test("first load of a stored 50:00 shop default shows 25:00 and keeps the roster", () => {
+  const published = publishBoardInput({
+    title: "店賽",
+    sessionNumber: "",
+    sessionDate: "",
+    players: [
+      { id: "a", name: "Player A", dropped: false },
+      { id: "b", name: "Player B", dropped: false },
+    ],
+    matches: [{ id: "m", round: 1, table: 1, aId: "a", bId: "b", winsA: 2, winsB: 0 }],
+    roundMinutes: 50,
+    timerRunning: false,
+    timerEndsAt: null,
+    timerRemainingMs: 50 * 60_000,
+  });
+  assert.equal(published.roundMinutes, 25);
+  assert.equal(published.timerRemainingMs, 25 * 60_000);
+  assert.equal(published.timerRunning, false);
+  assert.equal(published.timerEndsAt, null);
+  assert.equal(published.players.length, 2);
+  assert.equal(published.matches[0]?.winsA, 2);
+});
+
+test("the 50 minute preset stays 50:00 once staff choose it", () => {
+  const chosen = publishBoardInput({
+    ...defaultBoard(),
+    roundMinutes: 50,
+    timerRemainingMs: 50 * 60_000,
+    timerChosen: true,
+  });
+  assert.equal(chosen.roundMinutes, 50);
+  assert.equal(chosen.timerRemainingMs, 50 * 60_000);
+  assert.equal(chosen.timerChosen, true);
+
+  const paused = publishBoardInput({
+    ...defaultBoard(),
+    roundMinutes: 50,
+    timerRemainingMs: 40 * 60_000,
+  });
+  assert.equal(paused.roundMinutes, 50);
+  assert.equal(paused.timerRemainingMs, 40 * 60_000);
+
+  const now = 8_000;
+  const running = publishBoardInput(
+    {
+      ...defaultBoard(),
+      roundMinutes: 50,
+      timerRemainingMs: 50 * 60_000,
+      timerRunning: true,
+      timerEndsAt: now + 50 * 60_000,
+    },
+    now,
+  );
+  assert.equal(running.timerRunning, true);
+  assert.equal(running.roundMinutes, 50);
+  assert.equal(running.timerEndsAt, now + 50 * 60_000);
 });
 
 test("session settings keep 場次編號, 主題, and a real date", () => {

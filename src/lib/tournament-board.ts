@@ -28,6 +28,11 @@ export type BoardState = {
   timerRunning: boolean;
   timerEndsAt: number | null;
   timerRemainingMs: number;
+  /**
+   * True after staff pick a preset, type a time, or start the clock.
+   * Sessions saved when 50:00 was the untouched default omit this.
+   */
+  timerChosen?: boolean;
 };
 
 export type Standing = {
@@ -54,6 +59,8 @@ export const TEST_PLAYER_NAMES = ["試賽 1", "試賽 2", "試賽 3", "試賽 4"
 /** Shop clock presets, in the order the scoreboard shows them. 25 is the default pre-time. */
 export const TIMER_PRESETS_MINUTES = [50, 30, 25] as const;
 export const DEFAULT_ROUND_MINUTES = 25;
+/** Shop clock before 預時間 became 25 minutes. An idle session still on this value is the old default. */
+const LEGACY_DEFAULT_ROUND_MINUTES = 50;
 
 /**
  * Public projector surface. Top and bottom chrome images (上下圖) stay off
@@ -99,6 +106,23 @@ export function defaultBoard(): BoardState {
     timerRunning: false,
     timerEndsAt: null,
     timerRemainingMs: DEFAULT_ROUND_MINUTES * 60 * 1000,
+    timerChosen: false,
+  };
+}
+
+/**
+ * First paint of a shop clock that was never set. A stored session can still
+ * be the old 50:00 default; that is not the 50-minute preset.
+ */
+function withDefaultPreTime(state: BoardState): BoardState {
+  if (state.timerChosen) return state;
+  if (state.timerRunning || state.timerEndsAt != null) return state;
+  if (state.roundMinutes !== LEGACY_DEFAULT_ROUND_MINUTES) return state;
+  if (state.timerRemainingMs !== LEGACY_DEFAULT_ROUND_MINUTES * 60_000) return state;
+  return {
+    ...state,
+    roundMinutes: DEFAULT_ROUND_MINUTES,
+    timerRemainingMs: DEFAULT_ROUND_MINUTES * 60_000,
   };
 }
 
@@ -156,7 +180,7 @@ export function matchScoreLabel(match: Pick<Match, "bId" | "winsA" | "winsB">) {
 
 function sanitizeBoard(parsed: Partial<BoardState>): BoardState {
   const fallback = defaultBoard();
-  return {
+  return withDefaultPreTime({
     ...fallback,
     ...parsed,
     title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : fallback.title,
@@ -169,7 +193,8 @@ function sanitizeBoard(parsed: Partial<BoardState>): BoardState {
     timerEndsAt: typeof parsed.timerEndsAt === "number" ? parsed.timerEndsAt : null,
     timerRemainingMs:
       typeof parsed.timerRemainingMs === "number" ? parsed.timerRemainingMs : fallback.timerRemainingMs,
-  };
+    timerChosen: parsed.timerChosen === true,
+  });
 }
 
 const MAX_BOARD_PLAYERS = 128;
@@ -237,7 +262,7 @@ export function coerceBoard(input: unknown): BoardState {
     typeof parsed.title === "string" && parsed.title.trim()
       ? parsed.title.trim().slice(0, 120)
       : fallback.title;
-  return {
+  return withDefaultPreTime({
     title,
     sessionNumber: cleanLine(parsed.sessionNumber, 40),
     sessionDate: cleanSessionDate(parsed.sessionDate),
@@ -247,7 +272,8 @@ export function coerceBoard(input: unknown): BoardState {
     timerRunning,
     timerEndsAt: timerRunning ? timerEndsAt : null,
     timerRemainingMs,
-  };
+    timerChosen: parsed.timerChosen === true,
+  });
 }
 
 export function publishBoardInput(input: unknown, now = Date.now()) {
@@ -366,6 +392,7 @@ export function addMinutesState(
   const next = base + minutes * 60_000;
   return {
     ...state,
+    timerChosen: true,
     timerRemainingMs: next,
     timerEndsAt: state.timerRunning ? now + next : null,
   };
@@ -384,6 +411,7 @@ export function startTimerState(state: BoardState, typedMs: number | null, now: 
       typedMs != null && Math.floor(typedMs / 60_000) > 0
         ? Math.floor(typedMs / 60_000)
         : state.roundMinutes,
+    timerChosen: true,
     timerRunning: true,
     timerRemainingMs: left,
     timerEndsAt: now + left,
