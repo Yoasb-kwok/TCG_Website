@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CheckCircle, Loader2, XCircle } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { shippingMethodLabel } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/providers/cart-provider";
 import { cn } from "@/lib/utils";
@@ -13,6 +14,7 @@ interface CheckoutSessionResponse {
   paid?: boolean;
   email?: string;
   amountTotal?: number;
+  shippingMethod?: string | null;
   error?: string;
   order?: {
     id: string;
@@ -89,6 +91,12 @@ export function CheckoutSuccessContent() {
       {typeof data.amountTotal === "number" && (
         <p className="mt-4 text-lg font-semibold text-foreground">
           總計 {formatPrice(data.amountTotal)}
+        </p>
+      )}
+
+      {shippingMethodLabel(data.shippingMethod) && (
+        <p className="mt-2 text-sm text-muted-foreground">
+          送貨方式：{shippingMethodLabel(data.shippingMethod)}
         </p>
       )}
 

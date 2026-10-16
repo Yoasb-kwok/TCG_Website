@@ -15,6 +15,13 @@ enum OrderStatus {
   CANCELLED
 }
 
+/** 網店結帳送貨。COD 是速遞到付，運費不計入結帳金額。 */
+enum ShippingMethod {
+  PICKUP
+  PREPAID
+  COD
+}
+
 enum TournamentStatus {
   DRAFT
   OPEN
@@ -208,6 +215,8 @@ model Order {
   stripeSessionId String?     @unique
   totalAmount     Float
   currency        String      @default("hkd")
+  /** 結帳時選擇的送貨方式。舊訂單未記錄時視為預付運費。 */
+  shippingMethod  ShippingMethod @default(PREPAID)
   items           OrderItem[]
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
