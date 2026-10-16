@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PosShell } from "@/components/pos/pos-nav";
+import { shippingMethodLabel } from "@/lib/checkout";
 import { formatDate, formatPrice } from "@/lib/format";
 import { SEARCH_BAR_SELECT_CLASS } from "@/lib/search-bar-styles";
 
@@ -19,6 +20,7 @@ interface Order {
   email: string;
   status: string;
   totalAmount: number;
+  shippingMethod?: string;
   createdAt: string;
   items: OrderItem[];
 }
@@ -82,6 +84,9 @@ export function PosOrders() {
                   <p className="font-medium text-foreground">{order.email}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(order.createdAt)} · {order.id.slice(0, 8)}
+                    {shippingMethodLabel(order.shippingMethod)
+                      ? ` · ${shippingMethodLabel(order.shippingMethod)}`
+                      : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

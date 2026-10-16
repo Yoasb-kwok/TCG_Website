@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { auth } from "@/auth";
 import {
   calculateShipping,
+  resolveShippingMethod,
   toAbsoluteImageUrl,
 } from "@/lib/checkout";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
     items: CheckoutItem[];
     email: string;
     pickup?: boolean;
+    shippingMethod?: string;
   };
 
   const email = body.email?.trim().toLowerCase();
@@ -47,10 +49,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "購物車是空的" }, { status: 400 });
   }
 
+  const shipping = resolveShippingMethod({
+    shippingMethod: body.shippingMethod,
+    pickup: body.pickup,
+  });
+  if (!shipping.ok) {
+    return NextResponse.json({ error: shipping.error }, { status: 400 });
+  }
+
   const stripe = getStripe();
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   const session = await auth();
-  const pickup = Boolean(body.pickup);
+  const shippingMethod = shipping.method;
 
   const lineItems: Stripe.Checkout.SessionCreateParams["line_items"] = [];
   let subtotal = 0;
@@ -138,7 +148,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const shippingFee = calculateShipping(subtotal, pickup);
+    const shippingFee = calculateShipping(subtotal, shippingMethod);
     if (shippingFee > 0) {
       lineItems.push({
         price_data: {
@@ -159,7 +169,8 @@ export async function POST(request: NextRequest) {
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/checkout/cancel`,
       metadata: {
-        pickup: pickup ? "1" : "0",
+        pickup: shippingMethod === "PICKUP" ? "1" : "0",
+        shippingMethod,
         variantIds: body.items.map((i) => i.variantId).join(","),
         quantities: body.items.map((i) => i.quantity).join(","),
       },
@@ -174,6 +185,7 @@ export async function POST(request: NextRequest) {
           totalAmount,
           currency: "hkd",
           status: "PENDING",
+          shippingMethod,
           items: { create: orderItems },
         },
       });
