@@ -18,6 +18,10 @@ export type Match = {
 
 export type BoardState = {
   title: string;
+  /** 場次編號. Empty until staff fill in 設定. */
+  sessionNumber: string;
+  /** 日期 as YYYY-MM-DD. Empty until staff fill in 設定. */
+  sessionDate: string;
   players: Player[];
   matches: Match[];
   roundMinutes: number;
@@ -47,6 +51,38 @@ const STORE_KEY = "tcghk-live-boards-v2";
 export const SHOP_TEST_BOARD_KEY = "shop-test";
 export const TEST_PLAYER_NAMES = ["試賽 1", "試賽 2", "試賽 3", "試賽 4", "試賽 5", "試賽 6", "試賽 7", "試賽 8"];
 
+/** Shop clock presets, in the order the scoreboard shows them. 25 is the default pre-time. */
+export const TIMER_PRESETS_MINUTES = [50, 30, 25] as const;
+export const DEFAULT_ROUND_MINUTES = 25;
+
+/**
+ * Public projector surface. Top and bottom chrome images (上下圖) stay off
+ * so the front overlay is only the clock, pairings, and standings.
+ */
+export const FRONT_OVERLAY = {
+  showTopImage: false,
+  showBottomImage: false,
+} as const;
+
+export type ScorePreset = {
+  id: string;
+  winsA: number;
+  winsB: number;
+  kind: "win" | "loss" | "zero" | "draw";
+};
+
+/** Picker order: 2-0, 2-1, 1-0, 0-0, draw, then the other seat. */
+export const SCORE_PRESETS: ScorePreset[] = [
+  { id: "2-0", winsA: 2, winsB: 0, kind: "win" },
+  { id: "2-1", winsA: 2, winsB: 1, kind: "win" },
+  { id: "1-0", winsA: 1, winsB: 0, kind: "win" },
+  { id: "0-0", winsA: 0, winsB: 0, kind: "zero" },
+  { id: "draw", winsA: 1, winsB: 1, kind: "draw" },
+  { id: "0-2", winsA: 0, winsB: 2, kind: "loss" },
+  { id: "1-2", winsA: 1, winsB: 2, kind: "loss" },
+  { id: "0-1", winsA: 0, winsB: 1, kind: "loss" },
+];
+
 type BoardStore = {
   lastKey: string;
   boards: Record<string, BoardState>;
@@ -55,13 +91,67 @@ type BoardStore = {
 export function defaultBoard(): BoardState {
   return {
     title: "店賽",
+    sessionNumber: "",
+    sessionDate: "",
     players: [],
     matches: [],
-    roundMinutes: 50,
+    roundMinutes: DEFAULT_ROUND_MINUTES,
     timerRunning: false,
     timerEndsAt: null,
-    timerRemainingMs: 50 * 60 * 1000,
+    timerRemainingMs: DEFAULT_ROUND_MINUTES * 60 * 1000,
   };
+}
+
+function cleanLine(value: unknown, max: number) {
+  if (typeof value !== "string") return "";
+  return value.trim().slice(0, max);
+}
+
+/** Keep a real calendar date. Anything else is stored as unset. */
+export function cleanSessionDate(value: unknown) {
+  if (typeof value !== "string") return "";
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+  if (!match) return "";
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) {
+    return "";
+  }
+  return `${match[1]}-${match[2]}-${match[3]}`;
+}
+
+export function formatSessionDate(value: string) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return "";
+  return `${Number(match[1])}年${Number(match[2])}月${Number(match[3])}日`;
+}
+
+export function sessionSummary(board: Pick<BoardState, "sessionNumber" | "sessionDate">) {
+  const parts: string[] = [];
+  const number = board.sessionNumber.trim();
+  if (number) parts.push(`場次 ${number}`);
+  const date = formatSessionDate(board.sessionDate);
+  if (date) parts.push(date);
+  return parts.join(" · ");
+}
+
+export function scoreButtonText(preset: ScorePreset, left: string, right: string) {
+  if (preset.kind === "zero") return { primary: "0–0", secondary: "" };
+  if (preset.kind === "draw") return { primary: "和局", secondary: "1–1" };
+  if (preset.kind === "win") {
+    return { primary: `${preset.winsA}–${preset.winsB}`, secondary: `${left} 勝` };
+  }
+  return { primary: `${preset.winsB}–${preset.winsA}`, secondary: `${right} 勝` };
+}
+
+export function matchScoreLabel(match: Pick<Match, "bId" | "winsA" | "winsB">) {
+  if (match.bId == null) return "輪空";
+  if (match.winsA == null || match.winsB == null) return "—";
+  if (match.winsA === 0 && match.winsB === 0) return "0–0";
+  if (match.winsA === match.winsB) return "和";
+  return `${match.winsA}–${match.winsB}`;
 }
 
 function sanitizeBoard(parsed: Partial<BoardState>): BoardState {
@@ -70,6 +160,8 @@ function sanitizeBoard(parsed: Partial<BoardState>): BoardState {
     ...fallback,
     ...parsed,
     title: typeof parsed.title === "string" && parsed.title.trim() ? parsed.title : fallback.title,
+    sessionNumber: cleanLine(parsed.sessionNumber, 40),
+    sessionDate: cleanSessionDate(parsed.sessionDate),
     players: Array.isArray(parsed.players) ? parsed.players : [],
     matches: Array.isArray(parsed.matches) ? parsed.matches : [],
     roundMinutes: typeof parsed.roundMinutes === "number" ? parsed.roundMinutes : fallback.roundMinutes,
@@ -147,6 +239,8 @@ export function coerceBoard(input: unknown): BoardState {
       : fallback.title;
   return {
     title,
+    sessionNumber: cleanLine(parsed.sessionNumber, 40),
+    sessionDate: cleanSessionDate(parsed.sessionDate),
     players,
     matches,
     roundMinutes,
@@ -201,6 +295,12 @@ export function liveBoardHref(
   const query = params.toString();
   return query ? `/tournaments/live?${query}` : "/tournaments/live";
 }
+
+/** Staff choose a local practice board or the shared scoreboard and clock. */
+export const STAFF_BOARD_LINKS = {
+  test: { label: "試賽計分", href: liveBoardHref(undefined, { test: true }) },
+  live: { label: "計分板 / 計時", href: "/pos/scoreboard" },
+} as const;
 
 export function testPlayers(): Player[] {
   return TEST_PLAYER_NAMES.map((name) => ({

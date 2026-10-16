@@ -7,20 +7,15 @@ import {
   computeStandings,
   defaultBoard,
   formatClock,
+  FRONT_OVERLAY,
   latestRound,
+  matchScoreLabel,
   playerName,
   publishBoardInput,
   roundMatches,
+  sessionSummary,
   type BoardState,
-  type Match,
 } from "@/lib/tournament-board";
-
-function scoreLabel(match: Match) {
-  if (match.bId == null) return "輪空";
-  if (match.winsA == null || match.winsB == null) return "—";
-  if (match.winsA === 0 && match.winsB === 0) return "和";
-  return `${match.winsA}–${match.winsB}`;
-}
 
 export function PublicBoard() {
   const [board, setBoard] = useState<BoardState | null>(null);
@@ -78,17 +73,22 @@ export function PublicBoard() {
   const urgent = remaining > 0 && remaining <= 60_000;
   const warning = remaining > 60_000 && remaining <= 5 * 60_000;
   const clockColor = timeUp || urgent ? "text-red-400" : warning ? "text-amber-300" : "text-white";
+  const summary = sessionSummary(board);
+  const roundLabel = round ? `第 ${round} 輪` : "尚未開賽";
+  const status = [summary, roundLabel, offline ? "未能更新" : ""].filter(Boolean).join(" · ");
 
   return (
-    <div className="flex min-h-dvh flex-col bg-zinc-950 text-zinc-50">
+    <div
+      data-front-overlay="public"
+      data-top-image={FRONT_OVERLAY.showTopImage ? "shown" : "hidden"}
+      data-bottom-image={FRONT_OVERLAY.showBottomImage ? "shown" : "hidden"}
+      className="flex min-h-dvh flex-col bg-zinc-950 text-zinc-50"
+    >
       <header className="flex flex-wrap items-end justify-between gap-6 px-4 py-5 sm:px-8 sm:py-8">
         <div className="min-w-0">
           <p className="text-sm font-medium tracking-wide text-zinc-400">現場計分板</p>
           <h1 className="mt-1 truncate text-3xl font-bold sm:text-5xl">{board.title || "店賽"}</h1>
-          <p className="mt-2 text-sm text-zinc-500">
-            {round ? `第 ${round} 輪` : "尚未開賽"}
-            {offline ? " · 未能更新" : ""}
-          </p>
+          <p className="mt-2 text-sm text-zinc-500">{status}</p>
         </div>
         <section aria-label="回合計時" className="ml-auto text-right">
           <p className={cn("text-lg font-semibold sm:text-2xl", timeUp ? "text-red-400" : "text-zinc-300")}>
@@ -132,7 +132,7 @@ export function PublicBoard() {
                       {playerName(board.players, match.aId)}
                     </td>
                     <td className="px-2 py-3 text-center font-mono text-3xl font-bold tabular-nums sm:text-4xl">
-                      {scoreLabel(match)}
+                      {matchScoreLabel(match)}
                     </td>
                     <td className="px-4 py-3 text-right text-2xl font-semibold sm:text-3xl">
                       {match.bId ? playerName(board.players, match.bId) : ""}
