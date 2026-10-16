@@ -87,7 +87,7 @@ export function PosRegister() {
   const [tendered, setTendered] = useState("");
   const [scanNote, setScanNote] = useState<ScanNote | null>(null);
   const [recent, setRecent] = useState<Sale[]>([]);
-  const [manual, setManual] = useState({ name: "", unitPrice: "", unitCost: "" });
+  const [manual, setManual] = useState({ name: "", unitPrice: "" });
   const scanRef = useRef<HTMLInputElement>(null);
   const scanSeq = useRef(0);
   const actionsRef = useRef({
@@ -249,7 +249,6 @@ export function PosRegister() {
   const addManual = () => {
     const name = manual.name.trim();
     const unitPrice = Number(manual.unitPrice);
-    const unitCost = manual.unitCost === "" ? 0 : Number(manual.unitCost);
     if (!name || !Number.isFinite(unitPrice) || unitPrice < 0) return;
     setLines((current) => [
       ...current,
@@ -260,10 +259,10 @@ export function PosRegister() {
         barcode: null,
         quantity: 1,
         unitPrice,
-        unitCost: Number.isFinite(unitCost) && unitCost >= 0 ? unitCost : 0,
+        unitCost: 0,
       },
     ]);
-    setManual({ name: "", unitPrice: "", unitCost: "" });
+    setManual({ name: "", unitPrice: "" });
   };
 
   const clearTicket = () => {
@@ -537,19 +536,13 @@ export function PosRegister() {
               placeholder="手動貨品名稱"
               className={fieldClass}
             />
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
               <input
                 inputMode="decimal"
                 value={manual.unitPrice}
                 onChange={(event) => setManual({ ...manual, unitPrice: event.target.value })}
                 placeholder="售價"
-                className={fieldClass}
-              />
-              <input
-                inputMode="decimal"
-                value={manual.unitCost}
-                onChange={(event) => setManual({ ...manual, unitCost: event.target.value })}
-                placeholder="成本"
+                aria-label="售價"
                 className={fieldClass}
               />
               <button
@@ -577,15 +570,15 @@ export function PosRegister() {
               <ul className="space-y-2">
                 {lines.map((line) => (
                   <li key={line.key} className="rounded-[14px] border border-border bg-card p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
+                    <div className="flex items-start gap-3">
+                      <div className="min-w-0 flex-1">
                         <p className="font-extrabold">{line.name}</p>
                         {line.sku && <p className="text-xs font-bold text-muted-foreground">{line.sku}</p>}
                         {line.barcode && <p className="text-xs font-bold text-muted-foreground">條碼 {line.barcode}</p>}
                       </div>
-                      <p className="font-extrabold tabular-nums">{formatPrice(lineTotal(line))}</p>
+                      <p className="shrink-0 whitespace-nowrap text-right font-extrabold tabular-nums">{formatPrice(lineTotal(line))}</p>
                     </div>
-                    <div className="mt-2 flex items-center gap-2">
+                    <div className="mt-2 flex flex-wrap items-end gap-2">
                       <button
                         type="button"
                         aria-label={`減少 ${line.name}`}
@@ -594,7 +587,7 @@ export function PosRegister() {
                       >
                         −
                       </button>
-                      <span className="w-8 text-center font-extrabold tabular-nums">{line.quantity}</span>
+                      <span className="flex h-9 w-8 items-center justify-center font-extrabold tabular-nums">{line.quantity}</span>
                       <button
                         type="button"
                         aria-label={`增加 ${line.name}`}
@@ -603,26 +596,27 @@ export function PosRegister() {
                       >
                         +
                       </button>
+                      <label className="ml-1 w-24 shrink-0 text-xs font-bold text-muted-foreground">
+                        售價
+                        <input
+                          type="number"
+                          min={0}
+                          aria-label={`${line.name} 售價`}
+                          value={line.unitPrice}
+                          onChange={(event) =>
+                            patchLine(line.key, { unitPrice: Math.max(0, Number(event.target.value) || 0) })
+                          }
+                          className="mt-1 h-9 w-full rounded-xl border border-border bg-background px-2 text-right text-sm font-extrabold tabular-nums text-foreground outline-none focus:border-pink-400"
+                        />
+                      </label>
                       <button
                         type="button"
-                        className="ml-auto inline-flex h-8 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                        className="ml-auto inline-flex h-9 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
                         onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}
                       >
                         刪走
                       </button>
                     </div>
-                    <label className="mt-2 block text-xs font-bold text-muted-foreground">
-                      售價
-                      <input
-                        type="number"
-                        min={0}
-                        value={line.unitPrice}
-                        onChange={(event) =>
-                          patchLine(line.key, { unitPrice: Math.max(0, Number(event.target.value) || 0) })
-                        }
-                        className={cn(fieldClass, "mt-1")}
-                      />
-                    </label>
                   </li>
                 ))}
               </ul>

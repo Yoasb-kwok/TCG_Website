@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isShippingMethod } from "@/lib/checkout";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 
@@ -25,6 +26,7 @@ export async function GET(request: NextRequest) {
       email: string;
       totalAmount: number;
       status: string;
+      shippingMethod: string | null;
       items: { name: string; quantity: number; unitPrice: number }[];
     } | null = null;
 
@@ -46,6 +48,7 @@ export async function GET(request: NextRequest) {
           email: row.email,
           totalAmount: row.totalAmount,
           status: row.status,
+          shippingMethod: row.shippingMethod,
           items: row.items.map((item) => ({
             name: item.variant.product.name,
             quantity: item.quantity,
@@ -54,6 +57,10 @@ export async function GET(request: NextRequest) {
         };
       }
     }
+
+    const metadataMethod = checkoutSession.metadata?.shippingMethod;
+    const shippingMethod =
+      order?.shippingMethod ?? (isShippingMethod(metadataMethod) ? metadataMethod : null);
 
     return NextResponse.json({
       paid,
@@ -65,6 +72,7 @@ export async function GET(request: NextRequest) {
         ? checkoutSession.amount_total / 100
         : order?.totalAmount,
       currency: checkoutSession.currency ?? "hkd",
+      shippingMethod,
       order,
     });
   } catch (err) {

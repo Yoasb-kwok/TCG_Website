@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { CreditCard, Minus, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -18,7 +17,10 @@ import { Separator } from "@/components/ui/separator";
 import {
   calculateShipping,
   FREE_SHIPPING_THRESHOLD,
+  SHIPPING_METHOD_LABELS,
+  SHIPPING_METHODS,
   SHIPPING_FEE,
+  type ShippingMethod,
 } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/providers/cart-provider";
@@ -47,7 +49,7 @@ export function CartSheet() {
   } = useCart();
   const { data: session } = useSession();
   const [email, setEmail] = useState("");
-  const [pickup, setPickup] = useState(false);
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("PREPAID");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stripeReady, setStripeReady] = useState<boolean | null>(null);
@@ -73,8 +75,8 @@ export function CartSheet() {
   }, []);
 
   const shippingFee = useMemo(
-    () => calculateShipping(subtotal, pickup),
-    [subtotal, pickup],
+    () => calculateShipping(subtotal, shippingMethod),
+    [subtotal, shippingMethod],
   );
   const total = subtotal + shippingFee;
 
@@ -89,7 +91,7 @@ export function CartSheet() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           email: email.trim(),
-          pickup,
+          shippingMethod,
           items: items.map((i) => ({
             variantId: i.variantId,
             quantity: i.quantity,
@@ -193,16 +195,23 @@ export function CartSheet() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">運費</span>
                 <span>
-                  {pickup
+                  {shippingMethod === "PICKUP"
                     ? "門市自取 · 免費"
-                    : shippingFee === 0
-                      ? "免運費"
-                      : formatPrice(shippingFee)}
+                    : shippingMethod === "COD"
+                      ? "速遞到付"
+                      : shippingFee === 0
+                        ? "免運費"
+                        : formatPrice(shippingFee)}
                 </span>
               </div>
-              {!pickup && subtotal < FREE_SHIPPING_THRESHOLD && (
+              {shippingMethod === "PREPAID" && subtotal < FREE_SHIPPING_THRESHOLD && (
                 <p className="text-xs text-muted-foreground">
                   未滿 {formatPrice(FREE_SHIPPING_THRESHOLD)} 加收 {formatPrice(SHIPPING_FEE)} 運費；滿額免運
+                </p>
+              )}
+              {shippingMethod === "COD" && (
+                <p className="text-xs text-muted-foreground">
+                  運費由速遞員收取，不會計入今次結帳。
                 </p>
               )}
               <Separator className="my-2" />
@@ -212,16 +221,22 @@ export function CartSheet() {
               </div>
             </div>
 
-            <div className="mb-4 flex items-center gap-2">
-              <Checkbox
-                id="pickup"
-                checked={pickup}
-                onCheckedChange={(checked) => setPickup(Boolean(checked))}
-              />
-              <Label htmlFor="pickup" className="text-sm font-normal">
-                門市自取（免運費）
-              </Label>
-            </div>
+            <fieldset className="mb-4 space-y-2">
+              <legend className="mb-2 text-sm font-medium">送貨方式</legend>
+              {SHIPPING_METHODS.map((method) => (
+                <label key={method} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="radio"
+                    name="shipping-method"
+                    value={method}
+                    checked={shippingMethod === method}
+                    onChange={() => setShippingMethod(method)}
+                    className="size-4 accent-pink-500"
+                  />
+                  {SHIPPING_METHOD_LABELS[method]}
+                </label>
+              ))}
+            </fieldset>
 
             <div className="mb-4 space-y-2">
               <Label htmlFor="checkout-email">電郵（收訂單確認）</Label>

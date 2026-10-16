@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { shippingMethodLabel } from "@/lib/checkout";
 import { formatDate, formatPrice } from "@/lib/format";
 import { FORM_FIELD_INPUT_CLASS } from "@/lib/search-bar-styles";
 
@@ -34,6 +35,7 @@ interface Purchase {
   userId: string | null;
   status: string;
   totalAmount: number;
+  shippingMethod?: string;
   createdAt: string;
   items: PurchaseItem[];
 }
@@ -232,6 +234,9 @@ export function AccountDetail({ userId }: { userId: string }) {
                   <p className="font-medium">{STATUS_LABELS[order.status] ?? order.status}</p>
                   <p className="text-xs text-muted-foreground">
                     {formatDate(order.createdAt)} · {order.id.slice(0, 8)}
+                    {shippingMethodLabel(order.shippingMethod)
+                      ? ` · ${shippingMethodLabel(order.shippingMethod)}`
+                      : ""}
                     {order.userId !== account.id ? " · 以相同電郵記錄" : ""}
                   </p>
                 </div>
