@@ -2,7 +2,7 @@ export const FREE_SHIPPING_THRESHOLD = 500;
 export const SHIPPING_FEE = 30;
 
 /** Checkout delivery choice. COD is courier cash-on-delivery: the store does not charge shipping. */
-export const SHIPPING_METHODS = ["PICKUP", "PREPAID", "COD"] as const;
+export const SHIPPING_METHODS = ["PREPAID", "PICKUP", "COD"] as const;
 export type ShippingMethod = (typeof SHIPPING_METHODS)[number];
 
 export const SHIPPING_METHOD_LABELS: Record<ShippingMethod, string> = {
