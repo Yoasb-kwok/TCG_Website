@@ -12,27 +12,33 @@ import {
   Trophy,
   FilePenLine,
   Users,
+  Warehouse,
   LogOut,
   ExternalLink,
+  type LucideIcon,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { SITE_BRAND } from "@/lib/constants";
+import { INVENTORY_PATH, MERCHANT_SIDEBAR_LINKS } from "@/lib/staff-nav";
 import { cn } from "@/lib/utils";
 
-const LINKS = [
-  { href: "/admin", label: "總覽", icon: LayoutDashboard, exact: true },
-  { href: "/admin/taxonomy", label: "標籤管理", icon: Tags },
-  { href: "/admin/catalog", label: "卡表目錄", icon: Library },
-  { href: "/admin/products", label: "商品名單", icon: Package },
-  { href: "/admin/data", label: "商品 CSV", icon: FileSpreadsheet },
-  { href: "/admin/accounts", label: "帳戶", icon: Users },
-  { href: "/admin/content", label: "網站內容", icon: FilePenLine },
-  { href: "/admin/tournaments", label: "店賽報名", icon: Trophy },
-];
+const ICONS: Record<(typeof MERCHANT_SIDEBAR_LINKS)[number]["href"], LucideIcon> = {
+  "/admin": LayoutDashboard,
+  "/admin/taxonomy": Tags,
+  "/admin/catalog": Library,
+  "/admin/products": Package,
+  "/pos/receiving": Warehouse,
+  "/admin/data": FileSpreadsheet,
+  "/admin/accounts": Users,
+  "/admin/content": FilePenLine,
+  "/admin/tournaments": Trophy,
+};
 
 export function AdminSidebar() {
   const pathname = usePathname();
   const logout = () => signOut({ callbackUrl: "/login" });
+  const onInventory = pathname === INVENTORY_PATH || pathname.startsWith(`${INVENTORY_PATH}/`);
+  const onPos = (pathname === "/pos" || pathname.startsWith("/pos/")) && !onInventory;
 
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card">
@@ -41,32 +47,34 @@ export function AdminSidebar() {
         <p className="text-sm font-semibold text-foreground">{SITE_BRAND}</p>
       </div>
 
-      <nav className="flex-1 space-y-0.5 p-3">
-        {LINKS.map(({ href, label, icon: Icon, exact }) => {
+      <nav className="flex-1 space-y-0.5 p-3" aria-label="商家選單">
+        {MERCHANT_SIDEBAR_LINKS.map((link) => {
+          const Icon = ICONS[link.href];
+          const exact = "exact" in link && link.exact;
           const active = exact
-            ? pathname === href
-            : pathname === href || pathname.startsWith(`${href}/`);
+            ? pathname === link.href
+            : pathname === link.href || pathname.startsWith(`${link.href}/`);
           return (
-          <Link
-            key={href}
-            href={href}
-            className={cn(
-              "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition",
-              active
-                ? "bg-muted text-foreground"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
-          >
-            <Icon className="h-4 w-4" />
-            {label}
-          </Link>
+            <Link
+              key={link.href}
+              href={link.href}
+              className={cn(
+                "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition",
+                active
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {link.label}
+            </Link>
           );
         })}
         <Link
           href="/pos"
           className={cn(
             "mt-2 block rounded-md border px-3 py-2 text-center text-sm font-medium transition",
-            pathname === "/pos" || pathname.startsWith("/pos/")
+            onPos
               ? "border-pink-500 bg-pink-500 text-white"
               : "border-border text-muted-foreground hover:border-pink-400 hover:text-foreground",
           )}

@@ -7,6 +7,16 @@ export function formatPrice(amount: number, currency = "HKD"): string {
   }).format(amount);
 }
 
+/** Keeps cents so a buy price such as HK$12.50 is not rounded to the nearest dollar. */
+export function formatStaffMoney(amount: number, currency = "HKD"): string {
+  return new Intl.NumberFormat("zh-HK", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
 export function formatDate(date: Date | string): string {
   return new Intl.DateTimeFormat("zh-HK", {
     dateStyle: "medium",

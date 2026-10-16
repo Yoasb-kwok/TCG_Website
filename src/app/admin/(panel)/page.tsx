@@ -75,7 +75,7 @@ export default function AdminDashboardPage() {
     {
       label: "低庫存警示",
       value: stats?.lowStock ?? "—",
-      href: "/admin/products",
+      href: "/pos/receiving",
       icon: AlertTriangle,
       warn: (stats?.lowStock ?? 0) > 0,
     },

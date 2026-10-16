@@ -1,25 +1,23 @@
 import Link from "next/link";
-import { SITE_BRAND } from "@/lib/constants";
+import { NAV_ITEMS, SITE_BRAND } from "@/lib/constants";
+import { POS_TABS, type PosTabId } from "@/lib/staff-nav";
 import { cn } from "@/lib/utils";
 
 export function PosShell({
   current,
   children,
+  storefrontNav = false,
 }: {
-  current: "register" | "receiving" | "buyback" | "pnl" | "orders" | "scoreboard";
+  current: PosTabId;
   children: React.ReactNode;
+  /** 收卡沿用網店導覽：商品、最新預訂、店賽、關於我們、送貨、付款。 */
+  storefrontNav?: boolean;
 }) {
-  const tab = (href: string, label: string, active: boolean) => (
-    <Link
-      href={href}
-      className={cn(
-        "inline-flex h-9 items-center rounded-full px-4 text-sm font-bold",
-        active ? "bg-pink-500 text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-      )}
-    >
-      {label}
-    </Link>
-  );
+  const tabClass = (active: boolean) =>
+    cn(
+      "inline-flex h-9 items-center rounded-full px-4 text-sm font-bold",
+      active ? "bg-pink-500 text-white" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+    );
 
   return (
     <div
@@ -40,15 +38,27 @@ export function PosShell({
               <p className="text-[11px] text-muted-foreground">收銀</p>
             </div>
           </div>
-          <nav className="flex gap-1">
-            {tab("/pos", "收銀", current === "register")}
-            {tab("/pos/receiving", "來貨", current === "receiving")}
-            {tab("/pos/buyback", "收卡", current === "buyback")}
-            {tab("/pos/pnl", "損益表", current === "pnl")}
-            {tab("/pos/orders", "交易紀錄", current === "orders")}
-            {tab("/pos/scoreboard", "計分板", current === "scoreboard")}
+          <nav className="flex gap-1" aria-label="收銀">
+            {POS_TABS.map((item) => (
+              <Link key={item.id} href={item.href} className={tabClass(current === item.id)}>
+                {item.label}
+              </Link>
+            ))}
           </nav>
         </div>
+        {storefrontNav && (
+          <nav aria-label="網店導覽" className="flex flex-wrap gap-x-4 gap-y-1 border-t border-border px-4 py-2">
+            {NAV_ITEMS.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-sm font-bold text-muted-foreground hover:text-foreground"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
       <div className="min-h-0 flex-1">{children}</div>
     </div>

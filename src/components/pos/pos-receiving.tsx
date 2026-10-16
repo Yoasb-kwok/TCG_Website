@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
@@ -85,6 +85,8 @@ export function PosReceiving() {
   const [receipts, setReceipts] = useState<Receipt[]>([]);
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
+  const [inboundOpen, setInboundOpen] = useState(false);
+  const quantityRef = useRef<HTMLInputElement>(null);
 
   const searching = query.trim().length > 0;
   const needsFullList =
@@ -158,6 +160,15 @@ export function PosReceiving() {
     setError("");
   };
 
+  const openInbound = () => {
+    setInboundOpen(true);
+    setError("");
+    window.setTimeout(() => {
+      document.getElementById("stock-inbound")?.scrollIntoView({ block: "nearest" });
+      if (selectedVariantId) quantityRef.current?.focus();
+    }, 0);
+  };
+
   const receive = async () => {
     if (!selected || !variant) return;
     setError("");
@@ -194,7 +205,7 @@ export function PosReceiving() {
   };
 
   const undo = async (id: string) => {
-    if (!window.confirm("撤銷這筆來貨？庫存會扣回，進貨成本也不再計入損益。")) return;
+    if (!window.confirm("撤銷這筆進貨？庫存會扣回，進貨成本也不再計入損益。")) return;
     await fetch(`/api/pos/receipts?id=${id}`, { method: "DELETE" });
     setPage(1);
     setRefreshKey((current) => current + 1);
@@ -218,6 +229,7 @@ export function PosReceiving() {
         current.some((product) => product.id === match.product.id) ? current : [match.product, ...current],
       );
       choose(match.product, match.variantId);
+      setInboundOpen(true);
     } catch {
       setError("搜尋失敗，請再試一次");
     }
@@ -255,7 +267,7 @@ export function PosReceiving() {
                 setPage(1);
               }}
               placeholder="條碼 / 卡名、卡號（083/101）、系列或 SKU"
-              aria-label="搜尋來貨"
+              aria-label="搜尋倉存"
               className={cn(fieldClass, "h-11 min-w-0 flex-1")}
             />
             <BarcodeScanButton onDetect={(code) => void scanIntoReceiving(code)} />
@@ -341,7 +353,20 @@ export function PosReceiving() {
         </aside>
 
         <section className="flex min-h-0 flex-col overflow-hidden rounded-[14px] border border-border bg-card p-3">
-          <p className="text-sm font-extrabold text-muted-foreground">已上架貨品 · 撳一下就點算</p>
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="text-sm font-extrabold">倉存</p>
+              <p className="text-xs font-bold text-muted-foreground">已上架貨品 · 撳一下查看庫存</p>
+            </div>
+            <button
+              type="button"
+              onClick={openInbound}
+              aria-expanded={inboundOpen}
+              className="h-9 shrink-0 rounded-full bg-pink-500 px-4 text-sm font-extrabold text-white hover:bg-pink-400"
+            >
+              進貨
+            </button>
+          </div>
           {searching && (
             <CatalogHitStrip
               cards={catalogCards}
@@ -442,8 +467,27 @@ export function PosReceiving() {
         </section>
 
         <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-          <div className="rounded-[14px] border border-border bg-card p-4">
-            <h2 className="text-xl font-extrabold">來貨</h2>
+          <div id="stock-inbound" className="rounded-[14px] border border-border bg-card p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-xl font-extrabold">{inboundOpen ? "進貨" : "倉存"}</h2>
+              {inboundOpen ? (
+                <button
+                  type="button"
+                  onClick={() => setInboundOpen(false)}
+                  className="text-sm font-bold text-muted-foreground hover:text-foreground"
+                >
+                  返回倉存
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={openInbound}
+                  className="h-9 shrink-0 rounded-full bg-pink-500 px-4 text-sm font-extrabold text-white hover:bg-pink-400"
+                >
+                  進貨
+                </button>
+              )}
+            </div>
             {selected && variant ? (
               <div className="mt-3 space-y-3">
                 <p className="font-extrabold">{selected.name}</p>
@@ -454,69 +498,92 @@ export function PosReceiving() {
                     </span>
                   ))}
                 </div>
-                <p className="text-xs font-bold text-muted-foreground">現有庫存 {variant.stock}</p>
-                <label className="block text-xs font-bold text-muted-foreground">
-                  來貨數量
-                  <input
-                    type="number"
-                    min={1}
-                    value={quantity}
-                    onChange={(event) => setQuantity(event.target.value)}
-                    className={cn(fieldClass, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs font-bold text-muted-foreground">
-                  單位成本
-                  <input
-                    inputMode="decimal"
-                    value={unitCost}
-                    onChange={(event) => setUnitCost(event.target.value)}
-                    placeholder="每件成本"
-                    className={cn(fieldClass, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs font-bold text-muted-foreground">
-                  售價
-                  <input
-                    inputMode="decimal"
-                    value={unitPrice}
-                    onChange={(event) => setUnitPrice(event.target.value)}
-                    placeholder="上架售價"
-                    className={cn(fieldClass, "mt-1")}
-                  />
-                </label>
-                <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
-                  <span>今次成本</span>
-                  <span className="text-lg font-extrabold text-foreground tabular-nums">{formatPrice(totalCost)}</span>
-                </div>
-                {error && <p className="text-sm font-bold text-red-400">{error}</p>}
-                <button
-                  type="button"
-                  disabled={
-                    pending ||
-                    qty < 1 ||
-                    unitCost.trim() === "" ||
-                    !Number.isFinite(cost) ||
-                    cost < 0 ||
-                    unitPrice.trim() === "" ||
-                    !Number.isFinite(Number(unitPrice)) ||
-                    Number(unitPrice) < 0
-                  }
-                  onClick={receive}
-                  className="h-14 w-full rounded-[14px] bg-pink-500 text-lg font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
-                >
-                  {pending ? "入貨中…" : "入貨並扣成本"}
-                </button>
+                <p className="text-xs font-bold text-muted-foreground">
+                  現有庫存 {variant.stock}
+                  {variant.price > 0 ? ` · 售價 ${formatPrice(variant.price)}` : " · 未定價"}
+                </p>
+                {inboundOpen ? (
+                  <>
+                    <label className="block text-xs font-bold text-muted-foreground">
+                      進貨數量
+                      <input
+                        ref={quantityRef}
+                        type="number"
+                        min={1}
+                        value={quantity}
+                        onChange={(event) => setQuantity(event.target.value)}
+                        className={cn(fieldClass, "mt-1")}
+                      />
+                    </label>
+                    <label className="block text-xs font-bold text-muted-foreground">
+                      單位成本
+                      <input
+                        inputMode="decimal"
+                        value={unitCost}
+                        onChange={(event) => setUnitCost(event.target.value)}
+                        placeholder="每件成本"
+                        className={cn(fieldClass, "mt-1")}
+                      />
+                    </label>
+                    <label className="block text-xs font-bold text-muted-foreground">
+                      售價
+                      <input
+                        inputMode="decimal"
+                        value={unitPrice}
+                        onChange={(event) => setUnitPrice(event.target.value)}
+                        placeholder="上架售價"
+                        className={cn(fieldClass, "mt-1")}
+                      />
+                    </label>
+                    <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
+                      <span>今次成本</span>
+                      <span className="text-lg font-extrabold text-foreground tabular-nums">{formatPrice(totalCost)}</span>
+                    </div>
+                    {error && <p className="text-sm font-bold text-red-400">{error}</p>}
+                    <button
+                      type="button"
+                      disabled={
+                        pending ||
+                        qty < 1 ||
+                        unitCost.trim() === "" ||
+                        !Number.isFinite(cost) ||
+                        cost < 0 ||
+                        unitPrice.trim() === "" ||
+                        !Number.isFinite(Number(unitPrice)) ||
+                        Number(unitPrice) < 0
+                      }
+                      onClick={receive}
+                      className="h-14 w-full rounded-[14px] bg-pink-500 text-lg font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+                    >
+                      {pending ? "入貨中…" : "確認進貨"}
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={openInbound}
+                    className="h-12 w-full rounded-[14px] bg-pink-500 text-base font-extrabold text-white hover:bg-pink-400"
+                  >
+                    進貨
+                  </button>
+                )}
               </div>
             ) : (
-              <p className="mt-4 text-sm font-bold text-muted-foreground">喺左邊撳一件已上架的貨，再填數量、成本和售價。</p>
+              <div className="mt-4 space-y-3">
+                <p className="text-sm font-bold text-muted-foreground">
+                  {inboundOpen
+                    ? "請先揀一件已上架的貨，再填數量、成本和售價。"
+                    : "揀一件貨查看倉存。要入庫就撳「進貨」。"}
+                </p>
+                {error && <p className="text-sm font-bold text-red-400">{error}</p>}
+              </div>
             )}
           </div>
 
           <div className="rounded-[14px] border border-border bg-card p-4">
-            <h3 className="font-extrabold">來貨紀錄</h3>
+            <h3 className="font-extrabold">進貨紀錄</h3>
             <ul className="mt-3 space-y-3">
-              {receipts.length === 0 && <li className="text-sm font-bold text-muted-foreground">未有來貨</li>}
+              {receipts.length === 0 && <li className="text-sm font-bold text-muted-foreground">未有進貨</li>}
               {receipts.map((receipt) => (
                 <li key={receipt.id} className="flex items-start justify-between gap-2 text-sm">
                   <div>
