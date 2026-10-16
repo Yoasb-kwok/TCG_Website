@@ -1,6 +1,6 @@
 import Link from "next/link";
+import { StaffBoardLinks } from "@/components/tournaments/staff-board-links";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
-import { liveBoardHref } from "@/lib/tournament-board";
 import { listPublicTournaments } from "@/lib/tournament-registrations";
 
 export const metadata = {
@@ -19,24 +19,13 @@ export default async function TournamentsPage() {
             報名 Pokémon TCG 店賽 · 標準賽制 · 香港時間
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href={liveBoardHref(undefined, { test: true })}
-            className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm font-medium"
-          >
-            試賽計分
-          </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <StaffBoardLinks />
           <Link
             href="/tournaments/live"
-            className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground"
+            className="text-sm font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
             現場計分板
-          </Link>
-          <Link
-            href="/pos/scoreboard"
-            className="inline-flex h-9 items-center rounded-lg border border-border px-3 text-sm font-medium"
-          >
-            職員計分
           </Link>
         </div>
       </div>

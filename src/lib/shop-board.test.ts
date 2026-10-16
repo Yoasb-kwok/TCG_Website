@@ -27,7 +27,7 @@ test("publishBoardInput keeps a running countdown and drops a broken roster", ()
   );
   assert.equal(published.title, "Fun Day");
   assert.equal(published.timerRunning, true);
-  assert.equal(published.timerEndsAt, now + 50 * 60_000);
+  assert.equal(published.timerEndsAt, now + 25 * 60_000);
   assert.deepEqual(
     published.players.map((player) => player.name),
     ["小明", "小華"],
@@ -74,6 +74,8 @@ test("memory and file stores round-trip the same board", async () => {
     assert.equal(JSON.parse(raw).board.title, "Fun Day");
     assert.equal((await file.read()).players[0]?.name, "Ada");
     assert.equal((await file.read()).timerRemainingMs, 30 * 60_000);
+    assert.equal((await file.read()).sessionNumber, "");
+    assert.equal((await file.read()).sessionDate, "");
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

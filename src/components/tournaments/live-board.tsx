@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Maximize, Pause, Play, RotateCcw, Users } from "lucide-react";
+import { Maximize, Pause, Play, RotateCcw, Settings, Users } from "lucide-react";
+import { StaffBoardLinks } from "@/components/tournaments/staff-board-links";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,8 @@ import {
 import { cn } from "@/lib/utils";
 import {
   SHOP_TEST_BOARD_KEY,
+  DEFAULT_ROUND_MINUTES,
+  TIMER_PRESETS_MINUTES,
   boardKeyFromSearch,
   addMinutesState,
   canPair,
@@ -25,32 +28,24 @@ import {
   latestRound,
   loadBoard,
   loadLastBoardKey,
+  matchScoreLabel,
   normalizeTimer,
   parseClockInput,
   playerName,
   roundMatches,
   publishBoardInput,
   saveBoard,
+  SCORE_PRESETS,
+  scoreButtonText,
+  sessionSummary,
   setMatchResult,
   startTimerState,
   testPlayers,
   undoRound,
   type BoardState,
   type Match,
+  type ScorePreset,
 } from "@/lib/tournament-board";
-
-const PRESETS = [50, 30, 25];
-
-const RESULT_OPTIONS = [
-  { winsA: 2, winsB: 0, label: "2–0" },
-  { winsA: 2, winsB: 1, label: "2–1" },
-  { winsA: 1, winsB: 1, label: "1–1" },
-  { winsA: 1, winsB: 2, label: "1–2" },
-  { winsA: 0, winsB: 2, label: "0–2" },
-  { winsA: 1, winsB: 0, label: "1–0" },
-  { winsA: 0, winsB: 1, label: "0–1" },
-  { winsA: 0, winsB: 0, label: "和局" },
-];
 
 let audioContext: AudioContext | null = null;
 let alarmNodes: OscillatorNode[] = [];
@@ -106,11 +101,73 @@ function playAlarm(onDone: () => void) {
   else ring();
 }
 
-function scoreLabel(match: Match) {
-  if (match.bId == null) return "輪空";
-  if (match.winsA == null || match.winsB == null) return "—";
-  if (match.winsA === 0 && match.winsB === 0) return "和";
-  return `${match.winsA}–${match.winsB}`;
+function ScoreChoice({
+  preset,
+  left,
+  right,
+  selected,
+  onPick,
+}: {
+  preset: ScorePreset;
+  left: string;
+  right: string;
+  selected: boolean;
+  onPick: (winsA: number, winsB: number) => void;
+}) {
+  const text = scoreButtonText(preset, left, right);
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(preset.winsA, preset.winsB)}
+      className={cn(
+        "rounded-xl border px-3 py-3 text-left",
+        selected ? "border-pink-400 bg-pink-500/20 text-white" : "border-white/10 bg-white/5 hover:bg-white/10",
+      )}
+    >
+      <span className="block font-mono text-2xl font-bold tabular-nums">{text.primary}</span>
+      {text.secondary ? <span className="mt-1 block text-sm font-medium text-zinc-300">{text.secondary}</span> : null}
+    </button>
+  );
+}
+
+function ScorePicker({
+  match,
+  left,
+  right,
+  onPick,
+}: {
+  match: Match;
+  left: string;
+  right: string;
+  onPick: (winsA: number, winsB: number) => void;
+}) {
+  const groups: { id: string; label: string; presets: ScorePreset[] }[] = [
+    { id: "a", label: left, presets: SCORE_PRESETS.filter((preset) => preset.kind === "win") },
+    { id: "b", label: right, presets: SCORE_PRESETS.filter((preset) => preset.kind === "loss") },
+  ];
+  const other = SCORE_PRESETS.filter((preset) => preset.kind === "zero" || preset.kind === "draw");
+  const choice = (preset: ScorePreset) => (
+    <ScoreChoice
+      key={preset.id}
+      preset={preset}
+      left={left}
+      right={right}
+      selected={match.winsA === preset.winsA && match.winsB === preset.winsB}
+      onPick={onPick}
+    />
+  );
+
+  return (
+    <div className="space-y-4">
+      {groups.map((group) => (
+        <div key={group.id}>
+          <p className="mb-2 text-sm font-medium text-zinc-300">{group.label}</p>
+          <div className="grid grid-cols-3 gap-2">{group.presets.map(choice)}</div>
+        </div>
+      ))}
+      <div className="grid grid-cols-2 gap-2">{other.map(choice)}</div>
+    </div>
+  );
 }
 
 export function LiveBoard({ remote = false }: { remote?: boolean }) {
@@ -123,6 +180,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
   const [now, setNow] = useState(() => Date.now());
   const [viewRound, setViewRound] = useState(1);
   const [editing, setEditing] = useState<Match | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [playersOpen, setPlayersOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [bulkDraft, setBulkDraft] = useState("");
@@ -468,6 +526,10 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
                 ← 店賽
               </Link>
             )}
+            <StaffBoardLinks
+              tone="dark"
+              current={remote ? "live" : storedKey === SHOP_TEST_BOARD_KEY ? "test" : undefined}
+            />
             {remote && (
               <Link
                 href="/tournaments/live"
@@ -479,13 +541,27 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
             )}
             <p className="text-xs text-zinc-400">瑞士輪 · 勝 3 · 和 1 · 負 0 · 同分比 OMP、GWP、OGP</p>
           </div>
-          <input
-            value={board.title}
-            aria-label="賽事名稱"
-            onChange={(event) => update({ ...board, title: event.target.value })}
-            className="mt-1 w-full bg-transparent text-2xl font-bold tracking-tight outline-none placeholder:text-zinc-600 sm:text-3xl"
-            placeholder="賽事名稱"
-          />
+          <div className="mt-1 flex items-start gap-3">
+            <input
+              value={board.title}
+              aria-label="主題"
+              maxLength={120}
+              onChange={(event) => update({ ...board, title: event.target.value })}
+              className="min-w-0 flex-1 bg-transparent text-2xl font-bold tracking-tight outline-none placeholder:text-zinc-600 sm:text-3xl"
+              placeholder="主題"
+            />
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg bg-white/10 px-3 text-sm font-medium hover:bg-white/15"
+            >
+              <Settings className="size-4" />
+              設定
+            </button>
+          </div>
+          {sessionSummary(board) ? (
+            <p className="mt-1 text-sm text-zinc-400">{sessionSummary(board)}</p>
+          ) : null}
           <div className="mt-3 flex flex-wrap items-center gap-2">
             <button
               type="button"
@@ -598,12 +674,17 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
             />
           )}
           <div className="flex flex-wrap gap-2">
-            {PRESETS.map((minutes) => (
+            {TIMER_PRESETS_MINUTES.map((minutes) => (
               <button
                 key={minutes}
                 type="button"
                 onMouseDown={keepClockFocus}
                 onClick={() => setMinutes(minutes)}
+                aria-label={
+                  minutes === DEFAULT_ROUND_MINUTES
+                    ? `預時間 ${DEFAULT_ROUND_MINUTES} 分鐘`
+                    : `${minutes} 分鐘`
+                }
                 className={cn(
                   "h-8 rounded-md px-2.5 text-sm",
                   !board.timerRunning && board.timerRemainingMs === minutes * 60_000
@@ -759,7 +840,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
                                   : "bg-amber-400/15 text-amber-200 hover:bg-amber-400/25",
                               )}
                             >
-                              {scoreLabel(match)}
+                              {matchScoreLabel(match)}
                             </button>
                           ) : (
                             <span className="font-mono text-lg text-zinc-400">輪空 +3</span>
@@ -845,7 +926,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
       </div>
 
       <Dialog open={editing != null} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="bg-zinc-900 text-zinc-50 sm:max-w-lg">
+        <DialogContent className="bg-zinc-900 text-zinc-50 sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>
               第 {editing?.table} 桌比分
@@ -856,40 +937,58 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
             </DialogDescription>
           </DialogHeader>
           {editing && (
-            <div className="grid grid-cols-2 gap-2">
-              {RESULT_OPTIONS.map((option) => {
-                const selected = editing.winsA === option.winsA && editing.winsB === option.winsB;
-                const left = playerName(board.players, editing.aId);
-                const right = editing.bId ? playerName(board.players, editing.bId) : "";
-                const caption =
-                  option.winsA === option.winsB
-                    ? option.winsA === 0
-                      ? "和局"
-                      : `和局 ${option.label}`
-                    : option.winsA > option.winsB
-                      ? `${left} 勝 ${option.winsA}–${option.winsB}`
-                      : `${right} 勝 ${option.winsB}–${option.winsA}`;
-                return (
-                  <button
-                    key={option.label}
-                    type="button"
-                    onClick={() => {
-                      update(setMatchResult(board, editing.id, option.winsA, option.winsB));
-                      setEditing(null);
-                    }}
-                    className={cn(
-                      "rounded-lg border px-3 py-3 text-left text-sm font-semibold",
-                      selected
-                        ? "border-pink-400 bg-pink-500/20 text-white"
-                        : "border-white/10 bg-white/5 hover:bg-white/10",
-                    )}
-                  >
-                    {caption}
-                  </button>
-                );
-              })}
-            </div>
+            <ScorePicker
+              match={editing}
+              left={playerName(board.players, editing.aId)}
+              right={editing.bId ? playerName(board.players, editing.bId) : ""}
+              onPick={(winsA, winsB) => {
+                update(setMatchResult(board, editing.id, winsA, winsB));
+                setEditing(null);
+              }}
+            />
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent className="bg-zinc-900 text-zinc-50 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>場次設定</DialogTitle>
+            <DialogDescription className="text-zinc-400">
+              {remote
+                ? "場次編號、主題同日期會顯示喺公開計分板。"
+                : "試賽設定只留喺這部電腦。"}
+            </DialogDescription>
+          </DialogHeader>
+          <label className="block text-sm font-medium">
+            場次編號
+            <input
+              value={board.sessionNumber}
+              maxLength={40}
+              onChange={(event) => update({ ...board, sessionNumber: event.target.value })}
+              placeholder="例如 3"
+              className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-base outline-none focus:border-pink-400"
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            主題
+            <input
+              value={board.title}
+              maxLength={120}
+              onChange={(event) => update({ ...board, title: event.target.value })}
+              placeholder="例如 Pokémon TCG Gym Battle"
+              className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-base outline-none focus:border-pink-400"
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            日期
+            <input
+              type="date"
+              value={board.sessionDate}
+              onChange={(event) => update({ ...board, sessionDate: event.target.value })}
+              className="mt-1 h-10 w-full rounded-lg border border-white/15 bg-white/5 px-3 text-base outline-none [color-scheme:dark] focus:border-pink-400"
+            />
+          </label>
         </DialogContent>
       </Dialog>
 

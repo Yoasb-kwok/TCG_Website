@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { StaffBoardLinks } from "@/components/tournaments/staff-board-links";
 import { liveBoardHref } from "@/lib/tournament-board";
 
 interface Registration {
@@ -78,24 +79,11 @@ export default function AdminTournamentsPage() {
         <div>
           <h1 className="text-2xl font-bold">店賽報名</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            賽事管理同報名名單。現場計時同比分由收銀「計分」寫入，電視打開公開計分板即可看到。試賽仍然只留喺這部電腦。
+            賽事管理同報名名單。現場計時同比分由「計分板 / 計時」寫入，電視打開公開計分板即可看到。試賽計分仍然只留喺這部電腦。
           </p>
         </div>
-        <div className="flex gap-2">
-          <Link
-            href={liveBoardHref(undefined, { test: true })}
-            target="_blank"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            試賽計分
-          </Link>
-          <Link
-            href="/pos/scoreboard"
-            target="_blank"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            職員計分 / 計時
-          </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <StaffBoardLinks />
           <Link
             href="/tournaments/live"
             target="_blank"

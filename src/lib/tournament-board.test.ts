@@ -5,12 +5,21 @@ import {
   canPair,
   computeStandings,
   createRound,
+  DEFAULT_ROUND_MINUTES,
   defaultBoard,
+  formatSessionDate,
+  FRONT_OVERLAY,
   liveBoardHref,
+  matchScoreLabel,
   parseClockInput,
+  publishBoardInput,
   roundComplete,
+  SCORE_PRESETS,
+  scoreButtonText,
   setMatchResult,
+  STAFF_BOARD_LINKS,
   startTimerState,
+  TIMER_PRESETS_MINUTES,
   undoRound,
   type Player,
 } from "./tournament-board";
@@ -108,6 +117,79 @@ test("three players produce one scored bye", () => {
   const open = state.matches.filter((match) => match.bId && match.winsA == null);
   assert.equal(open.length, 1);
   assert.equal(canPair(state), false);
+});
+
+test("a new session uses the 25 minute pre-time and still offers 50, 30, and 25", () => {
+  const board = defaultBoard();
+  assert.equal(DEFAULT_ROUND_MINUTES, 25);
+  assert.equal(board.roundMinutes, 25);
+  assert.equal(board.timerRemainingMs, 25 * 60_000);
+  assert.deepEqual([...TIMER_PRESETS_MINUTES], [50, 30, 25]);
+});
+
+test("session settings keep 場次編號, 主題, and a real date", () => {
+  const published = publishBoardInput({
+    ...defaultBoard(),
+    title: "  Pokémon TCG Gym Battle  ",
+    sessionNumber: "  3  ",
+    sessionDate: "2026-10-16",
+  });
+  assert.equal(published.title, "Pokémon TCG Gym Battle");
+  assert.equal(published.sessionNumber, "3");
+  assert.equal(published.sessionDate, "2026-10-16");
+  assert.equal(formatSessionDate(published.sessionDate), "2026年10月16日");
+
+  const rejected = publishBoardInput({
+    ...defaultBoard(),
+    sessionDate: "2026-13-40",
+    sessionNumber: "場".repeat(50),
+  });
+  assert.equal(rejected.sessionDate, "");
+  assert.equal(rejected.sessionNumber.length, 40);
+});
+
+test("score presets list 0-0 separately from a draw, in the default order", () => {
+  assert.deepEqual(
+    SCORE_PRESETS.slice(0, 5).map((preset) => preset.id),
+    ["2-0", "2-1", "1-0", "0-0", "draw"],
+  );
+  const zero = SCORE_PRESETS.find((preset) => preset.id === "0-0");
+  const draw = SCORE_PRESETS.find((preset) => preset.id === "draw");
+  assert.ok(zero);
+  assert.ok(draw);
+  assert.deepEqual(scoreButtonText(zero, "Regan", "Tony"), { primary: "0–0", secondary: "" });
+  assert.deepEqual(scoreButtonText(draw, "Regan", "Tony"), { primary: "和局", secondary: "1–1" });
+  assert.equal(scoreButtonText(SCORE_PRESETS[2], "Regan", "Tony").secondary, "Regan 勝");
+  assert.equal(matchScoreLabel({ bId: "b", winsA: 0, winsB: 0 }), "0–0");
+  assert.equal(matchScoreLabel({ bId: "b", winsA: 1, winsB: 1 }), "和");
+  assert.equal(matchScoreLabel({ bId: "b", winsA: 2, winsB: 0 }), "2–0");
+});
+
+test("a recorded 0-0 finishes the table and scores as a draw", () => {
+  const paired = createRound(boardWith(["Regan", "Tony"]));
+  const scored = setMatchResult(paired, paired.matches[0].id, 0, 0);
+  assert.equal(roundComplete(scored.matches, 1), true);
+  const standings = computeStandings(scored.players, scored.matches);
+  assert.deepEqual(
+    standings.map((row) => [row.points, row.draws, row.wins]),
+    [
+      [1, 1, 0],
+      [1, 1, 0],
+    ],
+  );
+});
+
+test("the public front overlay hides top and bottom chrome images", () => {
+  assert.equal(FRONT_OVERLAY.showTopImage, false);
+  assert.equal(FRONT_OVERLAY.showBottomImage, false);
+});
+
+test("staff entry keeps 試賽計分 separate from 計分板 / 計時", () => {
+  assert.equal(STAFF_BOARD_LINKS.test.label, "試賽計分");
+  assert.equal(STAFF_BOARD_LINKS.live.label, "計分板 / 計時");
+  assert.equal(STAFF_BOARD_LINKS.test.href, liveBoardHref(undefined, { test: true }));
+  assert.equal(STAFF_BOARD_LINKS.live.href, "/pos/scoreboard");
+  assert.notEqual(STAFF_BOARD_LINKS.test.href, STAFF_BOARD_LINKS.live.href);
 });
 
 test("live board links keep a test sandbox separate from an event", () => {
