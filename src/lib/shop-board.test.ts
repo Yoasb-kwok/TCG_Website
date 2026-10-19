@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile, rm } from "fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import path from "path";
 import test from "node:test";
@@ -76,6 +76,42 @@ test("memory and file stores round-trip the same board", async () => {
     assert.equal((await file.read()).timerRemainingMs, 30 * 60_000);
     assert.equal((await file.read()).sessionNumber, "");
     assert.equal((await file.read()).sessionDate, "");
+
+    const legacyPath = path.join(dir, "legacy.json");
+    await writeFile(
+      legacyPath,
+      JSON.stringify({
+        board: {
+          title: "店賽",
+          players: [
+            { id: "a", name: "Player A", dropped: false },
+            { id: "b", name: "Player B", dropped: false },
+          ],
+          matches: [{ id: "m", round: 1, table: 1, aId: "a", bId: "b", winsA: 2, winsB: 0 }],
+          roundMinutes: 50,
+          timerRunning: false,
+          timerEndsAt: null,
+          timerRemainingMs: 50 * 60_000,
+        },
+      }),
+      "utf8",
+    );
+    const legacy = await fileShopBoard(legacyPath).read();
+    assert.equal(legacy.roundMinutes, 25);
+    assert.equal(legacy.timerRemainingMs, 25 * 60_000);
+    assert.equal(legacy.players.length, 2);
+    assert.equal(legacy.matches[0]?.winsA, 2);
+
+    const chosenPath = path.join(dir, "chosen.json");
+    const chosen = fileShopBoard(chosenPath);
+    await chosen.write({
+      ...defaultBoard(),
+      roundMinutes: 50,
+      timerRemainingMs: 50 * 60_000,
+      timerChosen: true,
+    });
+    assert.equal((await chosen.read()).roundMinutes, 50);
+    assert.equal((await chosen.read()).timerRemainingMs, 50 * 60_000);
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
