@@ -85,6 +85,11 @@ export function SiteFooter({ socialLinks }: { socialLinks: ResolvedSocialLink[] 
       </div>
       <div className="mx-auto mt-8 max-w-7xl border-t border-border px-4 pt-8 text-center text-xs lg:px-6">
         © {new Date().getFullYear()} {SITE_BRAND}. All rights reserved.
+        <p className="mt-2">
+          <Link href="/demo" className="hover:text-foreground">
+            公開示範店
+          </Link>
+        </p>
       </div>
     </footer>
   );

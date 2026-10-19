@@ -1,13 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip, catalogHitManualName, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import { PRODUCT_TYPES } from "@/lib/constants";
+import { DEMO_PRODUCTS } from "@/lib/demo-products";
+import { DEMO_WRITE_DISCLAIMER, filterDemoCatalog } from "@/lib/demo-shop";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
+import { matchPosScan } from "@/lib/pos-scan";
 import { PAYMENT_LABELS, roundMoney, type PaymentMethod, type Sale } from "@/lib/pos-shared";
 import type { CatalogSearchHit, ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -66,7 +69,7 @@ function formatMoney(amount: number) {
   }).format(rounded);
 }
 
-export function PosRegister() {
+export function PosRegister({ demo = false }: { demo?: boolean }) {
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState("");
   const [inStockOnly, setInStockOnly] = useState(true);
@@ -104,13 +107,32 @@ export function PosRegister() {
   };
 
   useEffect(() => {
+    if (demo) return;
     loadRecent().catch(() => undefined);
-  }, []);
+  }, [demo]);
 
   const searching = query.trim().length > 0;
   const needsFullList = searching || kind !== "";
 
+  const demoCatalog = useMemo(
+    () =>
+      demo
+        ? filterDemoCatalog({
+            search: searching ? query : undefined,
+            type: kind || undefined,
+            inStock: searching ? false : inStockOnly,
+          })
+        : null,
+    [demo, searching, query, kind, inStockOnly],
+  );
+  const shelf = demoCatalog ?? products;
+  const shelfCount = demoCatalog ? demoCatalog.length : matchCount;
+  const shelfComplete = demoCatalog ? true : complete;
+  const shelfCatalog = demoCatalog ? [] : catalogCards;
+  const shelfCatalogTotal = demoCatalog ? 0 : catalogTotal;
+
   useEffect(() => {
+    if (demo) return;
     let cancelled = false;
     const requestId = window.setTimeout(() => {
       const run = async () => {
@@ -144,7 +166,7 @@ export function PosRegister() {
       cancelled = true;
       window.clearTimeout(requestId);
     };
-  }, [query, kind, inStockOnly, page, searching, needsFullList]);
+  }, [demo, query, kind, inStockOnly, page, searching, needsFullList]);
 
   const subtotal = lines.reduce((sum, line) => sum + lineTotal(line), 0);
   const total = Math.max(0, subtotal - discount);
@@ -203,6 +225,23 @@ export function PosRegister() {
     const q = raw.trim();
     if (!q) return;
     const seq = ++scanSeq.current;
+    if (demo) {
+      const match = matchPosScan(DEMO_PRODUCTS, q);
+      if (seq !== scanSeq.current) return;
+      if (!match) {
+        setScanNote({ tone: "warn", text: "沒有完全相符嘅條碼、SKU 或卡號，請喺下面揀" });
+        return;
+      }
+      const variant = match.product.variants.find((item) => item.id === match.variantId);
+      addVariant(match.product, match.variantId);
+      setQuery("");
+      setScanNote({
+        tone: "ok",
+        text: variant && variant.stock <= 0 ? `已加入：${match.product.name}（而家無庫存）` : `已加入：${match.product.name}`,
+      });
+      scanRef.current?.focus();
+      return;
+    }
     try {
       const res = await fetch(`/api/pos/lookup?q=${encodeURIComponent(q)}`);
       const data = (await res.json()) as LookupResponse;
@@ -285,7 +324,7 @@ export function PosRegister() {
     payLock.current = true;
     setPending(true);
     try {
-      const res = await fetch("/api/pos/sales", {
+      const res = await fetch(demo ? "/api/demo/pos/sales" : "/api/pos/sales", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -303,7 +342,7 @@ export function PosRegister() {
       });
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? "未能入帳");
+        setError(data.error ?? (demo ? DEMO_WRITE_DISCLAIMER : "未能入帳"));
         return;
       }
       clearTicket();
@@ -353,12 +392,19 @@ export function PosRegister() {
 
   const voidTicket = async (id: string) => {
     if (!window.confirm("作廢這張單？損益表不會再計算它。")) return;
-    await fetch(`/api/pos/sales?id=${id}`, { method: "DELETE" });
+    const res = await fetch(demo ? `/api/demo/pos/sales?id=${encodeURIComponent(id)}` : `/api/pos/sales?id=${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+    if (demo) {
+      const data = (await res.json().catch(() => null)) as { error?: string } | null;
+      setError(data?.error ?? DEMO_WRITE_DISCLAIMER);
+      return;
+    }
     await loadRecent();
   };
 
   return (
-    <PosShell current="register">
+    <PosShell current="register" demo={demo}>
       <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_320px] lg:overflow-hidden">
         <section className="flex min-h-[28rem] flex-col overflow-hidden rounded-[14px] border border-border bg-card p-4 lg:min-h-0">
           <div className="flex items-center justify-between gap-2">
@@ -451,14 +497,14 @@ export function PosRegister() {
             <p className="mt-1 text-xs font-bold text-muted-foreground">搜尋會一併列出缺貨商品</p>
           )}
           <p className="mt-1 text-xs font-bold text-muted-foreground">
-            {searching ? `找到 ${matchCount} 件` : `顯示 ${products.length} / ${matchCount}`}
-            {searching && catalogTotal > 0 ? `，卡表 ${catalogTotal} 張` : ""}
-            {!complete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
+            {searching ? `找到 ${shelfCount} 件` : `顯示 ${shelf.length} / ${shelfCount}`}
+            {searching && shelfCatalogTotal > 0 ? `，卡表 ${shelfCatalogTotal} 張` : ""}
+            {!shelfComplete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
           </p>
           {searching && (
             <CatalogHitStrip
-              cards={catalogCards}
-              total={catalogTotal}
+              cards={shelfCatalog}
+              total={shelfCatalogTotal}
               hint="撳一下把官方卡名填到手動貨品，售價要自己輸入。"
               onPick={(card) => {
                 setManual((current) => ({ ...current, name: catalogHitManualName(card) }));
@@ -471,7 +517,7 @@ export function PosRegister() {
             />
           )}
           <ul className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1">
-            {products.map((product) => {
+            {shelf.map((product) => {
               const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
               const image = product.images[0];
               const stock = product.variants.reduce((sum, item) => sum + item.stock, 0);
@@ -508,13 +554,13 @@ export function PosRegister() {
                 </li>
               );
             })}
-            {products.length === 0 && (
+            {shelf.length === 0 && (
               <li className="col-span-2 px-2 py-8 text-center text-sm font-bold text-muted-foreground">
                 找不到貨品，可以用下面手動加一項。
               </li>
             )}
           </ul>
-          {!needsFullList && !complete && (
+          {!needsFullList && !shelfComplete && (
             <button
               type="button"
               onClick={() => setPage((current) => current + 1)}
@@ -685,7 +731,9 @@ export function PosRegister() {
             >
               {pending ? "入帳中…" : `收款 ${formatPrice(total)}`}
             </button>
-            <p className="mt-2 text-center text-xs font-bold text-muted-foreground">按收款後先揀付款方式同確認金額</p>
+            <p className="mt-2 text-center text-xs font-bold text-muted-foreground">
+              {demo ? DEMO_WRITE_DISCLAIMER : "按收款後先揀付款方式同確認金額"}
+            </p>
             <button
               type="button"
               onClick={clearTicket}

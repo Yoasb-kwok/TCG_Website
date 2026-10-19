@@ -1,10 +1,11 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { CreditCard, Minus, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +24,7 @@ import {
   type ShippingMethod,
 } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { useCart } from "@/providers/cart-provider";
 
 async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Promise<T> {
@@ -37,7 +39,7 @@ async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Pr
   }
 }
 
-export function CartSheet() {
+export function CartSheet({ demo = false }: { demo?: boolean }) {
   const {
     items,
     subtotal,
@@ -62,6 +64,7 @@ export function CartSheet() {
   }, [session?.user?.email, email]);
 
   useEffect(() => {
+    if (demo) return;
     void fetch("/api/checkout")
       .then((res) => res.json())
       .then((data: { ready?: boolean; message?: string }) => {
@@ -72,7 +75,7 @@ export function CartSheet() {
         setStripeReady(false);
         setStripeMessage("無法連接結帳服務");
       });
-  }, []);
+  }, [demo]);
 
   const shippingFee = useMemo(
     () => calculateShipping(subtotal, shippingMethod),
@@ -251,7 +254,7 @@ export function CartSheet() {
               />
             </div>
 
-            {stripeReady === false && (
+            {!demo && stripeReady === false && (
               <p className="mb-2 rounded-md border border-amber-400/30 bg-amber-500/10 p-3 text-xs text-amber-200">
                 {stripeMessage ??
                   "Stripe 尚未設定。請在 .env 加入 STRIPE_SECRET_KEY 後重啟 server。"}
@@ -260,17 +263,35 @@ export function CartSheet() {
 
             {error && <p className="mb-2 text-sm text-red-400">{error}</p>}
 
-            <Button
-              className="w-full gap-2"
-              disabled={loading || !email || stripeReady !== true}
-              onClick={() => void handleCheckout()}
-            >
-              <CreditCard className="h-4 w-4" />
-              {loading ? "前往 Stripe..." : "安全結帳"}
-            </Button>
-            <p className="mt-2 text-center text-[11px] text-muted-foreground">
-              由 Stripe 安全處理 · 支援信用卡及 Apple Pay
-            </p>
+            {demo ? (
+              <>
+                <Link
+                  href="/demo/checkout"
+                  onClick={() => setIsOpen(false)}
+                  className={cn(buttonVariants(), "w-full gap-2")}
+                >
+                  <CreditCard className="h-4 w-4" />
+                  前往結帳
+                </Link>
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  示範店結帳不會建立真實訂單。
+                </p>
+              </>
+            ) : (
+              <>
+                <Button
+                  className="w-full gap-2"
+                  disabled={loading || !email || stripeReady !== true}
+                  onClick={() => void handleCheckout()}
+                >
+                  <CreditCard className="h-4 w-4" />
+                  {loading ? "前往 Stripe..." : "安全結帳"}
+                </Button>
+                <p className="mt-2 text-center text-[11px] text-muted-foreground">
+                  由 Stripe 安全處理 · 支援信用卡及 Apple Pay
+                </p>
+              </>
+            )}
             <Button
               variant="ghost"
               className="mt-2 w-full text-muted-foreground"

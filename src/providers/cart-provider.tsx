@@ -13,6 +13,11 @@ import type { CartItem } from "@/lib/types";
 
 const CART_STORAGE_KEY = "tcg-hk-cart";
 
+interface CartProviderProps {
+  children: ReactNode;
+  storageKey?: string;
+}
+
 interface CartContextValue {
   items: CartItem[];
   itemCount: number;
@@ -27,25 +32,26 @@ interface CartContextValue {
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children, storageKey = CART_STORAGE_KEY }: CartProviderProps) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
     try {
-      const stored = localStorage.getItem(CART_STORAGE_KEY);
+      const stored = localStorage.getItem(storageKey);
       if (stored) setItems(JSON.parse(stored) as CartItem[]);
+      else setItems([]);
     } catch {
       /* ignore */
     }
     setHydrated(true);
-  }, []);
+  }, [storageKey]);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
-  }, [items, hydrated]);
+    localStorage.setItem(storageKey, JSON.stringify(items));
+  }, [items, hydrated, storageKey]);
 
   const addItem = useCallback(
     (item: Omit<CartItem, "quantity">, quantity = 1) => {

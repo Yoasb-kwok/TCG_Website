@@ -28,6 +28,18 @@ npm run dev
 
 瀏覽 [http://localhost:3000](http://localhost:3000)
 
+## 公開示範店
+
+免登入瀏覽虛構「旺角示範卡店」（港幣、繁體中文）。購物車只留在瀏覽器。結帳、收銀同後台改動都會被拒絕，不會寫入訂單、庫存或 Stripe。真實 `/admin`、`/pos` 同結帳維持原樣。
+
+| 表面 | 路徑 |
+|------|------|
+| 網店 | [/demo](http://localhost:3000/demo) |
+| 後台 | [/admin/demo](http://localhost:3000/admin/demo) |
+| 收銀 | [/pos/demo](http://localhost:3000/pos/demo) |
+
+上線示範：<https://tcg-website-xi.vercel.app/demo>
+
 ## 資料庫設定
 
 1. 在 [Supabase](https://supabase.com) 或 [Neon](https://neon.tech) 建立 PostgreSQL

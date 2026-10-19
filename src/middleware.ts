@@ -1,11 +1,17 @@
 import NextAuth from "next-auth";
 import { NextResponse } from "next/server";
 import { authConfig } from "@/auth.config";
+import { isDemoAuthBypassPath } from "@/lib/demo-paths";
 
 const { auth } = NextAuth(authConfig);
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
+
+  // Public demo admin/POS only. Real /admin and /pos stay behind ADMIN.
+  if (isDemoAuthBypassPath(pathname)) {
+    return NextResponse.next();
+  }
 
   const needsAdmin = pathname.startsWith("/admin") || pathname.startsWith("/pos");
   if (!needsAdmin) {

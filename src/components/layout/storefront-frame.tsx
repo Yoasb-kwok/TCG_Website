@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
+import { isDemoStorePath } from "@/lib/demo-paths";
 import type { ResolvedSocialLink } from "@/lib/social";
 
 function WhatsAppButton({ href }: { href: string }) {
@@ -31,9 +32,16 @@ export function StorefrontFrame({
   socialLinks: ResolvedSocialLink[];
 }) {
   const pathname = usePathname();
+  const locked = pathname === "/tournaments/live" || pathname.startsWith("/pos");
+  const demoShell =
+    isDemoStorePath(pathname) || pathname === "/admin/demo" || pathname.startsWith("/admin/demo/");
 
-  if (pathname === "/tournaments/live" || pathname.startsWith("/pos")) {
-    return <div className="min-h-dvh flex-1 lg:h-dvh lg:overflow-hidden">{children}</div>;
+  if (locked || demoShell) {
+    return (
+      <div className={locked ? "min-h-dvh flex-1 lg:h-dvh lg:overflow-hidden" : "flex min-h-full flex-1 flex-col"}>
+        {children}
+      </div>
+    );
   }
 
   return (
