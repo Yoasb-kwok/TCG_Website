@@ -330,7 +330,7 @@ export async function createReceipt(input: {
     createdAt: now,
     category: "GOODS",
     amount: roundMoney(quantity * unitCost),
-    note: `來貨 ${name} × ${quantity}`,
+    note: `進貨 ${name} × ${quantity}`,
   };
   if (storeUnavailable()) return databaseRequired;
   if (!isDatabaseConfigured()) {
@@ -385,13 +385,13 @@ export async function deleteReceipt(id: string): Promise<{ ok: true; receipt: Re
         expenses: ledger.expenses.filter((expense) => expense.id !== receipt.expenseId),
       };
     });
-    if (!removed) return { ok: false, error: "找不到這筆來貨" };
+    if (!removed) return { ok: false, error: "找不到這筆進貨" };
     return { ok: true, receipt: removed };
   }
 
   const prisma = getPrisma();
   const row = await prisma.posReceipt.findUnique({ where: { id } });
-  if (!row) return { ok: false, error: "找不到這筆來貨" };
+  if (!row) return { ok: false, error: "找不到這筆進貨" };
   await prisma.$transaction([
     prisma.posReceipt.delete({ where: { id } }),
     prisma.posExpense.deleteMany({ where: { id: row.expenseId } }),

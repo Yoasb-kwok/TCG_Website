@@ -374,7 +374,7 @@ export function ProductEditDialog({
             </p>
           </div>
 
-          <p className="text-sm text-muted-foreground">售價和數量在收銀的「來貨」點算。</p>
+          <p className="text-sm text-muted-foreground">售價和數量在「倉存」點算，入庫用「進貨」。</p>
 
           <div>
             <Label>備註（選填）</Label>

@@ -1,4 +1,5 @@
 import { leadingCollectorIndex } from "@/lib/card-number-format";
+import { formatStaffMoney } from "@/lib/format";
 import { productSearchNeedles } from "@/lib/product-search";
 import { normalizePhone } from "@/lib/registration-input";
 import { roundMoney, type Buyback } from "@/lib/pos-shared";
@@ -142,6 +143,14 @@ export function buybackDayTotal(rows: Pick<Buyback, "voided" | "totalAmount">[])
   return roundMoney(rows.filter((row) => !row.voided).reduce((sum, row) => sum + row.totalAmount, 0));
 }
 
+/** Staff-facing buyback row: the unit amount the shop pays the customer. */
+export function buybackPriceCopy(row: Pick<Buyback, "voided" | "quantity" | "unitBuyPrice" | "totalAmount">) {
+  const unit = `收取價錢 ${formatStaffMoney(row.unitBuyPrice)}`;
+  const total = row.quantity > 1 ? ` · 合計 ${formatStaffMoney(row.totalAmount)}` : "";
+  const status = row.voided ? " · 已撤銷" : "";
+  return `${unit}${total}${status}`;
+}
+
 export function prepareBuyback(
   input: BuybackDraftInput,
 ): { ok: true; draft: PreparedBuyback } | { ok: false; error: string } {
@@ -152,7 +161,7 @@ export function prepareBuyback(
 
   const unitBuyPrice = Number(input.unitBuyPrice);
   if (!Number.isFinite(unitBuyPrice) || unitBuyPrice <= 0 || unitBuyPrice > BUYBACK_MAX_UNIT_PRICE) {
-    return { ok: false, error: "請填寫收購價" };
+    return { ok: false, error: "請填寫收取價錢" };
   }
 
   const variant = cleanId(input.variantId);
