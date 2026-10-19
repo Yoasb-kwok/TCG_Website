@@ -22,9 +22,10 @@ const LANGUAGE_LABELS: Record<string, string> = {
 
 interface ProductDetailProps {
   product: ProductWithVariants;
+  catalogHref?: string;
 }
 
-export function ProductDetail({ product }: ProductDetailProps) {
+export function ProductDetail({ product, catalogHref = "/products" }: ProductDetailProps) {
   const { labelFor } = usePublicTaxonomy();
   const { addItem } = useCart();
   const [imageIndex, setImageIndex] = useState(0);
@@ -60,7 +61,7 @@ export function ProductDetail({ product }: ProductDetailProps) {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 lg:px-6">
-      <Link href="/products" className="text-sm text-muted-foreground hover:text-foreground">
+      <Link href={catalogHref} className="text-sm text-muted-foreground hover:text-foreground">
         ← 返回商品
       </Link>
 

@@ -13,9 +13,10 @@ import { useCart } from "@/providers/cart-provider";
 
 interface ProductCardProps {
   product: ProductWithVariants;
+  hrefBase?: string;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, hrefBase = "/products" }: ProductCardProps) {
   const { labelFor } = usePublicTaxonomy();
   const { addItem } = useCart();
   const priced = product.variants.filter((variant) => variant.price > 0);
@@ -24,7 +25,7 @@ export function ProductCard({ product }: ProductCardProps) {
   );
   const sellable = product.variants.find((variant) => variant.stock > 0 && variant.price > 0);
   const imageUrl = product.images[0]?.url;
-  const href = `/products/${product.slug}`;
+  const href = `${hrefBase.replace(/\/$/, "")}/${product.slug}`;
 
   const handleAdd = () => {
     if (!sellable) return;
