@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SITE_BRAND } from "@/lib/constants";
-import { demoSurface, type DemoSurface } from "@/lib/demo-paths";
+import { DEMO_STORE_PATH, demoSurface, type DemoSurface } from "@/lib/demo-paths";
 import { cn } from "@/lib/utils";
 
 const TABS: { id: DemoSurface; href: string; label: string }[] = [
-  { id: "store", href: "/demo", label: "網店" },
+  { id: "store", href: DEMO_STORE_PATH, label: "網店" },
   { id: "admin", href: "/admin/demo", label: "後台" },
   { id: "pos", href: "/pos/demo", label: "POS" },
 ];
 
 export function DemoChrome({ trialHref }: { trialHref: string | null }) {
-  const pathname = usePathname() ?? "/demo";
+  const pathname = usePathname() ?? DEMO_STORE_PATH;
   const surface = demoSurface(pathname);
 
   return (

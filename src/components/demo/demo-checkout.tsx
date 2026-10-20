@@ -15,7 +15,7 @@ import {
   SHIPPING_METHODS,
   type ShippingMethod,
 } from "@/lib/checkout";
-import { DEMO_SHOP, DEMO_WRITE_DISCLAIMER } from "@/lib/demo-shop";
+import { DEMO_SHOP, DEMO_STORE_PATH, DEMO_WRITE_DISCLAIMER } from "@/lib/demo-shop";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/providers/cart-provider";
 
@@ -67,7 +67,7 @@ export function DemoCheckout() {
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
         <h1 className="text-2xl font-bold">結帳</h1>
         <p className="mt-3 text-sm text-muted-foreground">購物車是空的。</p>
-        <Link href="/demo" className="mt-6 inline-block text-sm font-medium text-pink-500 hover:text-pink-400">
+        <Link href={DEMO_STORE_PATH} className="mt-6 inline-block text-sm font-medium text-pink-500 hover:text-pink-400">
           返回商品
         </Link>
       </div>

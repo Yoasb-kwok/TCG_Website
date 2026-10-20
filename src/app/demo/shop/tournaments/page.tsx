@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
-import { DEMO_SHOP } from "@/lib/demo-shop";
+import { DEMO_SHOP, DEMO_STORE_PATH } from "@/lib/demo-shop";
 import { formatDate, formatPrice } from "@/lib/format";
 import { registrationClosedLabel } from "@/lib/registration-input";
 
@@ -17,7 +17,7 @@ export default function DemoTournamentsPage() {
           return (
             <li key={tournament.id}>
               <Link
-                href={`/demo/tournaments/${tournament.slug}`}
+                href={`${DEMO_STORE_PATH}/tournaments/${tournament.slug}`}
                 className="block rounded-xl border border-border p-5 hover:border-foreground/20"
               >
                 <div className="flex items-start justify-between gap-3">

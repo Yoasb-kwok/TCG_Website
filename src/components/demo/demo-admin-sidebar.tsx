@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { DEMO_ADMIN_LINKS, DEMO_OWNER, DEMO_SHOP } from "@/lib/demo-shop";
+import { DEMO_ADMIN_LINKS, DEMO_OWNER, DEMO_SHOP, DEMO_STORE_PATH } from "@/lib/demo-shop";
 import { cn } from "@/lib/utils";
 
 export function DemoAdminSidebar() {
@@ -63,7 +63,7 @@ export function DemoAdminSidebar() {
           <ThemeToggle />
         </div>
         <Link
-          href="/demo"
+          href={DEMO_STORE_PATH}
           className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-muted-foreground hover:text-foreground"
         >
           <ExternalLink className="h-4 w-4" />

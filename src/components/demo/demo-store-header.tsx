@@ -4,14 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShoppingBag } from "lucide-react";
 import { CartSheet } from "@/components/cart/cart-sheet";
-import { DEMO_SHOP } from "@/lib/demo-shop";
+import { DEMO_SHOP, DEMO_STORE_PATH } from "@/lib/demo-shop";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/providers/cart-provider";
 
 const LINKS = [
-  { href: "/demo", label: "商品" },
-  { href: "/demo/tournaments", label: "店賽" },
-  { href: "/demo/about", label: "關於示範店" },
+  { href: DEMO_STORE_PATH, label: "商品" },
+  { href: `${DEMO_STORE_PATH}/tournaments`, label: "店賽" },
+  { href: `${DEMO_STORE_PATH}/about`, label: "關於示範店" },
 ];
 
 export function DemoStoreHeader() {
@@ -22,13 +22,15 @@ export function DemoStoreHeader() {
   return (
     <header className="border-b border-border bg-background">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-        <Link href="/demo" className="min-w-0">
+        <Link href={DEMO_STORE_PATH} className="min-w-0">
           <span className="block truncate text-sm font-semibold text-foreground">{DEMO_SHOP.name}</span>
           <span className="hidden text-xs text-muted-foreground sm:block">{DEMO_SHOP.address.zh}</span>
         </Link>
         <nav aria-label="示範網店" className="hidden items-center gap-4 text-sm md:flex">
           {LINKS.map((link) => {
-            const active = pathname === link.href || (link.href !== "/demo" && pathname.startsWith(link.href));
+            const active =
+              pathname === link.href ||
+              (link.href !== DEMO_STORE_PATH && pathname.startsWith(link.href));
             return (
               <Link
                 key={link.href}
