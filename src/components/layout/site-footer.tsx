@@ -87,7 +87,7 @@ export function SiteFooter({ socialLinks }: { socialLinks: ResolvedSocialLink[] 
         © {new Date().getFullYear()} {SITE_BRAND}. All rights reserved.
         <p className="mt-2">
           <Link href="/demo" className="hover:text-foreground">
-            公開示範店
+            TCG-Pro OS 示範
           </Link>
         </p>
       </div>

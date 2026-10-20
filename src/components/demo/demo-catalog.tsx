@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { PRODUCT_TYPES } from "@/lib/constants";
-import { filterDemoCatalog } from "@/lib/demo-shop";
+import { DEMO_STORE_PATH, filterDemoCatalog } from "@/lib/demo-shop";
 
 export function DemoCatalog() {
   const [search, setSearch] = useState("");
@@ -41,7 +41,7 @@ export function DemoCatalog() {
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 lg:grid-cols-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} hrefBase="/demo/products" />
+            <ProductCard key={product.id} product={product} hrefBase={`${DEMO_STORE_PATH}/products`} />
           ))}
         </div>
       )}

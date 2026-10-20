@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoRegisterForm } from "@/components/demo/demo-register-form";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
-import { getDemoTournament } from "@/lib/demo-shop";
+import { DEMO_STORE_PATH, getDemoTournament } from "@/lib/demo-shop";
 import { formatDate, formatPrice } from "@/lib/format";
 import { registrationClosedLabel } from "@/lib/registration-input";
 
@@ -30,7 +30,7 @@ export default async function DemoTournamentPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 lg:px-6">
-      <Link href="/demo/tournaments" className="text-sm text-muted-foreground hover:text-foreground">
+      <Link href={`${DEMO_STORE_PATH}/tournaments`} className="text-sm text-muted-foreground hover:text-foreground">
         ← 返回店賽
       </Link>
       <h1 className="mt-4 text-2xl font-bold">{tournament.title}</h1>

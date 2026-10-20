@@ -23,6 +23,7 @@ import {
   SHIPPING_FEE,
   type ShippingMethod,
 } from "@/lib/checkout";
+import { DEMO_STORE_PATH } from "@/lib/demo-paths";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/providers/cart-provider";
@@ -266,7 +267,7 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
             {demo ? (
               <>
                 <Link
-                  href="/demo/checkout"
+                  href={`${DEMO_STORE_PATH}/checkout`}
                   onClick={() => setIsOpen(false)}
                   className={cn(buttonVariants(), "w-full gap-2")}
                 >
