@@ -14,7 +14,7 @@ export default function DemoStoreLayout({ children }: { children: React.ReactNod
   const trialHref = demoTrialWhatsAppHref(resolveWhatsAppHref());
   return (
     <CartProvider storageKey={DEMO_CART_STORAGE_KEY}>
-      <div className="flex min-h-full flex-1 flex-col">
+      <div className="demo-night flex min-h-full flex-1 flex-col bg-[#070b14] text-slate-100 [color-scheme:dark]">
         <DemoChrome trialHref={trialHref} />
         <DemoStoreHeader />
         <main className="flex-1">{children}</main>

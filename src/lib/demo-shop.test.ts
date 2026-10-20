@@ -34,19 +34,21 @@ describe("demo auth bypass", () => {
 
 describe("demo surfaces", () => {
   it("maps the three public desks", () => {
-    assert.equal(demoSurface("/demo/shop"), "store");
-    assert.equal(demoSurface("/demo/shop/checkout"), "store");
+    assert.equal(demoSurface("/demo"), "store");
+    assert.equal(demoSurface("/demo/checkout"), "store");
     assert.equal(demoSurface("/admin/demo/orders"), "admin");
     assert.equal(demoSurface("/pos/demo"), "pos");
   });
 
-  it("keeps the sample shop under /demo/shop and the landing on /demo", () => {
-    assert.equal(isDemoStorePath("/demo"), false);
-    assert.equal(isDemoStorePath("/demo/checkout"), false);
+  it("serves the sample shop at /demo", () => {
+    assert.equal(isDemoStorePath("/demo"), true);
+    assert.equal(isDemoStorePath("/demo/checkout"), true);
+    assert.equal(isDemoStorePath("/demo/products/charizard-ex-151"), true);
     assert.equal(isDemoStorePath("/demo/shop"), true);
-    assert.equal(isDemoStorePath("/demo/shop/products/charizard-ex-151"), true);
+    assert.equal(isDemoStorePath("/"), false);
+    assert.equal(isDemoStorePath("/products"), false);
     assert.equal(isDemoShellPath("/demo"), true);
-    assert.equal(isDemoShellPath("/demo/shop"), true);
+    assert.equal(isDemoShellPath("/demo/tournaments"), true);
     assert.equal(isDemoShellPath("/admin/demo/orders"), true);
     assert.equal(isDemoShellPath("/"), false);
     assert.equal(isDemoShellPath("/pos/demo"), false);

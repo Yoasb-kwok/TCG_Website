@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DemoRegisterForm } from "@/components/demo/demo-register-form";
+import { demoPanelClass } from "@/components/demo/demo-look";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
 import { DEMO_STORE_PATH, getDemoTournament } from "@/lib/demo-shop";
 import { formatDate, formatPrice } from "@/lib/format";
@@ -29,13 +30,13 @@ export default async function DemoTournamentPage({ params }: PageProps) {
   const closed = registrationClosedLabel(tournament);
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 lg:px-6">
-      <Link href={`${DEMO_STORE_PATH}/tournaments`} className="text-sm text-muted-foreground hover:text-foreground">
+    <div className="mx-auto max-w-3xl px-4 py-10 lg:px-6">
+      <Link href={`${DEMO_STORE_PATH}/tournaments`} className="text-sm text-slate-400 hover:text-white">
         ← 返回店賽
       </Link>
-      <h1 className="mt-4 text-2xl font-bold">{tournament.title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{tournament.description}</p>
-      <dl className="mt-6 grid gap-3 text-sm sm:grid-cols-2">
+      <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">{tournament.title}</h1>
+      <p className="mt-3 text-sm leading-6 text-slate-400">{tournament.description}</p>
+      <dl className={`${demoPanelClass} mt-6 grid gap-4 p-5 text-sm sm:grid-cols-2`}>
         <div>
           <dt className="text-muted-foreground">時間</dt>
           <dd>{formatDate(tournament.startsAt)}</dd>
@@ -64,7 +65,7 @@ export default async function DemoTournamentPage({ params }: PageProps) {
         </div>
       </dl>
       {closed ? (
-        <p className="mt-8 rounded-lg border border-border bg-muted/40 p-4 text-sm">{closed}</p>
+        <p className={`${demoPanelClass} mt-8 p-4 text-sm text-slate-300`}>{closed}</p>
       ) : (
         <DemoRegisterForm slug={tournament.slug} />
       )}

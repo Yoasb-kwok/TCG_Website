@@ -8,15 +8,23 @@ import { Button } from "@/components/ui/button";
 import { usePublicTaxonomy } from "@/hooks/use-public-taxonomy";
 import { getProductTypeDisplayLabel } from "@/lib/product-type-display";
 import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { ProductWithVariants } from "@/lib/types";
 import { useCart } from "@/providers/cart-provider";
 
 interface ProductCardProps {
   product: ProductWithVariants;
   hrefBase?: string;
+  className?: string;
+  setBadgeClassName?: string;
 }
 
-export function ProductCard({ product, hrefBase = "/products" }: ProductCardProps) {
+export function ProductCard({
+  product,
+  hrefBase = "/products",
+  className,
+  setBadgeClassName = "bg-pink-500/90 text-[10px] text-white",
+}: ProductCardProps) {
   const { labelFor } = usePublicTaxonomy();
   const { addItem } = useCart();
   const priced = product.variants.filter((variant) => variant.price > 0);
@@ -44,7 +52,12 @@ export function ProductCard({ product, hrefBase = "/products" }: ProductCardProp
   };
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition hover:border-foreground/20">
+    <article
+      className={cn(
+        "group flex flex-col overflow-hidden rounded-lg border border-border bg-card transition hover:border-foreground/20",
+        className,
+      )}
+    >
       <Link href={href} className="relative block aspect-[3/4] overflow-hidden bg-muted">
         {imageUrl ? (
           <Image
@@ -68,7 +81,7 @@ export function ProductCard({ product, hrefBase = "/products" }: ProductCardProp
           </Badge>
         )}
         {product.setCode && (
-          <Badge className="absolute right-2 top-2 bg-pink-500/90 text-[10px] text-white">
+          <Badge className={cn("absolute right-2 top-2", setBadgeClassName)}>
             {labelFor("SET_CODE", product.setCode)}
           </Badge>
         )}

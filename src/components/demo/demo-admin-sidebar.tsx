@@ -14,7 +14,7 @@ export function DemoAdminSidebar() {
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-border bg-card">
       <div className="border-b border-border p-4">
-        <p className="text-xs font-semibold text-pink-400">示範後台</p>
+        <p className="text-xs font-semibold text-cyan-300">示範後台</p>
         <p className="text-sm font-semibold text-foreground">{DEMO_SHOP.name}</p>
       </div>
       <nav className="flex-1 space-y-0.5 p-3" aria-label="示範後台選單">
@@ -43,8 +43,8 @@ export function DemoAdminSidebar() {
           className={cn(
             "mt-2 block rounded-md border px-3 py-2 text-center text-sm font-medium transition",
             onPos && pathname === "/pos/demo"
-              ? "border-pink-500 bg-pink-500 text-white"
-              : "border-border text-muted-foreground hover:border-pink-400 hover:text-foreground",
+              ? "border-transparent bg-gradient-to-r from-cyan-400 to-violet-500 text-white"
+              : "border-border text-muted-foreground hover:border-cyan-300/50 hover:text-foreground",
           )}
         >
           收銀帳務

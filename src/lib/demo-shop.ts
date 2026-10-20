@@ -4,7 +4,6 @@ import type { ProductWithVariants } from "@/lib/types";
 
 export {
   DEMO_ADMIN_PATH,
-  DEMO_LANDING_PATH,
   DEMO_POS_DESKS,
   DEMO_POS_PATH,
   DEMO_STORE_PATH,

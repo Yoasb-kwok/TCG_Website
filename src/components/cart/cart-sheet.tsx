@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { CreditCard, Minus, Plus, Trash2 } from "lucide-react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -23,6 +23,7 @@ import {
   SHIPPING_FEE,
   type ShippingMethod,
 } from "@/lib/checkout";
+import { demoCtaClass } from "@/components/demo/demo-look";
 import { DEMO_STORE_PATH } from "@/lib/demo-paths";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -269,7 +270,7 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
                 <Link
                   href={`${DEMO_STORE_PATH}/checkout`}
                   onClick={() => setIsOpen(false)}
-                  className={cn(buttonVariants(), "w-full gap-2")}
+                  className={cn(demoCtaClass, "w-full")}
                 >
                   <CreditCard className="h-4 w-4" />
                   前往結帳
