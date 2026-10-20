@@ -134,3 +134,27 @@
   --card: oklch(0.15 0 0);
   --popover: oklch(0.12 0 0);
 }
+
+/* Scoped navy palette for the public demo shop. Live storefront tokens stay unchanged. */
+.demo-night {
+  --background: #070b14;
+  --foreground: #f1f5f9;
+  --card: #10182b;
+  --card-foreground: #f8fafc;
+  --popover: #121a2e;
+  --popover-foreground: #f8fafc;
+  --primary: #0284c7;
+  --primary-foreground: #ffffff;
+  --secondary: #1a2438;
+  --secondary-foreground: #f8fafc;
+  --muted: #121a2e;
+  --muted-foreground: #94a3b8;
+  --accent: #172033;
+  --accent-foreground: #f8fafc;
+  --border: rgb(255 255 255 / 0.1);
+  --input: rgb(255 255 255 / 0.14);
+  --ring: #67e8f9;
+  color-scheme: dark;
+  background-color: #070b14;
+  color: #f1f5f9;
+}

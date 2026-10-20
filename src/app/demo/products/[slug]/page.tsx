@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductDetail } from "@/components/marketplace/product-detail";
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
-import { getDemoProductBySlug } from "@/lib/demo-shop";
+import { DEMO_STORE_PATH, getDemoProductBySlug } from "@/lib/demo-shop";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -23,5 +23,5 @@ export default async function DemoProductPage({ params }: PageProps) {
   const { slug } = await params;
   const product = getDemoProductBySlug(slug);
   if (!product) notFound();
-  return <ProductDetail product={product} catalogHref="/demo/shop" />;
+  return <ProductDetail product={product} catalogHref={DEMO_STORE_PATH} />;
 }

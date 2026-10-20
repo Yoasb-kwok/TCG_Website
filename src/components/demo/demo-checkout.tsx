@@ -15,6 +15,7 @@ import {
   SHIPPING_METHODS,
   type ShippingMethod,
 } from "@/lib/checkout";
+import { demoCtaClass, demoPanelClass } from "@/components/demo/demo-look";
 import { DEMO_SHOP, DEMO_STORE_PATH, DEMO_WRITE_DISCLAIMER } from "@/lib/demo-shop";
 import { formatPrice } from "@/lib/format";
 import { useCart } from "@/providers/cart-provider";
@@ -65,9 +66,9 @@ export function DemoCheckout() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">結帳</h1>
-        <p className="mt-3 text-sm text-muted-foreground">購物車是空的。</p>
-        <Link href={DEMO_STORE_PATH} className="mt-6 inline-block text-sm font-medium text-pink-500 hover:text-pink-400">
+        <h1 className="text-3xl font-bold tracking-tight text-white">結帳</h1>
+        <p className="mt-3 text-sm text-slate-400">購物車是空的。</p>
+        <Link href={DEMO_STORE_PATH} className="mt-6 inline-block text-sm font-medium text-cyan-300 hover:text-cyan-200">
           返回商品
         </Link>
       </div>
@@ -77,8 +78,8 @@ export function DemoCheckout() {
   return (
     <div className="mx-auto grid max-w-5xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-6">
       <div>
-        <h1 className="text-2xl font-bold">結帳</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight text-white">結帳</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-400">
           示範店可以走到付款這一步。按下付款後不會建立 Stripe 付款，也不會寫入訂單。
         </p>
 
@@ -87,7 +88,7 @@ export function DemoCheckout() {
             <h2 className="font-semibold">1. 確認商品</h2>
             <ul className="mt-3 space-y-3">
               {items.map((item) => (
-                <li key={item.variantId} className="flex gap-3 rounded-lg border border-border p-3">
+                <li key={item.variantId} className="flex gap-3 rounded-2xl border border-white/10 bg-[#10182b] p-3">
                   <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-muted">
                     {item.imageUrl && (
                       <Image src={item.imageUrl} alt="" fill className="object-contain p-1" unoptimized />
@@ -145,7 +146,7 @@ export function DemoCheckout() {
                     value={method}
                     checked={shippingMethod === method}
                     onChange={() => setShippingMethod(method)}
-                    className="size-4 accent-pink-500"
+                    className="size-4 accent-sky-400"
                   />
                   {SHIPPING_METHOD_LABELS[method]}
                 </label>
@@ -178,7 +179,7 @@ export function DemoCheckout() {
         </ol>
       </div>
 
-      <aside className="h-fit rounded-xl border border-border bg-card p-5">
+      <aside className={`${demoPanelClass} h-fit p-5`}>
         <h2 className="font-semibold">4. 付款</h2>
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between">
@@ -200,7 +201,7 @@ export function DemoCheckout() {
             <span className="mt-1 block text-xs text-amber-800/80 dark:text-amber-100/80">沒有建立 Stripe 付款，亦沒有寫入訂單。</span>
           </p>
         )}
-        <Button className="mt-4 w-full" disabled={loading || !email} onClick={() => void pay()}>
+        <Button className={`${demoCtaClass} mt-4 h-11 w-full`} disabled={loading || !email} onClick={() => void pay()}>
           <CreditCard className="h-4 w-4" />
           {loading ? "處理中…" : "付款"}
         </Button>

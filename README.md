@@ -30,12 +30,11 @@ npm run dev
 
 ## 公開示範
 
-`/demo` 是 TCG-Pro OS 產品頁（深色行銷落地頁，30 天試用表只在瀏覽器驗證，不會寫入後端）。免登入樣本店「旺角示範卡店」在 `/demo/shop`（港幣、繁體中文）。購物車只留在瀏覽器。結帳、收銀同後台改動都會被拒絕，不會寫入訂單、庫存或 Stripe。真實 `/admin`、`/pos` 同結帳維持原樣。舊店舖網址（`/demo/products`、`/demo/tournaments`、`/demo/checkout`、`/demo/about`）會轉到 `/demo/shop/...`。
+`/demo` 是免登入樣本店「旺角示範卡店」（港幣、繁體中文）。可以瀏覽商品、放入購物車、走到結帳，也可以切去後台同收銀示範。購物車只留在瀏覽器。結帳、收銀同後台改動都會被拒絕，不會寫入訂單、庫存或 Stripe。真實 `/admin`、`/pos` 同結帳維持原樣。`/demo/shop` 會轉回 `/demo`。
 
 | 表面 | 路徑 |
 |------|------|
-| 產品頁 | [/demo](http://localhost:3000/demo) |
-| 網店 | [/demo/shop](http://localhost:3000/demo/shop) |
+| 網店 | [/demo](http://localhost:3000/demo) |
 | 後台 | [/admin/demo](http://localhost:3000/admin/demo) |
 | 收銀 | [/pos/demo](http://localhost:3000/pos/demo) |
 
