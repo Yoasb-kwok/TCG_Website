@@ -60,11 +60,12 @@ export const DEMO_ORDERS = [
 
 export const DEMO_ADMIN_LINKS = [
   { href: "/admin/demo", label: "總覽", exact: true },
-  { href: "/admin/demo/products", label: "商品名單" },
   { href: "/admin/demo/orders", label: "訂單" },
   { href: "/admin/demo/tournaments", label: "店賽報名" },
-  { href: "/pos/demo/receiving", label: "倉存" },
 ] as const;
+
+/** Demo copy of the overview group: 商品名單 lives under 收銀帳務, not beside 總覽. */
+export const DEMO_CASHIER_LINKS = [{ href: "/admin/demo/products", label: "商品名單" }] as const;
 
 export function demoWriteBody() {
   return { error: DEMO_WRITE_DISCLAIMER };

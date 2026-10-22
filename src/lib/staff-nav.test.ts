@@ -1,18 +1,25 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { NAV_ITEMS } from "./constants";
-import { MERCHANT_SIDEBAR_LINKS, POS_TABS, STAFF_NAV_EXCLUDED } from "./staff-nav";
+import { CASHIER_SIDEBAR_LINKS, MERCHANT_SIDEBAR_LINKS, POS_TABS, STAFF_NAV_EXCLUDED } from "./staff-nav";
 
 describe("merchant sidebar", () => {
-  it("labels inventory as 倉存 and leaves out member, points, and coupon menus", () => {
+  it("nests 商品名單 under 收銀帳務 and leaves 倉存 off the overview list", () => {
     const labels = MERCHANT_SIDEBAR_LINKS.map((link) => link.label) as string[];
-    const inventory = MERCHANT_SIDEBAR_LINKS.find((link) => link.label === "倉存");
-    assert.equal(inventory?.href, "/pos/receiving");
+    assert.equal(labels.includes("倉存"), false);
+    assert.equal(labels.includes("商品名單"), false);
+    assert.equal(labels[0], "總覽");
+    assert.deepEqual(
+      CASHIER_SIDEBAR_LINKS.map((link) => link.label),
+      ["商品名單"],
+    );
+    assert.equal(CASHIER_SIDEBAR_LINKS[0]?.href, "/admin/products");
     for (const banned of STAFF_NAV_EXCLUDED) {
       assert.equal(labels.includes(banned), false, banned);
     }
     const posLabels = POS_TABS.map((tab) => tab.label) as string[];
     assert.equal(posLabels.includes("來貨"), false);
+    assert.equal(posLabels.includes("倉存"), true);
   });
 });
 

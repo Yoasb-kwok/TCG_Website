@@ -16,6 +16,7 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import { SearchInput } from "@/components/ui/search-input";
 import { SEARCH_BAR_SELECT_CLASS } from "@/lib/search-bar-styles";
+import { catalogBuybackPriceLabel, catalogTargetBuybackQtyLabel } from "@/lib/buyback-catalog";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { getProductTypeDisplayLabel } from "@/lib/product-type-display";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,8 @@ export interface AdminProduct {
     id: string;
     price: number;
     stock: number;
+    buybackPrice?: number | null;
+    targetBuybackQty?: number | null;
     condition: string;
     isFoil: boolean;
     sku?: string;
@@ -352,6 +355,11 @@ export function ProductsTable() {
                         )}
                         <p className="text-xs text-muted-foreground/80">
                           {p.cardSet ?? "—"}
+                        </p>
+                        <p className="text-xs text-muted-foreground/80">
+                          {catalogBuybackPriceLabel(v.buybackPrice)}
+                          {" · "}
+                          {catalogTargetBuybackQtyLabel(v.targetBuybackQty)}
                         </p>
                       </div>
                     </div>

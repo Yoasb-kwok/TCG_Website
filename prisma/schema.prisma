@@ -188,6 +188,13 @@ model ProductVariant {
   isFoil    Boolean @default(false)
   price     Float
   stock     Int     @default(0)
+  /**
+   * 目錄回收價（HKD）。空值代表未設定。
+   * 收卡入帳仍用當次收取價錢，不會改這欄。
+   */
+  buybackPrice     Float?
+  /** 希望回收數量。空值代表未設定。只供顯示，不會阻止收卡。 */
+  targetBuybackQty Int?
   sku       String  @unique
   /** 收銀條碼。空值代表未設定；有值時全店唯一（多個 NULL 可並存）。 */
   barcode   String? @unique

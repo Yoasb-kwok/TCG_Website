@@ -13,6 +13,10 @@ export interface ProductVariant {
   isFoil: boolean;
   price: number;
   stock: number;
+  /** Standing catalog buyback price in HKD. Null or omitted means unset. */
+  buybackPrice?: number | null;
+  /** Target quantity the shop hopes to buy. Null or omitted means unset. */
+  targetBuybackQty?: number | null;
   sku: string;
   /** 未設定時為 null 或缺省 */
   barcode?: string | null;

@@ -46,6 +46,8 @@ export async function lookupPosScan(raw: string): Promise<PosLookupMatch | null>
         isFoil: variant.isFoil,
         price: variant.price,
         stock: variant.stock,
+        buybackPrice: variant.buybackPrice,
+        targetBuybackQty: variant.targetBuybackQty,
         sku: variant.sku,
         barcode: variant.barcode,
       })),
