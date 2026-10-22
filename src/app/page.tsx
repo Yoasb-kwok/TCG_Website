@@ -4,6 +4,7 @@ import { HeroCarousel } from "@/components/layout/hero-carousel";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
 import { loadPublicTournamentView } from "@/lib/public-tournament-view";
+import { cancelRegistrationRefusal } from "@/lib/tournament-registrations";
 import { getHomeContent } from "@/lib/site-content";
 
 export default async function HomePage() {
@@ -11,7 +12,7 @@ export default async function HomePage() {
     getHomeContent(),
     loadPublicTournamentView(),
   ]);
-  const { tournaments, namesBySlug, registeredSlugs, isAdmin } = tournamentView;
+  const { tournaments, namesBySlug, registeredSlugs, ownedSlugs, isAdmin } = tournamentView;
   const featured = homeContent.featuredProducts.slice(0, 4);
 
   return (
@@ -61,6 +62,9 @@ export default async function HomePage() {
                   tournament={t}
                   playerNames={namesBySlug.get(t.slug) ?? []}
                   signedUp={registeredSlugs.has(t.slug)}
+                  canCancel={
+                    ownedSlugs.has(t.slug) && cancelRegistrationRefusal(t.status) === null
+                  }
                   showScoreboard={isAdmin}
                 />
               ))}

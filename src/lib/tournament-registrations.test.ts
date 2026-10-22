@@ -6,13 +6,17 @@ import path from "node:path";
 import test from "node:test";
 import type { TournamentItem } from "./types";
 import {
+  cancelTournamentRegistration,
   fileTournamentAccess,
   listPublicTournaments,
   parseSignupCookie,
   registrationListsForViewer,
   registerForTournament,
+  removeSignupCookie,
+  selectOwnRegistration,
   serializeSignupCookie,
   tournamentStorageMode,
+  viewerOwnedSlugs,
   viewerRegisteredSlugs,
   type RegistrationRoster,
   type TournamentAccess,
@@ -57,6 +61,9 @@ function databaseAccess(overrides: Partial<TournamentAccess> = {}): TournamentAc
       state.saves += 1;
       access.saves = state.saves;
       throw new Error("database save should not run");
+    },
+    async cancelRegistration() {
+      throw new Error("database cancel should not run");
     },
     async listRosters() {
       return [];
@@ -223,4 +230,185 @@ test("the signup cookie stores slugs only", () => {
   assert.deepEqual(parseSignupCookie(second), ["shop-weekly", "beginner friendly"]);
   assert.equal(second.includes("@"), false);
   assert.deepEqual(parseSignupCookie("%"), []);
+  assert.deepEqual(parseSignupCookie(removeSignupCookie(second, "shop-weekly")), ["beginner friendly"]);
+  assert.equal(removeSignupCookie(second, "missing"), second);
+});
+
+test("public registration lists omit the linked user id", () => {
+  const lists = registrationListsForViewer(
+    [
+      {
+        slug: "shop-weekly",
+        title: "店內週賽",
+        registrations: [
+          {
+            id: "r1",
+            playerName: "陳大文",
+            email: "secret@example.com",
+            phone: "91234567",
+            userId: "user-secret-id",
+            createdAt: "2026-10-12T00:00:00.000Z",
+          },
+        ],
+      },
+    ],
+    { isAdmin: true },
+  );
+  const json = JSON.stringify(lists);
+  assert.equal(json.includes("user-secret-id"), false);
+  assert.equal(json.includes("secret@example.com"), false);
+});
+
+test("cookie signup is not ownership, but the account email or user id is", () => {
+  const roster = rosterWithContact[0];
+  assert.ok(roster);
+  const rosters: RegistrationRoster[] = [
+    {
+      ...roster,
+      registrations: [{ ...roster.registrations[0]!, userId: "user-1" }],
+    },
+  ];
+  assert.equal(viewerOwnedSlugs(rosterWithContact, {}).has("shop-weekly"), false);
+  assert.equal(
+    viewerRegisteredSlugs(rosterWithContact, { signedSlugs: ["shop-weekly"] }).has("shop-weekly"),
+    true,
+  );
+  assert.equal(viewerOwnedSlugs(rosters, { email: "secret@example.com" }).has("shop-weekly"), true);
+  assert.equal(viewerOwnedSlugs(rosters, { userId: "user-1", email: "other@example.com" }).has("shop-weekly"), true);
+  assert.equal(
+    viewerRegisteredSlugs(rosters, { userId: "user-1", email: "other@example.com" }).has("shop-weekly"),
+    true,
+  );
+});
+
+test("selectOwnRegistration prefers the current email, then the linked user id", () => {
+  const rows = [
+    { id: "email-row", email: "owner@example.com", userId: null },
+    { id: "id-row", email: "old@example.com", userId: "user-1" },
+  ];
+  assert.equal(
+    selectOwnRegistration(rows, { userId: "user-1", email: "owner@example.com" })?.id,
+    "email-row",
+  );
+  assert.equal(
+    selectOwnRegistration(rows, { userId: "user-1", email: "moved@example.com" })?.id,
+    "id-row",
+  );
+  assert.equal(selectOwnRegistration(rows, { userId: "user-2", email: "nope@example.com" }), null);
+  assert.equal(selectOwnRegistration([{ id: "blank", email: "", userId: null }], { userId: "user-1", email: "" }), null);
+});
+
+const owner = { userId: "user-1", email: "player@example.com" };
+
+test("cancel on a missing tournament returns 404 and does not write", async () => {
+  const before = fileSnapshot();
+  const access = databaseAccess();
+  const result = await cancelTournamentRegistration("standard-sat-12", owner, access);
+  assert.deepEqual(result, { ok: false, error: "找不到賽事", status: 404 });
+  assert.equal(fileSnapshot(), before);
+});
+
+test("cancel requires a signed-in member and does not run during a database outage", async () => {
+  const access = databaseAccess({
+    async findForRegistration() {
+      throw Object.assign(new Error("can't reach database"), { code: "P1001" });
+    },
+  });
+  assert.deepEqual(
+    await cancelTournamentRegistration("shop-weekly", { userId: " ", email: "player@example.com" }, access),
+    { ok: false, error: "請先登入", status: 401 },
+  );
+  const down = await cancelTournamentRegistration("shop-weekly", owner, access);
+  assert.deepEqual(down, { ok: false, error: "數據庫連接失敗，請稍後再試", status: 503 });
+});
+
+test("cancel stays available for a full event and stops once signup is over", async () => {
+  for (const status of ["COMPLETED", "CANCELLED", "IN_PROGRESS", "DRAFT"]) {
+    let calls = 0;
+    const access = databaseAccess({
+      async findForRegistration() {
+        return tournament({ status });
+      },
+      async cancelRegistration() {
+        calls += 1;
+        return { ok: true };
+      },
+    });
+    const result = await cancelTournamentRegistration("shop-weekly", owner, access);
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.status, 400);
+      assert.equal(result.error, "此賽事已不能取消報名");
+    }
+    assert.equal(calls, 0);
+  }
+
+  let calls = 0;
+  const access = databaseAccess({
+    async findForRegistration() {
+      return tournament({ status: "FULL" });
+    },
+    async cancelRegistration() {
+      calls += 1;
+      return { ok: true };
+    },
+  });
+  const result = await cancelTournamentRegistration("shop-weekly", owner, access);
+  assert.deepEqual(result, { ok: true });
+  assert.equal(calls, 1);
+});
+
+test("a signed-in player can cancel only their own signup and register again", async () => {
+  const filePath = path.join(tmpdir(), `tournament-regs-${randomUUID()}.json`);
+  const access = fileTournamentAccess(filePath);
+  const realNow = Date.now;
+  Date.now = () => new Date("2026-10-01T00:00:00.000Z").getTime();
+  try {
+    const mine = await registerForTournament("standard-sat-12", input("Player@Example.com"), access, owner);
+    assert.equal(mine.ok, true);
+    const other = await registerForTournament(
+      "standard-sat-12",
+      { playerName: "另一位", email: "other@example.com", phone: "61111111" },
+      access,
+      { userId: "user-2", email: "other@example.com" },
+    );
+    assert.equal(other.ok, true);
+
+    const stored = JSON.parse(readFileSync(filePath, "utf8")) as { email?: string; userId?: string }[];
+    assert.equal(stored.find((row) => row.email === "player@example.com")?.userId, "user-1");
+
+    const stranger = await registerForTournament(
+      "standard-sat-12",
+      { playerName: "訪客", email: "guest@example.com", phone: "62222222" },
+      access,
+      { userId: "user-9", email: "not-guest@example.com" },
+    );
+    assert.equal(stranger.ok, true);
+    const afterGuest = JSON.parse(readFileSync(filePath, "utf8")) as { email?: string; userId?: string }[];
+    assert.equal(afterGuest.find((row) => row.email === "guest@example.com")?.userId, undefined);
+
+    const notMine = await cancelTournamentRegistration(
+      "standard-sat-12",
+      { userId: "user-9", email: "missing@example.com" },
+      access,
+    );
+    assert.deepEqual(notMine, { ok: false, error: "你尚未報名此賽事", status: 404 });
+
+    const cancelled = await cancelTournamentRegistration("standard-sat-12", owner, access);
+    assert.deepEqual(cancelled, { ok: true });
+
+    const listed = await listPublicTournaments(access);
+    assert.equal(listed.find((item) => item.slug === "standard-sat-12")?.registeredCount, 2);
+    const remaining = JSON.parse(readFileSync(filePath, "utf8")) as { email?: string }[];
+    assert.equal(remaining.some((row) => row.email === "player@example.com"), false);
+    assert.equal(remaining.some((row) => row.email === "other@example.com"), true);
+
+    const again = await registerForTournament("standard-sat-12", input("player@example.com"), access, owner);
+    assert.equal(again.ok, true);
+    const relisted = await listPublicTournaments(access);
+    assert.equal(relisted.find((item) => item.slug === "standard-sat-12")?.registeredCount, 3);
+  } finally {
+    Date.now = realNow;
+    rmSync(filePath, { force: true });
+  }
 });

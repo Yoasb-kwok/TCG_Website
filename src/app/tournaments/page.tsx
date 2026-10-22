@@ -2,13 +2,15 @@ import Link from "next/link";
 import { StaffBoardLinks } from "@/components/tournaments/staff-board-links";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
 import { loadPublicTournamentView } from "@/lib/public-tournament-view";
+import { cancelRegistrationRefusal } from "@/lib/tournament-registrations";
 
 export const metadata = {
   title: "店賽",
 };
 
 export default async function TournamentsPage() {
-  const { tournaments, namesBySlug, registeredSlugs, isAdmin } = await loadPublicTournamentView();
+  const { tournaments, namesBySlug, registeredSlugs, ownedSlugs, isAdmin } =
+    await loadPublicTournamentView();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 lg:px-6">
@@ -42,6 +44,9 @@ export default async function TournamentsPage() {
               tournament={t}
               playerNames={namesBySlug.get(t.slug) ?? []}
               signedUp={registeredSlugs.has(t.slug)}
+              canCancel={
+                ownedSlugs.has(t.slug) && cancelRegistrationRefusal(t.status) === null
+              }
               showScoreboard={isAdmin}
             />
           ))}

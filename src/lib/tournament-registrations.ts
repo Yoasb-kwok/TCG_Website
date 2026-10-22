@@ -16,6 +16,8 @@ export type RegistrationRecord = {
   phone: string;
   email?: string;
   createdAt: string;
+  /** Set when the signup email is the signed-in member. Omitted for guest signups. */
+  userId?: string;
 };
 
 export type RegistrationRoster = {
@@ -27,6 +29,7 @@ export type RegistrationRoster = {
     email: string | null;
     phone: string;
     createdAt: string;
+    userId?: string | null;
   }[];
 };
 
@@ -37,13 +40,57 @@ export type RegistrationRoster = {
 export type TournamentAccess = {
   listPublic(): Promise<TournamentItem[]>;
   findForRegistration(slug: string): Promise<TournamentItem | null>;
-  saveRegistration(tournament: TournamentItem, input: RegistrationInput): Promise<RegisterResult>;
+  saveRegistration(
+    tournament: TournamentItem,
+    input: RegistrationInput,
+    userId?: string | null,
+  ): Promise<RegisterResult>;
+  cancelRegistration(tournament: TournamentItem, owner: CancelOwner): Promise<CancelResult>;
   listRosters(): Promise<RegistrationRoster[]>;
 };
 
 type RegisterResult =
   | { ok: true; registration: RegistrationRecord }
   | { ok: false; error: string; status: number };
+
+/** Signed-in member. Cancel never trusts the signup cookie by itself. */
+export type CancelOwner = {
+  userId: string;
+  email: string;
+};
+
+export type CancelResult =
+  | { ok: true }
+  | { ok: false; error: string; status: number };
+
+export type OwnedRegistrationRow = {
+  id: string;
+  userId?: string | null;
+  email?: string | null;
+};
+
+/**
+ * The row this member may cancel.
+ * Current account email wins. If the member changed email, the linked user id still matches.
+ * A blank email does not match guest rows that have no email.
+ */
+export function selectOwnRegistration<T extends OwnedRegistrationRow>(
+  rows: T[],
+  owner: CancelOwner,
+): T | null {
+  const userId = owner.userId.trim();
+  const email = owner.email.trim().toLowerCase();
+  if (!userId || !email) return null;
+  const byEmail = rows.find((row) => (row.email ?? "").trim().toLowerCase() === email);
+  if (byEmail) return byEmail;
+  return rows.find((row) => (row.userId ?? "") === userId) ?? null;
+}
+
+/** OPEN and FULL still have a seat to give back. Later states keep the roster as history. */
+export function cancelRegistrationRefusal(status: string): string | null {
+  if (status === "OPEN" || status === "FULL") return null;
+  return "此賽事已不能取消報名";
+}
 
 const defaultFilePath = path.join(process.cwd(), "data", "tournament-registrations.json");
 
@@ -138,7 +185,7 @@ function prismaAccess(): TournamentAccess {
       });
       return tournament ? mapDbTournament(tournament) : null;
     },
-    async saveRegistration(tournament, input) {
+    async saveRegistration(tournament, input, userId) {
       const closed = closedRegistrationError(tournament);
       if (closed) return closed;
 
@@ -158,6 +205,7 @@ function prismaAccess(): TournamentAccess {
               playerName: input.playerName,
               email: input.email,
               phone: input.phone,
+              userId: userId || null,
             },
           });
           return { ok: true as const, created };
@@ -182,6 +230,23 @@ function prismaAccess(): TournamentAccess {
         throw error;
       }
     },
+    async cancelRegistration(tournament, owner) {
+      const rows = await getPrisma().tournamentRegistration.findMany({
+        where: { tournamentId: tournament.id },
+        select: { id: true, userId: true, email: true },
+      });
+      const target = selectOwnRegistration(rows, owner);
+      if (!target) return { ok: false, error: "你尚未報名此賽事", status: 404 };
+      try {
+        await getPrisma().tournamentRegistration.delete({ where: { id: target.id } });
+      } catch (error) {
+        if (errorCode(error) === "P2025") {
+          return { ok: false, error: "你尚未報名此賽事", status: 404 };
+        }
+        throw error;
+      }
+      return { ok: true };
+    },
     async listRosters() {
       const tournaments = await getPrisma().tournament.findMany({
         where: { status: { in: ["OPEN", "FULL", "IN_PROGRESS"] } },
@@ -196,6 +261,7 @@ function prismaAccess(): TournamentAccess {
           playerName: registration.playerName,
           email: registration.email,
           phone: registration.phone,
+          userId: registration.userId,
           createdAt: registration.createdAt.toISOString(),
         })),
       }));
@@ -249,7 +315,7 @@ function fileAccess(filePath: string): TournamentAccess {
       const tournaments = demoWithCounts(await readFileRegistrations(filePath));
       return tournaments.find((tournament) => tournament.slug === slug) ?? null;
     },
-    async saveRegistration(tournament, input) {
+    async saveRegistration(tournament, input, userId) {
       const demo = DEMO_TOURNAMENTS.find((item) => item.slug === tournament.slug);
       if (!demo) return { ok: false, error: "找不到賽事", status: 404 };
       if (demo.status !== "OPEN") {
@@ -276,9 +342,41 @@ function fileAccess(filePath: string): TournamentAccess {
             email: input.email,
             phone: input.phone,
             createdAt: new Date().toISOString(),
+            ...(userId ? { userId } : {}),
           };
-          result = { ok: true, registration };
+          result = {
+            ok: true,
+            registration: {
+              id: registration.id,
+              slug: registration.slug,
+              playerName: registration.playerName,
+              email: registration.email,
+              phone: registration.phone,
+              createdAt: registration.createdAt,
+            },
+          };
           return [...records, registration];
+        });
+        return result;
+      } catch (error) {
+        if (FILE_REFUSED.has(errorCode(error))) {
+          return { ok: false, error: "報名系統暫時無法使用", status: 503 };
+        }
+        throw error;
+      }
+    },
+    async cancelRegistration(tournament, owner) {
+      try {
+        let result: CancelResult = { ok: false, error: "你尚未報名此賽事", status: 404 };
+        await updateFileRegistrations(filePath, (records) => {
+          const mine = records.filter((record) => record.slug === tournament.slug);
+          const target = selectOwnRegistration(mine, owner);
+          if (!target) {
+            result = { ok: false, error: "你尚未報名此賽事", status: 404 };
+            return records;
+          }
+          result = { ok: true };
+          return records.filter((record) => record.id !== target.id);
         });
         return result;
       } catch (error) {
@@ -293,13 +391,14 @@ function fileAccess(filePath: string): TournamentAccess {
       return DEMO_TOURNAMENTS.map((tournament) => ({
         slug: tournament.slug,
         title: tournament.title,
-        registrations: records
+          registrations: records
           .filter((record) => record.slug === tournament.slug)
           .map((record) => ({
             id: record.id,
             playerName: record.playerName,
             email: record.email ?? null,
             phone: record.phone,
+            userId: record.userId ?? null,
             createdAt: record.createdAt,
           })),
       }));
@@ -337,14 +436,22 @@ export async function registerForTournament(
     phone?: string | null;
   },
   access = defaultAccess(),
+  owner?: CancelOwner | null,
 ): Promise<RegisterResult> {
   const parsed = parseRegistrationInput(input);
   if (!parsed.ok) return parsed;
 
+  const linkedUserId =
+    owner &&
+    owner.userId.trim() &&
+    (owner.email.trim().toLowerCase() === parsed.value.email)
+      ? owner.userId.trim()
+      : null;
+
   try {
     const tournament = await access.findForRegistration(slug);
     if (!tournament) return { ok: false, error: "找不到賽事", status: 404 };
-    return await access.saveRegistration(tournament, parsed.value);
+    return await access.saveRegistration(tournament, parsed.value, linkedUserId);
   } catch (error) {
     if (isDbConnectionError(error)) {
       return { ok: false, error: "數據庫連接失敗，請稍後再試", status: 503 };
@@ -359,6 +466,35 @@ export async function registerForTournament(
 
 export async function listRegistrationRosters(access = defaultAccess()): Promise<RegistrationRoster[]> {
   return readOrEmpty(access, (source) => source.listRosters(), []);
+}
+
+export async function cancelTournamentRegistration(
+  slug: string,
+  owner: CancelOwner,
+  access = defaultAccess(),
+): Promise<CancelResult> {
+  const userId = owner.userId.trim();
+  const email = owner.email.trim().toLowerCase();
+  if (!userId || !email || !email.includes("@")) {
+    return { ok: false, error: "請先登入", status: 401 };
+  }
+
+  try {
+    const tournament = await access.findForRegistration(slug);
+    if (!tournament) return { ok: false, error: "找不到賽事", status: 404 };
+    const refused = cancelRegistrationRefusal(tournament.status);
+    if (refused) return { ok: false, error: refused, status: 400 };
+    return await access.cancelRegistration(tournament, { userId, email });
+  } catch (error) {
+    if (isDbConnectionError(error)) {
+      return { ok: false, error: "數據庫連接失敗，請稍後再試", status: 503 };
+    }
+    if (FILE_REFUSED.has(errorCode(error))) {
+      return { ok: false, error: "報名系統暫時無法使用", status: 503 };
+    }
+    console.error("Cancel registration error:", error);
+    return { ok: false, error: "取消報名失敗，請重試", status: 500 };
+  }
 }
 
 export function fileTournamentAccess(filePath: string): TournamentAccess {
@@ -398,6 +534,13 @@ export function serializeSignupCookie(current: string | undefined | null, slug: 
     .join(",");
 }
 
+export function removeSignupCookie(current: string | undefined | null, slug: string): string {
+  return parseSignupCookie(current)
+    .filter((item) => item !== slug.trim())
+    .map((item) => encodeURIComponent(item))
+    .join(",");
+}
+
 export type ViewerRegistrationList = {
   slug: string;
   title: string;
@@ -420,12 +563,13 @@ export function registrationListsForViewer(
   }));
 }
 
-/** Events this visitor already joined, matched by account email or the signup cookie. */
+/** Events this visitor already joined, matched by account, linked user id, or the signup cookie. */
 export function viewerRegisteredSlugs(
   rosters: RegistrationRoster[],
-  viewer: { email?: string | null; signedSlugs?: readonly string[] },
+  viewer: { email?: string | null; userId?: string | null; signedSlugs?: readonly string[] },
 ): Set<string> {
   const email = (viewer.email ?? "").trim().toLowerCase();
+  const userId = (viewer.userId ?? "").trim();
   const signed = new Set(viewer.signedSlugs ?? []);
   const matched = new Set<string>();
   for (const roster of rosters) {
@@ -433,11 +577,20 @@ export function viewerRegisteredSlugs(
       matched.add(roster.slug);
       continue;
     }
-    if (!email) continue;
-    const joined = roster.registrations.some(
-      (row) => (row.email ?? "").trim().toLowerCase() === email,
-    );
+    const joined = roster.registrations.some((row) => {
+      if (userId && (row.userId ?? "") === userId) return true;
+      if (!email) return false;
+      return (row.email ?? "").trim().toLowerCase() === email;
+    });
     if (joined) matched.add(roster.slug);
   }
   return matched;
+}
+
+/** Events this signed-in member can cancel. The signup cookie is not ownership. */
+export function viewerOwnedSlugs(
+  rosters: RegistrationRoster[],
+  viewer: { email?: string | null; userId?: string | null },
+): Set<string> {
+  return viewerRegisteredSlugs(rosters, viewer);
 }

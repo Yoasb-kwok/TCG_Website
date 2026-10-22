@@ -11,6 +11,7 @@ interface TournamentCardProps {
   tournament: TournamentItem;
   playerNames: string[];
   signedUp: boolean;
+  canCancel?: boolean;
   showScoreboard?: boolean;
 }
 
@@ -27,6 +28,7 @@ export function TournamentCard({
   tournament,
   playerNames,
   signedUp,
+  canCancel = false,
   showScoreboard = false,
 }: TournamentCardProps) {
   const closedLabel = registrationClosedLabel(tournament);
@@ -77,6 +79,7 @@ export function TournamentCard({
           slug={tournament.slug}
           canRegister={isOpen}
           signedUp={signedUp}
+          canCancel={canCancel}
           closedLabel={closedLabel}
           showScoreboard={showScoreboard}
         />
