@@ -3,14 +3,15 @@ import { ArrowRight } from "lucide-react";
 import { HeroCarousel } from "@/components/layout/hero-carousel";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { TournamentCard } from "@/components/tournaments/tournament-card";
+import { loadPublicTournamentView } from "@/lib/public-tournament-view";
 import { getHomeContent } from "@/lib/site-content";
-import { listPublicTournaments } from "@/lib/tournament-registrations";
 
 export default async function HomePage() {
-  const [homeContent, tournaments] = await Promise.all([
+  const [homeContent, tournamentView] = await Promise.all([
     getHomeContent(),
-    listPublicTournaments(),
+    loadPublicTournamentView(),
   ]);
+  const { tournaments, namesBySlug, registeredSlugs, isAdmin } = tournamentView;
   const featured = homeContent.featuredProducts.slice(0, 4);
 
   return (
@@ -55,7 +56,13 @@ export default async function HomePage() {
           ) : (
             <div className="grid gap-4 md:grid-cols-2">
               {tournaments.map((t) => (
-                <TournamentCard key={t.id} tournament={t} />
+                <TournamentCard
+                  key={t.id}
+                  tournament={t}
+                  playerNames={namesBySlug.get(t.slug) ?? []}
+                  signedUp={registeredSlugs.has(t.slug)}
+                  showScoreboard={isAdmin}
+                />
               ))}
             </div>
           )}

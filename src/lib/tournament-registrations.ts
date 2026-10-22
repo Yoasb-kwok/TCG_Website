@@ -364,3 +364,80 @@ export async function listRegistrationRosters(access = defaultAccess()): Promise
 export function fileTournamentAccess(filePath: string): TournamentAccess {
   return fileAccess(filePath);
 }
+
+/** Browser cookie remembering which events this visitor signed up for. Slugs only, no contact details. */
+export const SIGNUP_COOKIE = "tcg_tournament_signups";
+
+const MAX_SIGNUP_SLUGS = 40;
+
+export function parseSignupCookie(value: string | undefined | null): string[] {
+  if (!value) return [];
+  const slugs: string[] = [];
+  for (const part of value.split(",")) {
+    if (!part) continue;
+    let slug = part;
+    try {
+      slug = decodeURIComponent(part);
+    } catch {
+      continue;
+    }
+    slug = slug.trim();
+    if (!slug || slugs.includes(slug)) continue;
+    slugs.push(slug);
+    if (slugs.length >= MAX_SIGNUP_SLUGS) break;
+  }
+  return slugs;
+}
+
+export function serializeSignupCookie(current: string | undefined | null, slug: string): string {
+  const next = parseSignupCookie(current).filter((item) => item !== slug);
+  next.push(slug.trim());
+  return next
+    .slice(-MAX_SIGNUP_SLUGS)
+    .map((item) => encodeURIComponent(item))
+    .join(",");
+}
+
+export type ViewerRegistrationList = {
+  slug: string;
+  title: string;
+  registrations: { id: string; playerName: string; phone?: string }[];
+};
+
+/** Public readers get names only. A signed-in admin also gets the phone the scoreboard roster already shows. */
+export function registrationListsForViewer(
+  rosters: RegistrationRoster[],
+  viewer: { isAdmin: boolean },
+): ViewerRegistrationList[] {
+  return rosters.map((roster) => ({
+    slug: roster.slug,
+    title: roster.title,
+    registrations: roster.registrations.map((row) =>
+      viewer.isAdmin
+        ? { id: row.id, playerName: row.playerName, phone: row.phone }
+        : { id: row.id, playerName: row.playerName },
+    ),
+  }));
+}
+
+/** Events this visitor already joined, matched by account email or the signup cookie. */
+export function viewerRegisteredSlugs(
+  rosters: RegistrationRoster[],
+  viewer: { email?: string | null; signedSlugs?: readonly string[] },
+): Set<string> {
+  const email = (viewer.email ?? "").trim().toLowerCase();
+  const signed = new Set(viewer.signedSlugs ?? []);
+  const matched = new Set<string>();
+  for (const roster of rosters) {
+    if (signed.has(roster.slug)) {
+      matched.add(roster.slug);
+      continue;
+    }
+    if (!email) continue;
+    const joined = roster.registrations.some(
+      (row) => (row.email ?? "").trim().toLowerCase() === email,
+    );
+    if (joined) matched.add(roster.slug);
+  }
+  return matched;
+}

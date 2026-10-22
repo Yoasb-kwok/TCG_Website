@@ -2,11 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, CalendarClock, MapPin, Users } from "lucide-react";
 import { GoogleCalendarLink } from "@/components/tournaments/google-calendar-link";
+import { RegistrantNames } from "@/components/tournaments/registrant-names";
 import { RegistrationForm } from "@/components/tournaments/registration-form";
+import { TournamentCustomerActions } from "@/components/tournaments/customer-actions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatDate, formatPrice } from "@/lib/format";
+import { loadPublicTournamentView } from "@/lib/public-tournament-view";
 import { decodeRouteSlug, registrationClosedLabel } from "@/lib/registration-input";
-import { getPublicTournament } from "@/lib/tournament-registrations";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -19,11 +21,13 @@ export const metadata = {
 export default async function TournamentRegisterPage({ params }: PageProps) {
   const { slug: rawSlug } = await params;
   const slug = decodeRouteSlug(rawSlug);
-  const tournament = await getPublicTournament(slug);
+  const { tournaments, namesBySlug, registeredSlugs, isAdmin } = await loadPublicTournamentView();
+  const tournament = tournaments.find((item) => item.slug === slug);
 
   if (!tournament) notFound();
 
   const closedLabel = registrationClosedLabel(tournament);
+  const signedUp = registeredSlugs.has(tournament.slug);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 lg:px-6">
@@ -73,16 +77,30 @@ export default async function TournamentRegisterPage({ params }: PageProps) {
             </span>
           </div>
           <GoogleCalendarLink tournament={tournament} />
+          <RegistrantNames names={namesBySlug.get(tournament.slug) ?? []} />
         </CardContent>
       </Card>
 
-      <RegistrationForm
-        slug={tournament.slug}
-        title={tournament.title}
-        startsAt={tournament.startsAt}
-        location={tournament.location}
-        closedLabel={closedLabel}
-      />
+      {signedUp ? (
+        <div className="mt-8">
+          <TournamentCustomerActions
+            slug={tournament.slug}
+            canRegister={false}
+            signedUp
+            closedLabel={closedLabel}
+            showScoreboard={isAdmin}
+          />
+        </div>
+      ) : (
+        <RegistrationForm
+          slug={tournament.slug}
+          title={tournament.title}
+          startsAt={tournament.startsAt}
+          location={tournament.location}
+          closedLabel={closedLabel}
+          showScoreboard={isAdmin}
+        />
+      )}
     </div>
   );
 }

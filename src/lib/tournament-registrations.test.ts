@@ -8,8 +8,13 @@ import type { TournamentItem } from "./types";
 import {
   fileTournamentAccess,
   listPublicTournaments,
+  parseSignupCookie,
+  registrationListsForViewer,
   registerForTournament,
+  serializeSignupCookie,
   tournamentStorageMode,
+  viewerRegisteredSlugs,
+  type RegistrationRoster,
   type TournamentAccess,
 } from "./tournament-registrations";
 
@@ -130,6 +135,8 @@ test("database rows are returned as stored, without demo ids", async () => {
 test("local demo registration still writes a file when no database is configured", async () => {
   const filePath = path.join(tmpdir(), `tournament-regs-${randomUUID()}.json`);
   const access = fileTournamentAccess(filePath);
+  const realNow = Date.now;
+  Date.now = () => new Date("2026-10-01T00:00:00.000Z").getTime();
   try {
     const saved = await registerForTournament("standard-sat-12", input("Demo@Example.com"), access);
     assert.equal(saved.ok, true);
@@ -152,6 +159,68 @@ test("local demo registration still writes a file when no database is configured
     assert.equal(existsSync(filePath), true);
     assert.match(readFileSync(filePath, "utf8"), /demo@example.com/);
   } finally {
+    Date.now = realNow;
     rmSync(filePath, { force: true });
   }
+});
+
+const rosterWithContact: RegistrationRoster[] = [
+  {
+    slug: "shop-weekly",
+    title: "店內週賽",
+    registrations: [
+      {
+        id: "r1",
+        playerName: "陳大文",
+        email: "Secret@Example.com",
+        phone: "91234567",
+        createdAt: "2026-10-12T00:00:00.000Z",
+      },
+    ],
+  },
+];
+
+test("public registration lists keep names only", () => {
+  const lists = registrationListsForViewer(rosterWithContact, { isAdmin: false });
+  assert.deepEqual(lists, [
+    {
+      slug: "shop-weekly",
+      title: "店內週賽",
+      registrations: [{ id: "r1", playerName: "陳大文" }],
+    },
+  ]);
+  const json = JSON.stringify(lists);
+  assert.equal(json.includes("Secret@Example.com"), false);
+  assert.equal(json.includes("91234567"), false);
+  assert.equal(json.includes("createdAt"), false);
+});
+
+test("admin registration lists keep the scoreboard phone and still hide email", () => {
+  const lists = registrationListsForViewer(rosterWithContact, { isAdmin: true });
+  assert.equal(lists[0]?.registrations[0]?.phone, "91234567");
+  assert.equal(JSON.stringify(lists).includes("Secret@Example.com"), false);
+});
+
+test("a viewer is signed up by cookie or by their own email", () => {
+  assert.equal(
+    viewerRegisteredSlugs(rosterWithContact, { signedSlugs: ["shop-weekly"] }).has("shop-weekly"),
+    true,
+  );
+  assert.equal(
+    viewerRegisteredSlugs(rosterWithContact, { email: "secret@example.com" }).has("shop-weekly"),
+    true,
+  );
+  assert.equal(
+    viewerRegisteredSlugs(rosterWithContact, { email: "other@example.com" }).has("shop-weekly"),
+    false,
+  );
+  assert.equal(viewerRegisteredSlugs(rosterWithContact, { email: "" }).size, 0);
+});
+
+test("the signup cookie stores slugs only", () => {
+  const first = serializeSignupCookie(undefined, "shop-weekly");
+  const second = serializeSignupCookie(first, "beginner friendly");
+  assert.deepEqual(parseSignupCookie(second), ["shop-weekly", "beginner friendly"]);
+  assert.equal(second.includes("@"), false);
+  assert.deepEqual(parseSignupCookie("%"), []);
 });

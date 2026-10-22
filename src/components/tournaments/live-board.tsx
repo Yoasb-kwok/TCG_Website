@@ -185,7 +185,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
   const [nameDraft, setNameDraft] = useState("");
   const [bulkDraft, setBulkDraft] = useState("");
   const [signups, setSignups] = useState<
-    { id: string; slug: string; tournamentTitle: string; playerName: string; phone: string }[]
+    { id: string; slug: string; tournamentTitle: string; playerName: string; phone?: string }[]
   >([]);
   const [fullscreen, setFullscreen] = useState(false);
   const [alarmOn, setAlarmOn] = useState(false);
@@ -324,7 +324,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
           tournaments?: {
             slug: string;
             title: string;
-            registrations: { id: string; playerName: string; phone: string }[];
+            registrations: { id: string; playerName: string; phone?: string }[];
           }[];
         }) => {
           if (cancelled) return;
@@ -1067,7 +1067,9 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
                 {rosterSignups.map((signup) => (
                   <li key={signup.id}>
                     {signup.playerName}
-                    <span className="ml-2 font-mono text-zinc-400">{signup.phone}</span>
+                    {signup.phone ? (
+                      <span className="ml-2 font-mono text-zinc-400">{signup.phone}</span>
+                    ) : null}
                     <span className="ml-2 text-xs text-zinc-500">{signup.tournamentTitle}</span>
                   </li>
                 ))}

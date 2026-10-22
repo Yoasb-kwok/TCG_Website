@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
   computeStandings,
@@ -179,11 +178,6 @@ export function PublicBoard() {
         </section>
       </div>
 
-      <footer className="px-6 pb-4 text-xs text-zinc-600">
-        <Link href="/pos/scoreboard" className="hover:text-zinc-400">
-          職員操作
-        </Link>
-      </footer>
     </div>
   );
 }
