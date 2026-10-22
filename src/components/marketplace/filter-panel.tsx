@@ -11,20 +11,11 @@ import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { usePublicTaxonomy } from "@/hooks/use-public-taxonomy";
+import { STOREFRONT_MAX_PRICE, type FilterState } from "@/lib/storefront-query";
 import type { ProductSort, ProductType } from "@/lib/types";
 import { SEARCH_BAR_SELECT_CLASS } from "@/lib/search-bar-styles";
 
-export interface FilterState {
-  types: ProductType[];
-  rarities: string[];
-  cardSets: string[];
-  pokemonTypes: string[];
-  setCodes: string[];
-  rarityTiers: string[];
-  inStock: boolean;
-  priceRange: [number, number];
-  sort: ProductSort;
-}
+export type { FilterState };
 
 interface FilterPanelProps {
   filters: FilterState;
@@ -43,7 +34,7 @@ export function FilterPanel({
   filters,
   onChange,
   availableFilters,
-  maxPrice = 5000,
+  maxPrice = STOREFRONT_MAX_PRICE,
 }: FilterPanelProps) {
   const { grouped } = usePublicTaxonomy();
   const setSeriesOptions = grouped.SET_CODE;

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Filter, Loader2 } from "lucide-react";
+import { Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -12,80 +12,81 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { CatalogHitStrip } from "@/components/catalog/catalog-hit-strip";
-import { FilterPanel, type FilterState } from "@/components/marketplace/filter-panel";
+import { FilterPanel } from "@/components/marketplace/filter-panel";
+import { ProductsLoading } from "@/components/marketplace/products-loading";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { catalogGame } from "@/lib/games";
-import type { ProductType, ProductsResponse } from "@/lib/types";
+import {
+  DEFAULT_STOREFRONT_FILTERS,
+  catalogForRequest,
+  storefrontRequestParams,
+  type FilterState,
+} from "@/lib/storefront-query";
+import type { ProductsResponse } from "@/lib/types";
 
-const DEFAULT_FILTERS: FilterState = {
-  types: [],
-  rarities: [],
-  cardSets: [],
-  pokemonTypes: [],
-  setCodes: [],
-  rarityTiers: [],
-  inStock: false,
-  priceRange: [0, 5000],
-  sort: "newest",
-};
-
-export function MarketplaceShell() {
+export function MarketplaceShell({
+  initialData,
+  initialKey,
+}: {
+  initialData: ProductsResponse;
+  initialKey: string;
+}) {
   const searchParams = useSearchParams();
-  const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
-  const [data, setData] = useState<ProductsResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [filters, setFilters] = useState<FilterState>(DEFAULT_STOREFRONT_FILTERS);
   const [page, setPage] = useState(1);
+  const urlKey = searchParams.toString();
+  const [trackedUrl, setTrackedUrl] = useState(urlKey);
+  const [result, setResult] = useState<{ key: string; data: ProductsResponse }>({
+    key: initialKey,
+    data: initialData,
+  });
 
-  const fetchProducts = useCallback(async () => {
-    setLoading(true);
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    params.set("pageSize", "24");
-
-    if (filters.inStock) params.set("inStock", "true");
-    params.set(
-      "minPrice",
-      String(filters.priceRange[0] > 0 ? filters.priceRange[0] : 1),
-    );
-    if (filters.priceRange[1] < 5000) params.set("maxPrice", String(filters.priceRange[1]));
-
-    const urlType = searchParams.get("type") as ProductType | null;
-    const urlSet = searchParams.get("cardSet");
-    const urlLang = searchParams.get("language");
-    const urlSearch = searchParams.get("search")?.trim();
-    const urlGame = searchParams.get("game")?.trim();
-
-    if (urlType) params.set("type", urlType);
-    if (urlSet) params.set("cardSet", urlSet);
-    if (urlLang) params.set("language", urlLang);
-    if (urlSearch) params.set("search", urlSearch);
-    if (urlGame) params.set("game", urlGame);
-    if (filters.sort && filters.sort !== "newest") params.set("sort", filters.sort);
-
-    filters.types.forEach((t) => params.append("type", t));
-    filters.cardSets.forEach((s) => params.append("cardSet", s));
-    filters.rarities.forEach((r) => params.append("rarity", r));
-    filters.setCodes.forEach((c) => params.append("setCode", c));
-    filters.rarityTiers.forEach((t) => params.append("rarityTier", t));
-    filters.pokemonTypes.forEach((p) => params.append("pokemonType", p));
-
-    const res = await fetch(`/api/products?${params}`);
-    const json = (await res.json()) as ProductsResponse;
-    setData(json);
-    setLoading(false);
-  }, [filters, page, searchParams]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
-  useEffect(() => {
+  const urlChanged = trackedUrl !== urlKey;
+  if (urlChanged) {
+    setTrackedUrl(urlKey);
     setPage(1);
-  }, [filters, searchParams]);
+  }
+
+  const currentPage = urlChanged ? 1 : page;
+  const activeKey = storefrontRequestParams(searchParams, filters, currentPage).toString();
+  const serverMatch = activeKey === initialKey ? { key: initialKey, data: initialData } : null;
+  const shown = catalogForRequest(serverMatch ?? result, activeKey);
+  const catalogReady = shown !== null;
+
+  useEffect(() => {
+    if (catalogReady) return;
+    const controller = new AbortController();
+    let cancelled = false;
+    const key = activeKey;
+    const run = async () => {
+      try {
+        const res = await fetch(`/api/products?${key}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!res.ok) return;
+        const json = (await res.json()) as ProductsResponse;
+        if (!cancelled) setResult({ key, data: json });
+      } catch (error) {
+        if (cancelled || (error instanceof DOMException && error.name === "AbortError")) return;
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [activeKey, catalogReady]);
+
+  const changeFilters = (next: FilterState) => {
+    setFilters(next);
+    setPage(1);
+  };
 
   const searchQuery = searchParams.get("search")?.trim() ?? "";
   const game = catalogGame(searchParams.get("game"));
   const unsupportedGame = Boolean(game && !game.supported);
+  const filterSource = shown ?? result.data;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
@@ -98,15 +99,15 @@ export function MarketplaceShell() {
                 ? game.label
                 : "商品"}
           </h1>
-          {data && (
+          {shown && (
             <p className="mt-1 text-sm text-muted-foreground">
               {unsupportedGame
                 ? "此遊戲尚未上架，暫時只提供 Pokémon TCG。"
                 : searchQuery
-                  ? `找到 ${data.total} 件相關商品${
-                      data.catalog && data.catalog.total > 0 ? `，卡表 ${data.catalog.total} 張` : ""
+                  ? `找到 ${shown.total} 件相關商品${
+                      shown.catalog && shown.catalog.total > 0 ? `，卡表 ${shown.catalog.total} 張` : ""
                     }`
-                  : `共 ${data.total} 件商品`}
+                  : `共 ${shown.total} 件商品`}
             </p>
           )}
         </div>
@@ -124,11 +125,11 @@ export function MarketplaceShell() {
             <SheetHeader>
               <SheetTitle>篩選</SheetTitle>
             </SheetHeader>
-            {data && (
+            {filterSource && (
               <FilterPanel
                 filters={filters}
-                onChange={setFilters}
-                availableFilters={data.filters}
+                onChange={changeFilters}
+                availableFilters={filterSource.filters}
               />
             )}
           </SheetContent>
@@ -137,62 +138,58 @@ export function MarketplaceShell() {
 
       <div className="flex gap-8">
         <div className="hidden w-56 shrink-0 lg:block">
-          {data && (
+          {filterSource && (
             <FilterPanel
               filters={filters}
-              onChange={setFilters}
-              availableFilters={data.filters}
+              onChange={changeFilters}
+              availableFilters={filterSource.filters}
             />
           )}
         </div>
 
-        <div className="min-w-0 flex-1">
-          {loading ? (
-            <div className="flex items-center justify-center py-24">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-            </div>
-          ) : (
+        <div className="min-w-0 flex-1" data-product-list={shown ? "ready" : "pending"}>
+          {shown ? (
             <>
-              {searchQuery && data?.catalog && (
+              {searchQuery && shown.catalog && (
                 <CatalogHitStrip
-                  cards={data.catalog.cards}
-                  total={data.catalog.total}
+                  cards={shown.catalog.cards}
+                  total={shown.catalog.total}
                   hint="官方卡名對照。未上架的卡沒有售價，也不會加入購物車。"
                 />
               )}
-              {data?.products.length === 0 ? (
+              {shown.products.length === 0 ? (
                 <p className="py-24 text-center text-muted-foreground">
                   {unsupportedGame
                     ? "此遊戲尚未上架"
-                    : data.catalog && data.catalog.total > 0
+                    : shown.catalog && shown.catalog.total > 0
                       ? "沒有上架商品。上面是卡表對照。"
                       : "沒有符合條件的商品"}
                 </p>
               ) : (
                 <>
                   <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
-                    {data?.products.map((product) => (
+                    {shown.products.map((product) => (
                       <ProductCard key={product.id} product={product} />
                     ))}
                   </div>
 
-                  {data && data.totalPages > 1 && (
+                  {shown.totalPages > 1 && (
                     <div className="mt-8 flex items-center justify-center gap-2">
                       <Button
                         variant="outline"
                         className="border-border text-foreground"
-                        disabled={page <= 1}
+                        disabled={currentPage <= 1}
                         onClick={() => setPage((p) => p - 1)}
                       >
                         上一頁
                       </Button>
                       <span className="text-sm text-muted-foreground">
-                        {page} / {data.totalPages}
+                        {currentPage} / {shown.totalPages}
                       </span>
                       <Button
                         variant="outline"
                         className="border-border text-foreground"
-                        disabled={page >= data.totalPages}
+                        disabled={currentPage >= shown.totalPages}
                         onClick={() => setPage((p) => p + 1)}
                       >
                         下一頁
@@ -202,6 +199,8 @@ export function MarketplaceShell() {
                 </>
               )}
             </>
+          ) : (
+            <ProductsLoading />
           )}
         </div>
       </div>
