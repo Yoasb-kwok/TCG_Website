@@ -98,6 +98,8 @@ function buildFilterMeta(products: ProductWithVariants[]) {
   const rarityTiers = [
     ...new Set(products.map((p) => p.rarityTier).filter(Boolean)),
   ] as string[];
+  const types = [...new Set(products.map((p) => p.type).filter(Boolean))] as string[];
+  const languages = [...new Set(products.map((p) => p.language).filter(Boolean))] as string[];
 
   return {
     cardSets,
@@ -105,6 +107,8 @@ function buildFilterMeta(products: ProductWithVariants[]) {
     pokemonTypes,
     setCodes,
     rarityTiers,
+    types,
+    languages,
   };
 }
 
@@ -121,6 +125,8 @@ function emptyProducts(filters: ProductFilters): ProductsResponse {
       pokemonTypes: [],
       setCodes: [],
       rarityTiers: [],
+      types: [],
+      languages: [],
     },
   };
 }
@@ -294,6 +300,8 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
           cardCategory: true,
           setCode: true,
           rarityTier: true,
+          type: true,
+          language: true,
         },
       }),
     ]);
@@ -311,9 +319,9 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
         name: "",
         slug: "",
         description: null,
-        type: "SINGLE",
+        type: p.type,
         cardNumber: null,
-        language: "zh-HK",
+        language: p.language,
         variants: [],
         images: [],
       } as ProductWithVariants),

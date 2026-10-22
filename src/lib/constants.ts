@@ -59,17 +59,23 @@ export const NAV_ITEMS: {
   { label: "付款方式", href: "/payment" },
 ];
 
-/** 已上架遊戲。One Piece / Lorcana 尚未有商品，選單先不顯示。 */
+/**
+ * 已上架遊戲。One Piece / Lorcana 尚未有商品，選單先不顯示。
+ * 前台「商品」選單會改用目錄裡實際有的分類；這份是讀不到目錄時的後備。
+ */
 export const PRODUCT_CATEGORIES = [
   {
     label: "Pokémon TCG",
+    href: "/products?game=pokemon",
     children: [
-      { label: "繁體中文版", href: "/products?language=zh-HK" },
-      { label: "英文版", href: "/products?language=en" },
-      { label: "日文版", href: "/products?language=ja" },
-      { label: "單卡", href: "/products?type=SINGLE" },
-      { label: "封盒 / 補充包", href: "/products?type=SEALED_BOX" },
-      { label: "配件", href: "/products?type=ACCESSORY" },
+      { label: "單卡", href: "/products?game=pokemon&type=SINGLE" },
+      { label: "封盒", href: "/products?game=pokemon&type=SEALED_BOX" },
+      { label: "補充包", href: "/products?game=pokemon&type=BOOSTER_PACK" },
+      { label: "禮盒", href: "/products?game=pokemon&type=GIFT_BOX" },
+      { label: "配件", href: "/products?game=pokemon&type=ACCESSORY" },
+      { label: "繁體中文版", href: "/products?game=pokemon&language=zh-HK" },
+      { label: "英文版", href: "/products?game=pokemon&language=en" },
+      { label: "日文版", href: "/products?game=pokemon&language=ja" },
     ],
   },
 ] as const;

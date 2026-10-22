@@ -69,6 +69,8 @@ export interface ProductsResponse {
     pokemonTypes: string[];
     setCodes: string[];
     rarityTiers: string[];
+    types: string[];
+    languages: string[];
   };
   /** Present when the search also checked the card catalog. */
   catalog?: {

@@ -28,6 +28,11 @@ describe("storefront catalog query", () => {
     assert.equal(productFiltersFromSearchParams(fromRecord).minPrice, 1);
   });
 
+  it("keeps a category set code from the product menu on the catalog request", () => {
+    const params = requestFor("game=pokemon&setCode=M6a");
+    assert.deepEqual(productFiltersFromSearchParams(params).setCodes, ["M6a"]);
+  });
+
   it("keeps the URL type ahead of the in-page type checkboxes", () => {
     const params = requestFor("type=SINGLE", {
       ...DEFAULT_STOREFRONT_FILTERS,
