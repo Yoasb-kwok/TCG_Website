@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
-import { defaultBoard, publishBoardInput, type BoardState } from "@/lib/tournament-board";
+import { cleanIssuedAt, defaultBoard, publishBoardInput, type BoardState } from "@/lib/tournament-board";
 
 export const SHOP_BOARD_ID = "shop";
 
@@ -127,13 +127,40 @@ function defaultAccess(): ShopBoardAccess {
   return singleton;
 }
 
+/**
+ * Board to store for this staff save.
+ * Null means the incoming save is older than what is already stored.
+ */
+export function nextShopBoard(stored: BoardState, input: unknown, now: number): BoardState | null {
+  const incomingAt =
+    input && typeof input === "object" ? cleanIssuedAt((input as { issuedAt?: unknown }).issuedAt) : undefined;
+  const storedAt = cleanIssuedAt(stored.issuedAt);
+  if (incomingAt !== undefined && storedAt !== undefined && incomingAt < storedAt) return null;
+  const stamped =
+    input && typeof input === "object"
+      ? { ...(input as Record<string, unknown>), issuedAt: incomingAt ?? now }
+      : input;
+  return publishBoardInput(stamped, now);
+}
+
+let writeQueue: Promise<unknown> = Promise.resolve();
+
 export async function readShopBoard(now = Date.now()): Promise<ShopBoardSnapshot> {
   const stored = await defaultAccess().read();
   return { board: publishBoardInput(stored, now), serverNow: now };
 }
 
 export async function writeShopBoard(input: unknown, now = Date.now()): Promise<ShopBoardSnapshot> {
-  const board = publishBoardInput(input, now);
-  await defaultAccess().write(board);
-  return { board, serverNow: now };
+  const run = writeQueue.then(async () => {
+    const stored = await defaultAccess().read();
+    const next = nextShopBoard(stored, input, now);
+    if (!next) return { board: publishBoardInput(stored, now), serverNow: now };
+    await defaultAccess().write(next);
+    return { board: next, serverNow: now };
+  });
+  writeQueue = run.then(
+    () => undefined,
+    () => undefined,
+  );
+  return run;
 }

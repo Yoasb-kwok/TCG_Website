@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm, writeFile } from "fs/promises";
 import { tmpdir } from "os";
 import path from "path";
 import test from "node:test";
-import { fileShopBoard, memoryShopBoard } from "./shop-board";
+import { fileShopBoard, memoryShopBoard, nextShopBoard } from "./shop-board";
 import { defaultBoard, publishBoardInput, startTimerState } from "./tournament-board";
 
 test("publishBoardInput keeps a running countdown and drops a broken roster", () => {
@@ -50,6 +50,59 @@ test("an expired absolute end time is stored as stopped at zero", () => {
   assert.equal(stopped.timerRunning, false);
   assert.equal(stopped.timerEndsAt, null);
   assert.equal(stopped.timerRemainingMs, 0);
+});
+
+test("reload keeps a running end time instead of the original preset", () => {
+  const startedAt = Date.now();
+  const saved = nextShopBoard(
+    defaultBoard(),
+    {
+      ...startTimerState(
+        { ...defaultBoard(), title: "店賽夜", sessionNumber: "7", sessionDate: "2026-10-22" },
+        25 * 60_000,
+        startedAt,
+      ),
+      issuedAt: startedAt,
+    },
+    startedAt,
+  );
+  assert.ok(saved);
+  const later = startedAt + 90_000;
+  const reloaded = publishBoardInput(saved, later);
+  assert.equal(reloaded.timerRunning, true);
+  assert.equal(reloaded.timerEndsAt, startedAt + 25 * 60_000);
+  assert.equal((reloaded.timerEndsAt ?? 0) - later, 25 * 60_000 - 90_000);
+  assert.equal(reloaded.sessionNumber, "7");
+  assert.equal(reloaded.sessionDate, "2026-10-22");
+  assert.equal(reloaded.title, "店賽夜");
+  assert.equal(reloaded.issuedAt, startedAt);
+});
+
+test("an older staff save does not rewind the clock or session settings", () => {
+  const now = Date.now();
+  const running = nextShopBoard(
+    defaultBoard(),
+    { ...startTimerState(defaultBoard(), 10 * 60_000, now), issuedAt: now + 5_000, sessionNumber: "3" },
+    now,
+  );
+  assert.ok(running);
+  assert.equal(nextShopBoard(running, { ...defaultBoard(), issuedAt: now + 1_000 }, now + 6_000), null);
+  const paused = nextShopBoard(
+    running,
+    {
+      ...running,
+      timerRunning: false,
+      timerEndsAt: null,
+      timerRemainingMs: 60_000,
+      issuedAt: now + 8_000,
+    },
+    now + 6_000,
+  );
+  assert.ok(paused);
+  assert.equal(paused.timerRunning, false);
+  assert.equal(paused.timerRemainingMs, 60_000);
+  assert.equal(paused.sessionNumber, "3");
+  assert.equal(paused.issuedAt, now + 8_000);
 });
 
 test("memory and file stores round-trip the same board", async () => {
