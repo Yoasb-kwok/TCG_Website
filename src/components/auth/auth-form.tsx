@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FORM_FIELD_INPUT_CLASS } from "@/lib/search-bar-styles";
 import { SITE_BRAND } from "@/lib/constants";
+import { parseMemberRegistration, type MemberField } from "@/lib/member-register";
 import { cn } from "@/lib/utils";
 
 type Tab = "login" | "register";
@@ -34,7 +35,9 @@ export function AuthForm() {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
+  const [pokemonId, setPokemonId] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<MemberField, string>>>({});
   const [loading, setLoading] = useState(false);
 
   const callbackUrl = searchParams.get("callbackUrl");
@@ -82,14 +85,30 @@ export function AuthForm() {
     setLoading(true);
     setError(null);
 
+    const parsed = parseMemberRegistration({
+      email,
+      password,
+      name,
+      phone,
+      pokemonId,
+    });
+    if (!parsed.ok) {
+      setFieldErrors(parsed.fields);
+      setError(parsed.error);
+      setLoading(false);
+      return;
+    }
+    setFieldErrors({});
+
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: email.trim(),
-        password,
-        name: name.trim() || undefined,
-        phone: phone.trim() || undefined,
+        email: parsed.value.email,
+        password: parsed.value.password,
+        name: parsed.value.name ?? undefined,
+        phone: parsed.value.phone,
+        pokemonId: parsed.value.pokemonId,
       }),
     });
 
@@ -132,6 +151,7 @@ export function AuthForm() {
           onClick={() => {
             setTab("login");
             setError(null);
+            setFieldErrors({});
           }}
           className={cn(
             "flex-1 rounded-md py-2 text-sm font-medium transition",
@@ -147,6 +167,7 @@ export function AuthForm() {
           onClick={() => {
             setTab("register");
             setError(null);
+            setFieldErrors({});
           }}
           className={cn(
             "flex-1 rounded-md py-2 text-sm font-medium transition",
@@ -168,6 +189,7 @@ export function AuthForm() {
       </div>
 
       <form
+        noValidate={tab === "register"}
         onSubmit={tab === "login" ? handleLogin : handleRegister}
         className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6"
       >
@@ -216,15 +238,60 @@ export function AuthForm() {
 
         {tab === "register" && (
           <div className="space-y-2">
-            <Label htmlFor="phone">電話（選填）</Label>
+            <Label htmlFor="phone">
+              電話 <span className="text-red-500">*</span>
+            </Label>
             <Input
               id="phone"
               type="tel"
+              inputMode="numeric"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
+              placeholder="9876 5432"
               className={FORM_FIELD_INPUT_CLASS}
               autoComplete="tel"
+              aria-invalid={Boolean(fieldErrors.phone)}
+              aria-describedby={fieldErrors.phone ? "phone-hint phone-error" : "phone-hint"}
+              required
             />
+            <p id="phone-hint" className="text-xs text-muted-foreground">
+              8 位香港電話號碼
+            </p>
+            {fieldErrors.phone && (
+              <p id="phone-error" className="text-xs text-red-500">
+                {fieldErrors.phone}
+              </p>
+            )}
+          </div>
+        )}
+
+        {tab === "register" && (
+          <div className="space-y-2">
+            <Label htmlFor="pokemon-id">
+              Pokémon ID <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="pokemon-id"
+              value={pokemonId}
+              onChange={(e) => setPokemonId(e.target.value)}
+              placeholder="例如 1234-5678"
+              maxLength={64}
+              className={FORM_FIELD_INPUT_CLASS}
+              autoComplete="off"
+              aria-invalid={Boolean(fieldErrors.pokemonId)}
+              aria-describedby={
+                fieldErrors.pokemonId ? "pokemon-id-hint pokemon-id-error" : "pokemon-id-hint"
+              }
+              required
+            />
+            <p id="pokemon-id-hint" className="text-xs text-muted-foreground">
+              訓練家／玩家 ID
+            </p>
+            {fieldErrors.pokemonId && (
+              <p id="pokemon-id-error" className="text-xs text-red-500">
+                {fieldErrors.pokemonId}
+              </p>
+            )}
           </div>
         )}
 
