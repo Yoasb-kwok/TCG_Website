@@ -4,7 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { DEMO_ADMIN_LINKS, DEMO_OWNER, DEMO_SHOP, DEMO_STORE_PATH } from "@/lib/demo-shop";
+import {
+  DEMO_ADMIN_LINKS,
+  DEMO_CASHIER_LINKS,
+  DEMO_OWNER,
+  DEMO_SHOP,
+  DEMO_STORE_PATH,
+} from "@/lib/demo-shop";
 import { cn } from "@/lib/utils";
 
 export function DemoAdminSidebar() {
@@ -38,17 +44,39 @@ export function DemoAdminSidebar() {
             </Link>
           );
         })}
-        <Link
-          href="/pos/demo"
-          className={cn(
-            "mt-2 block rounded-md border px-3 py-2 text-center text-sm font-medium transition",
-            onPos && pathname === "/pos/demo"
-              ? "border-transparent bg-gradient-to-r from-cyan-400 to-violet-500 text-white"
-              : "border-border text-muted-foreground hover:border-cyan-300/50 hover:text-foreground",
-          )}
-        >
-          收銀帳務
-        </Link>
+        <div className="mt-2 space-y-0.5">
+          <Link
+            href="/pos/demo"
+            className={cn(
+              "block rounded-md border px-3 py-2 text-center text-sm font-medium transition",
+              onPos && pathname === "/pos/demo"
+                ? "border-transparent bg-gradient-to-r from-cyan-400 to-violet-500 text-white"
+                : "border-border text-muted-foreground hover:border-cyan-300/50 hover:text-foreground",
+            )}
+          >
+            收銀帳務
+          </Link>
+          <ul aria-label="收銀帳務" className="space-y-0.5 border-l border-border pl-2">
+            {DEMO_CASHIER_LINKS.map((link) => {
+              const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
+              return (
+                <li key={link.href}>
+                  <Link
+                    href={link.href}
+                    className={cn(
+                      "block rounded-lg px-3 py-2 text-sm transition",
+                      active
+                        ? "bg-muted text-foreground"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    )}
+                  >
+                    {link.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </nav>
       <div className="space-y-1 border-t border-border p-3">
         <div className="px-3 py-2">
