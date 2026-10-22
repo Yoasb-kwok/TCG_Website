@@ -16,6 +16,7 @@ import { FilterPanel } from "@/components/marketplace/filter-panel";
 import { ProductsLoading } from "@/components/marketplace/products-loading";
 import { ProductCard } from "@/components/marketplace/product-card";
 import { catalogGame } from "@/lib/games";
+import { describeProductCategoryQuery } from "@/lib/storefront-categories";
 import {
   DEFAULT_STOREFRONT_FILTERS,
   catalogForRequest,
@@ -87,6 +88,12 @@ export function MarketplaceShell({
   const game = catalogGame(searchParams.get("game"));
   const unsupportedGame = Boolean(game && !game.supported);
   const filterSource = shown ?? result.data;
+  const categoryCaption = describeProductCategoryQuery({
+    type: searchParams.get("type"),
+    language: searchParams.get("language"),
+    cardSet: searchParams.get("cardSet"),
+    setCodes: searchParams.getAll("setCode"),
+  });
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
@@ -99,6 +106,9 @@ export function MarketplaceShell({
                 ? game.label
                 : "商品"}
           </h1>
+          {categoryCaption && (
+            <p className="mt-1 text-sm text-muted-foreground">分類：{categoryCaption}</p>
+          )}
           {shown && (
             <p className="mt-1 text-sm text-muted-foreground">
               {unsupportedGame

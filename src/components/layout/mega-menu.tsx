@@ -4,11 +4,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
-import { PRODUCT_CATEGORIES } from "@/lib/constants";
+import { PokemonCategoryLinks } from "@/components/layout/pokemon-category-links";
+import { POKEMON_TCG_CATEGORY, type StorefrontCategoryLink } from "@/lib/storefront-categories";
 
 interface MegaMenuProps {
   open: boolean;
+  links: StorefrontCategoryLink[];
   onClose: () => void;
+  onPointerEnter?: () => void;
+  onPointerLeave?: () => void;
 }
 
 interface MenuBanner {
@@ -23,7 +27,7 @@ const DEMO_BANNER: MenuBanner = {
   title: "商品選單",
 };
 
-export function MegaMenu({ open, onClose }: MegaMenuProps) {
+export function MegaMenu({ open, links, onClose, onPointerEnter, onPointerLeave }: MegaMenuProps) {
   const [banner, setBanner] = useState<MenuBanner | null>(DEMO_BANNER);
 
   useEffect(() => {
@@ -45,29 +49,26 @@ export function MegaMenu({ open, onClose }: MegaMenuProps) {
 
   return (
     <div
-      className="absolute left-0 right-0 top-full z-40 border-t border-border bg-background/95 backdrop-blur-sm"
-      onMouseLeave={onClose}
+      className="absolute left-0 right-0 top-full z-40 border-t border-border bg-background/95 shadow-lg backdrop-blur-sm"
+      onMouseEnter={onPointerEnter}
+      onMouseLeave={onPointerLeave}
     >
       <div className="mx-auto flex max-w-7xl gap-8 px-6 py-6">
-        <div className="w-64 shrink-0 space-y-1">
-          {PRODUCT_CATEGORIES.map((cat) => (
-            <div key={cat.label}>
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {cat.label}
-              </p>
-              {cat.children.map((child) => (
-                <Link
-                  key={child.href}
-                  href={child.href}
-                  className="group flex items-center justify-between rounded px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted hover:text-foreground"
-                  onClick={onClose}
-                >
-                  {child.label}
-                  <ChevronRight className="h-3 w-3 opacity-0 group-hover:opacity-100" />
-                </Link>
-              ))}
-            </div>
-          ))}
+        <div className="w-52 shrink-0">
+          <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-muted-foreground">遊戲</p>
+          <Link
+            href={POKEMON_TCG_CATEGORY.href}
+            className="flex items-center justify-between rounded-md bg-muted px-3 py-2 text-sm font-medium text-foreground"
+            aria-expanded="true"
+            aria-controls="storefront-l2-menu"
+            onClick={onClose}
+          >
+            {POKEMON_TCG_CATEGORY.label}
+            <ChevronRight className="h-4 w-4" aria-hidden="true" />
+          </Link>
+        </div>
+        <div className="max-h-[min(70vh,32rem)] w-72 shrink-0 overflow-y-auto rounded-lg border border-border bg-muted/20 p-3">
+          <PokemonCategoryLinks id="storefront-l2-menu" links={links} onNavigate={onClose} />
         </div>
         <div className="relative hidden min-h-56 flex-1 overflow-hidden rounded-lg border border-border bg-muted/30 md:block">
           {banner?.image ? (

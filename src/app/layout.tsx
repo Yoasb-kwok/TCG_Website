@@ -6,6 +6,7 @@ import { AuthSessionProvider } from "@/providers/session-provider";
 import { CartProvider } from "@/providers/cart-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { SITE_BRAND, SITE_TAGLINE } from "@/lib/constants";
+import { loadPokemonL2Categories } from "@/lib/load-storefront-categories";
 import { resolveSocialLinks } from "@/lib/social";
 import { resolveWhatsAppHref } from "@/lib/whatsapp";
 import {
@@ -46,6 +47,7 @@ export default async function RootLayout({
   const themePreference: ThemePreference =
     pref === "light" || pref === "dark" || pref === "system" ? pref : "dark";
   const whatsappHref = resolveWhatsAppHref();
+  const pokemonCategories = await loadPokemonL2Categories();
 
   return (
     <html
@@ -64,6 +66,7 @@ export default async function RootLayout({
               <StorefrontFrame
                 whatsappHref={whatsappHref}
                 socialLinks={resolveSocialLinks({ whatsappHref })}
+                pokemonCategories={pokemonCategories}
               >
                 {children}
               </StorefrontFrame>

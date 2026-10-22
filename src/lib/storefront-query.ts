@@ -54,7 +54,7 @@ export function recordToURLSearchParams(
  * before the in-page panel, matching the previous client request.
  */
 export function storefrontRequestParams(
-  url: SearchReader,
+  url: SearchListReader,
   filters: FilterState,
   page: number,
 ): URLSearchParams {
@@ -76,6 +76,7 @@ export function storefrontRequestParams(
   const urlLang = url.get("language");
   const urlSearch = url.get("search")?.trim();
   const urlGame = url.get("game")?.trim();
+  const urlSetCodes = url.getAll("setCode").filter(Boolean);
 
   if (urlType) params.set("type", urlType);
   if (urlSet) params.set("cardSet", urlSet);
@@ -87,7 +88,9 @@ export function storefrontRequestParams(
   for (const type of filters.types) params.append("type", type);
   for (const set of filters.cardSets) params.append("cardSet", set);
   for (const rarity of filters.rarities) params.append("rarity", rarity);
-  for (const code of filters.setCodes) params.append("setCode", code);
+  for (const code of new Set([...urlSetCodes, ...filters.setCodes])) {
+    params.append("setCode", code);
+  }
   for (const tier of filters.rarityTiers) params.append("rarityTier", tier);
   for (const pokemonType of filters.pokemonTypes) params.append("pokemonType", pokemonType);
 
