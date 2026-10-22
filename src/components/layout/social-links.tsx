@@ -36,7 +36,7 @@ function SocialIcon({ icon, className }: { icon: SocialIconId; className?: strin
 
 const linkClassName = {
   footer:
-    "inline-flex items-center gap-2 rounded-md border border-border px-2.5 py-1.5 text-sm text-muted-foreground transition hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+    "inline-flex items-center gap-2 rounded-md border border-rice-border px-2.5 py-1.5 text-sm text-rice-muted transition hover:text-rice-foreground focus-visible:text-rice-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
   header:
     "inline-flex rounded-md p-2 text-muted-foreground transition hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
 } as const;
@@ -74,7 +74,7 @@ export function SocialLinks({
 
   return (
     <div className="mt-4">
-      <p className="mb-2 text-sm font-semibold text-foreground">社交媒體</p>
+      <p className="mb-2 text-sm font-semibold text-rice-foreground">社交媒體</p>
       {list}
     </div>
   );
