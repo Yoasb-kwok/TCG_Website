@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { catalogBuybackPayload } from "@/lib/buyback-catalog";
 import { requireAdmin } from "@/lib/auth-server";
 import {
   createManualAccessory,
@@ -78,6 +79,10 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
+  const offer = catalogBuybackPayload(body?.buybackPrice, body?.targetBuybackQty);
+  if (!offer.ok) {
+    return NextResponse.json({ error: offer.error }, { status: 400 });
+  }
 
   try {
     if (body.kind === "single") {
@@ -97,6 +102,8 @@ export async function POST(request: NextRequest) {
         imageUrl: body.imageUrl,
         isFoil: body.isFoil,
         barcode: body.barcode,
+        buybackPrice: offer.buybackPrice,
+        targetBuybackQty: offer.targetBuybackQty,
       });
       return NextResponse.json({ product });
     }
@@ -114,6 +121,8 @@ export async function POST(request: NextRequest) {
         description: body.description,
         imageUrl: body.imageUrl,
         barcode: body.barcode,
+        buybackPrice: offer.buybackPrice,
+        targetBuybackQty: offer.targetBuybackQty,
       });
       return NextResponse.json({ product });
     }
@@ -126,6 +135,8 @@ export async function POST(request: NextRequest) {
         stock: Number.isFinite(Number(body.stock)) ? Number(body.stock) : 0,
         imageUrl: body.imageUrl,
         barcode: body.barcode,
+        buybackPrice: offer.buybackPrice,
+        targetBuybackQty: offer.targetBuybackQty,
       });
       return NextResponse.json({ product });
     }

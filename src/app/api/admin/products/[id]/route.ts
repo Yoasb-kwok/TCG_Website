@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { catalogBuybackPatch } from "@/lib/buyback-catalog";
 import { requireAdmin } from "@/lib/auth-server";
 import {
   describeProductWriteError,
@@ -68,7 +69,14 @@ export async function PATCH(
     imageUrl?: string;
     type?: string;
     barcode?: string | null;
+    buybackPrice?: number | null;
+    targetBuybackQty?: number | null;
   };
+
+  const offer = catalogBuybackPatch(body);
+  if (!offer.ok) {
+    return NextResponse.json({ error: offer.error }, { status: 400 });
+  }
 
   const prisma = getPrisma();
   const existing = await prisma.product.findUnique({
@@ -109,6 +117,7 @@ export async function PATCH(
         imageUrl: body.imageUrl,
         isFoil: body.isFoil,
         barcode: body.barcode,
+        ...offer.data,
       });
       return NextResponse.json({ product });
     }
@@ -129,6 +138,7 @@ export async function PATCH(
         description: body.description,
         imageUrl: body.imageUrl,
         barcode: body.barcode,
+        ...offer.data,
       });
       return NextResponse.json({ product });
     }
@@ -147,6 +157,7 @@ export async function PATCH(
         stock: body.stock,
         imageUrl: body.imageUrl,
         barcode: body.barcode,
+        ...offer.data,
       });
       return NextResponse.json({ product });
     }
@@ -154,12 +165,16 @@ export async function PATCH(
     if (body.name) {
       await prisma.product.update({ where: { id }, data: { name: body.name } });
     }
-    if (body.variantId && (body.price != null || body.stock != null)) {
+    if (
+      body.variantId &&
+      (body.price != null || body.stock != null || Object.keys(offer.data).length > 0)
+    ) {
       await prisma.productVariant.update({
         where: { id: variantId },
         data: {
           ...(body.price != null ? { price: body.price } : {}),
           ...(body.stock != null ? { stock: body.stock } : {}),
+          ...offer.data,
         },
       });
     }

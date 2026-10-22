@@ -10,7 +10,9 @@ import {
   FORM_FIELD_INPUT_CLASS,
   SEARCH_BAR_SELECT_CLASS,
 } from "@/lib/search-bar-styles";
+import { catalogBuybackPayload } from "@/lib/buyback-catalog";
 import { cn } from "@/lib/utils";
+import { BuybackOfferFields } from "@/components/admin/buyback-offer-fields";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { useTaxonomy } from "@/providers/taxonomy-provider";
 
@@ -46,6 +48,8 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
   const [pokemonType, setPokemonType] = useState("");
   const [description, setDescription] = useState("");
   const [barcode, setBarcode] = useState("");
+  const [buybackPrice, setBuybackPrice] = useState("");
+  const [targetBuybackQty, setTargetBuybackQty] = useState("");
   const [isFoil, setIsFoil] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -86,6 +90,8 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
     setCardNumber("");
     setDescription("");
     setBarcode("");
+    setBuybackPrice("");
+    setTargetBuybackQty("");
     setIsFoil(false);
     setImageFile(null);
     setImagePreview(null);
@@ -95,6 +101,12 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
   const handleSubmit = async () => {
     if (!name.trim() || !setCode || !rarityTier || !imageFile) {
       setError("請填寫卡牌名稱、系列、稀有度並上傳圖片");
+      return;
+    }
+
+    const offer = catalogBuybackPayload(buybackPrice, targetBuybackQty);
+    if (!offer.ok) {
+      setError(offer.error);
       return;
     }
 
@@ -117,6 +129,8 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
           pokemonType: pokemonType || undefined,
           price: 0,
           stock: 0,
+          buybackPrice: offer.buybackPrice,
+          targetBuybackQty: offer.targetBuybackQty,
           description: description.trim() || undefined,
           imageUrl,
           isFoil,
@@ -258,6 +272,15 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
             <BarcodeScanButton onDetect={setBarcode} />
           </div>
           <p className="mt-1 text-xs text-muted-foreground">收銀掃這個條碼就會加入購物車。不可同其他商品重複。</p>
+        </div>
+
+        <div className="sm:col-span-2">
+          <BuybackOfferFields
+            buybackPrice={buybackPrice}
+            targetBuybackQty={targetBuybackQty}
+            onBuybackPriceChange={setBuybackPrice}
+            onTargetBuybackQtyChange={setTargetBuybackQty}
+          />
         </div>
 
         <div className="sm:col-span-2">

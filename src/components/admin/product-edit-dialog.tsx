@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { BuybackOfferFields } from "@/components/admin/buyback-offer-fields";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +26,7 @@ import {
   isCardPackProductType,
   isSingleProductType,
 } from "@/lib/product-type-display";
+import { catalogBuybackPayload } from "@/lib/buyback-catalog";
 import { cn } from "@/lib/utils";
 import { useTaxonomy } from "@/providers/taxonomy-provider";
 import type { AdminProduct } from "@/components/admin/products-table";
@@ -72,6 +74,8 @@ export function ProductEditDialog({
   const [sealedType, setSealedType] = useState("");
   const [price, setPrice] = useState("");
   const [stock, setStock] = useState("");
+  const [buybackPrice, setBuybackPrice] = useState("");
+  const [targetBuybackQty, setTargetBuybackQty] = useState("");
   const [description, setDescription] = useState("");
   const [barcode, setBarcode] = useState("");
   const [isFoil, setIsFoil] = useState(false);
@@ -98,6 +102,8 @@ export function ProductEditDialog({
     }
     setPrice(v ? String(v.price) : "");
     setStock(v ? String(v.stock) : "");
+    setBuybackPrice(typeof v?.buybackPrice === "number" ? String(v.buybackPrice) : "");
+    setTargetBuybackQty(typeof v?.targetBuybackQty === "number" ? String(v.targetBuybackQty) : "");
     setDescription(product.description ?? "");
     setBarcode(v?.barcode ?? "");
     setIsFoil(v?.isFoil ?? false);
@@ -122,6 +128,12 @@ export function ProductEditDialog({
       return;
     }
 
+    const offer = catalogBuybackPayload(buybackPrice, targetBuybackQty);
+    if (!offer.ok) {
+      setError(offer.error);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -136,6 +148,8 @@ export function ProductEditDialog({
         name: name.trim(),
         price: Number(price),
         stock: Number(stock),
+        buybackPrice: offer.buybackPrice,
+        targetBuybackQty: offer.targetBuybackQty,
         description: description.trim() || undefined,
         barcode: barcode.trim() || null,
         ...(imageUrl ? { imageUrl } : {}),
@@ -375,6 +389,13 @@ export function ProductEditDialog({
           </div>
 
           <p className="text-sm text-muted-foreground">售價和數量在「倉存」點算，入庫用「進貨」。</p>
+
+          <BuybackOfferFields
+            buybackPrice={buybackPrice}
+            targetBuybackQty={targetBuybackQty}
+            onBuybackPriceChange={setBuybackPrice}
+            onTargetBuybackQtyChange={setTargetBuybackQty}
+          />
 
           <div>
             <Label>備註（選填）</Label>

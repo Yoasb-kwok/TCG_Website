@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ImagePlus, Loader2 } from "lucide-react";
+import { BuybackOfferFields } from "@/components/admin/buyback-offer-fields";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import {
   FORM_FIELD_INPUT_CLASS,
   SEARCH_BAR_SELECT_CLASS,
 } from "@/lib/search-bar-styles";
+import { catalogBuybackPayload } from "@/lib/buyback-catalog";
 import { cn } from "@/lib/utils";
 
 interface SealedAccessoryFormProps {
@@ -45,6 +47,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
   const [productName, setProductName] = useState("");
   const [description, setDescription] = useState("");
   const [barcode, setBarcode] = useState("");
+  const [buybackPrice, setBuybackPrice] = useState("");
+  const [targetBuybackQty, setTargetBuybackQty] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
@@ -54,6 +58,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
   const [accName, setAccName] = useState("");
   const [accDesc, setAccDesc] = useState("");
   const [accBarcode, setAccBarcode] = useState("");
+  const [accBuybackPrice, setAccBuybackPrice] = useState("");
+  const [accTargetBuybackQty, setAccTargetBuybackQty] = useState("");
   const [accImageFile, setAccImageFile] = useState<File | null>(null);
   const accFileRef = useRef<HTMLInputElement>(null);
 
@@ -75,6 +81,11 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
       setError("請填寫商品名稱、商品類型並上傳圖片");
       return;
     }
+    const offer = catalogBuybackPayload(buybackPrice, targetBuybackQty);
+    if (!offer.ok) {
+      setError(offer.error);
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -90,6 +101,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
           setCode: setCode || undefined,
           price: 0,
           stock: 0,
+          buybackPrice: offer.buybackPrice,
+          targetBuybackQty: offer.targetBuybackQty,
           description: description.trim() || undefined,
           imageUrl,
           barcode: barcode.trim() || null,
@@ -101,6 +114,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
       setProductName("");
       setDescription("");
       setBarcode("");
+      setBuybackPrice("");
+      setTargetBuybackQty("");
       setImageFile(null);
       setImagePreview(null);
       if (fileRef.current) fileRef.current.value = "";
@@ -115,6 +130,11 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
   const handleAccessorySubmit = async () => {
     if (!accName.trim()) {
       setError("請填寫商品名稱");
+      return;
+    }
+    const offer = catalogBuybackPayload(accBuybackPrice, accTargetBuybackQty);
+    if (!offer.ok) {
+      setError(offer.error);
       return;
     }
     setLoading(true);
@@ -133,6 +153,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
           name: accName.trim(),
           description: accDesc.trim() || undefined,
           barcode: accBarcode.trim() || null,
+          buybackPrice: offer.buybackPrice,
+          targetBuybackQty: offer.targetBuybackQty,
           price: 0,
           stock: 0,
           imageUrl,
@@ -144,6 +166,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
       setAccName("");
       setAccDesc("");
       setAccBarcode("");
+      setAccBuybackPrice("");
+      setAccTargetBuybackQty("");
       setAccImageFile(null);
       if (accFileRef.current) accFileRef.current.value = "";
       onCreated();
@@ -248,6 +272,14 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
               <p className="mt-1 text-xs text-muted-foreground">收銀掃這個條碼就會加入購物車。不可同其他商品重複。</p>
             </div>
             <div className="sm:col-span-2">
+              <BuybackOfferFields
+                buybackPrice={buybackPrice}
+                targetBuybackQty={targetBuybackQty}
+                onBuybackPriceChange={setBuybackPrice}
+                onTargetBuybackQtyChange={setTargetBuybackQty}
+              />
+            </div>
+            <div className="sm:col-span-2">
               <Label>備註（選填）</Label>
               <Input
                 value={description}
@@ -323,6 +355,12 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
             </div>
             <p className="mt-1 text-xs text-muted-foreground">收銀掃這個條碼就會加入購物車。不可同其他商品重複。</p>
           </div>
+          <BuybackOfferFields
+            buybackPrice={accBuybackPrice}
+            targetBuybackQty={accTargetBuybackQty}
+            onBuybackPriceChange={setAccBuybackPrice}
+            onTargetBuybackQtyChange={setAccTargetBuybackQty}
+          />
           <div>
             <Label>描述（選填）</Label>
             <Input

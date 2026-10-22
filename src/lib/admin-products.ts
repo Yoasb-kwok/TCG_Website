@@ -1,3 +1,4 @@
+import type { CatalogBuybackWrite } from "@/lib/buyback-catalog";
 import { normalizeBarcode } from "@/lib/pos-scan";
 import { getPrisma } from "@/lib/prisma";
 import { taxonomyFromCard } from "@/lib/card-taxonomy";
@@ -21,6 +22,8 @@ export interface ManualSingleInput {
   imageUrl: string;
   isFoil?: boolean;
   barcode?: string | null;
+  buybackPrice?: number | null;
+  targetBuybackQty?: number | null;
 }
 
 export interface ManualSealedInput {
@@ -32,6 +35,8 @@ export interface ManualSealedInput {
   description?: string;
   imageUrl: string;
   barcode?: string | null;
+  buybackPrice?: number | null;
+  targetBuybackQty?: number | null;
 }
 
 export interface ManualAccessoryInput {
@@ -41,10 +46,19 @@ export interface ManualAccessoryInput {
   stock: number;
   imageUrl?: string;
   barcode?: string | null;
+  buybackPrice?: number | null;
+  targetBuybackQty?: number | null;
 }
 
 function buildSku(slug: string, suffix: string) {
   return `${slug}-${suffix}`.slice(0, 64);
+}
+
+function catalogBuybackData(input: CatalogBuybackWrite) {
+  return {
+    ...(input.buybackPrice !== undefined ? { buybackPrice: input.buybackPrice } : {}),
+    ...(input.targetBuybackQty !== undefined ? { targetBuybackQty: input.targetBuybackQty } : {}),
+  };
 }
 
 export function describeProductWriteError(err: unknown, fallback: string) {
@@ -157,6 +171,7 @@ export async function createManualSingle(input: ManualSingleInput) {
           stock: input.stock,
           sku,
           barcode,
+          ...catalogBuybackData(input),
         },
       },
     },
@@ -203,6 +218,7 @@ export async function createManualSealed(input: ManualSealedInput) {
           stock: input.stock,
           sku,
           barcode,
+          ...catalogBuybackData(input),
         },
       },
     },
@@ -241,6 +257,7 @@ export async function createManualAccessory(input: ManualAccessoryInput) {
           stock: input.stock,
           sku,
           barcode,
+          ...catalogBuybackData(input),
         },
       },
     },
@@ -315,6 +332,7 @@ export async function updateManualSingle(
         stock: input.stock,
         isFoil: input.isFoil ?? false,
         ...barcodeUpdate,
+        ...catalogBuybackData(input),
       },
     }),
   ]);
@@ -366,7 +384,7 @@ export async function updateManualSealed(
     }),
     prisma.productVariant.update({
       where: { id: variantId },
-      data: { price: input.price, stock: input.stock, ...barcodeUpdate },
+      data: { price: input.price, stock: input.stock, ...barcodeUpdate, ...catalogBuybackData(input) },
     }),
   ]);
 
@@ -404,7 +422,7 @@ export async function updateManualAccessory(
     }),
     prisma.productVariant.update({
       where: { id: variantId },
-      data: { price: input.price, stock: input.stock, ...barcodeUpdate },
+      data: { price: input.price, stock: input.stock, ...barcodeUpdate, ...catalogBuybackData(input) },
     }),
   ]);
 

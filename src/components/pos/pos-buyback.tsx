@@ -7,6 +7,7 @@ import { CatalogHitStrip, catalogHitName } from "@/components/catalog/catalog-hi
 import { PosShell } from "@/components/pos/pos-nav";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatDate, formatPrice, formatStaffMoney } from "@/lib/format";
+import { CatalogBuybackOffer } from "@/components/pos/catalog-buyback-offer";
 import { buybackDayTotal, buybackPriceCopy } from "@/lib/pos-buyback";
 import type { Buyback } from "@/lib/pos-shared";
 import type { CatalogSearchHit, ProductWithVariants } from "@/lib/types";
@@ -295,6 +296,7 @@ export function PosBuyback() {
                       存 {item.stock}
                       {item.price > 0 ? ` · ${formatPrice(item.price)}` : " · 未定價"}
                     </span>
+                    <CatalogBuybackOffer buybackPrice={item.buybackPrice} targetBuybackQty={item.targetBuybackQty} />
                   </button>
                 </li>
               );
@@ -323,11 +325,18 @@ export function PosBuyback() {
               <div className="mt-3 space-y-3">
                 <p className="font-extrabold">{selectionName}</p>
                 {selectedVariant && (
-                  <p className="text-xs font-bold text-muted-foreground">
-                    {selectedVariant.condition}
-                    {selectedVariant.isFoil ? " · 閃" : ""} · 現有庫存 {selectedVariant.stock}
-                    {selectedVariant.price > 0 ? ` · 售價 ${formatPrice(selectedVariant.price)}` : " · 未定價"}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-xs font-bold text-muted-foreground">
+                      {selectedVariant.condition}
+                      {selectedVariant.isFoil ? " · 閃" : ""} · 現有庫存 {selectedVariant.stock}
+                      {selectedVariant.price > 0 ? ` · 售價 ${formatPrice(selectedVariant.price)}` : " · 未定價"}
+                    </p>
+                    <CatalogBuybackOffer
+                      variant="panel"
+                      buybackPrice={selectedVariant.buybackPrice}
+                      targetBuybackQty={selectedVariant.targetBuybackQty}
+                    />
+                  </div>
                 )}
                 {catalogCard && (
                   <p className="text-xs font-bold text-muted-foreground">
