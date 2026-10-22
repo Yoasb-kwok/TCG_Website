@@ -68,11 +68,6 @@ export function SiteFooter({ socialLinks }: { socialLinks: ResolvedSocialLink[] 
                 店賽日程
               </Link>
             </li>
-            <li>
-              <Link href="/pos" className="hover:text-rice-foreground">
-                收銀 / 損益
-              </Link>
-            </li>
           </ul>
         </div>
         <div>
