@@ -1,16 +1,26 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Volume2, VolumeX } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip, catalogHitManualName, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
+import styles from "@/components/pos/pos-sell.module.css";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { DEMO_WRITE_DISCLAIMER, filterDemoCatalog } from "@/lib/demo-shop";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
 import { matchPosScan } from "@/lib/pos-scan";
+import {
+  playPosCue,
+  posSoundEnabled,
+  posSoundServerSnapshot,
+  primePosAudio,
+  setPosSoundEnabled,
+  subscribePosSound,
+} from "@/lib/pos-sfx";
 import { PAYMENT_LABELS, roundMoney, type PaymentMethod, type Sale } from "@/lib/pos-shared";
 import type { CatalogSearchHit, ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -41,8 +51,10 @@ type LookupResponse = {
 const METHODS = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
 const KINDS = [{ value: "", label: "全部" }, ...PRODUCT_TYPES] as const;
 
-const fieldClass =
-  "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-pink-400";
+const fieldClass = cn(
+  styles.search,
+  "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground",
+);
 
 function lineTotal(line: TicketLine) {
   return line.quantity * line.unitPrice;
@@ -93,6 +105,10 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
   const [manual, setManual] = useState({ name: "", unitPrice: "" });
   const scanRef = useRef<HTMLInputElement>(null);
   const scanSeq = useRef(0);
+  const flashTimer = useRef(0);
+  const flashGen = useRef(0);
+  const soundOn = useSyncExternalStore(subscribePosSound, posSoundEnabled, posSoundServerSnapshot);
+  const [addedId, setAddedId] = useState<string | null>(null);
   const actionsRef = useRef({
     confirmOpen: false,
     openConfirm: () => {},
@@ -110,6 +126,27 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
     if (demo) return;
     loadRecent().catch(() => undefined);
   }, [demo]);
+
+  useEffect(() => () => window.clearTimeout(flashTimer.current), []);
+
+  const markAdded = (id: string) => {
+    window.clearTimeout(flashTimer.current);
+    const gen = ++flashGen.current;
+    setAddedId(null);
+    window.requestAnimationFrame(() => {
+      if (flashGen.current !== gen) return;
+      setAddedId(id);
+      flashTimer.current = window.setTimeout(() => {
+        if (flashGen.current === gen) setAddedId(null);
+      }, 450);
+    });
+  };
+
+  const toggleSound = () => {
+    const next = !soundOn;
+    setPosSoundEnabled(next);
+    if (next) primePosAudio();
+  };
 
   const searching = query.trim().length > 0;
   const needsFullList = searching || kind !== "";
@@ -180,6 +217,8 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
   const addVariant = (product: ProductWithVariants, variantId: string) => {
     const variant = product.variants.find((item) => item.id === variantId) ?? product.variants[0];
     if (!variant) return;
+    markAdded(product.id);
+    playPosCue("ok");
     setLines((current) => {
       const existing = current.find((line) => line.sku != null && line.sku === variant.sku);
       if (existing) {
@@ -224,11 +263,13 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
   const scanCode = async (raw: string) => {
     const q = raw.trim();
     if (!q) return;
+    primePosAudio();
     const seq = ++scanSeq.current;
     if (demo) {
       const match = matchPosScan(DEMO_PRODUCTS, q);
       if (seq !== scanSeq.current) return;
       if (!match) {
+        playPosCue("err");
         setScanNote({ tone: "warn", text: "沒有完全相符嘅條碼、SKU 或卡號，請喺下面揀" });
         return;
       }
@@ -247,11 +288,13 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
       const data = (await res.json()) as LookupResponse;
       if (seq !== scanSeq.current) return;
       if (!res.ok) {
+        playPosCue("err");
         setScanNote({ tone: "warn", text: data.error ?? "搜尋失敗，請再試一次" });
         return;
       }
       const match = data.match;
       if (!match) {
+        playPosCue("err");
         const cards = data.catalog ?? [];
         if (cards.length === 1) {
           const card = cards[0];
@@ -281,6 +324,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
       scanRef.current?.focus();
     } catch {
       if (seq !== scanSeq.current) return;
+      playPosCue("err");
       setScanNote({ tone: "warn", text: "搜尋失敗，請再試一次" });
     }
   };
@@ -289,6 +333,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
     const name = manual.name.trim();
     const unitPrice = Number(manual.unitPrice);
     if (!name || !Number.isFinite(unitPrice) || unitPrice < 0) return;
+    playPosCue("ok");
     setLines((current) => [
       ...current,
       {
@@ -315,9 +360,11 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
 
   const checkout = async () => {
     if (payLock.current) return;
+    primePosAudio();
     const paid = tenderedAmount(tendered, total);
     if (!Number.isFinite(paid) || roundMoney(paid) + 0.001 < roundMoney(total)) {
       setError("實收少過應收");
+      playPosCue("err");
       return;
     }
     setError("");
@@ -343,13 +390,16 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
       const data = (await res.json()) as { error?: string };
       if (!res.ok) {
         setError(data.error ?? (demo ? DEMO_WRITE_DISCLAIMER : "未能入帳"));
+        playPosCue("err");
         return;
       }
+      playPosCue("ok");
       clearTicket();
       await loadRecent();
       scanRef.current?.focus();
     } catch {
       setError("未能入帳，請再試一次");
+      playPosCue("err");
     } finally {
       payLock.current = false;
       setPending(false);
@@ -404,12 +454,29 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
   };
 
   return (
-    <PosShell current="register" demo={demo}>
+    <PosShell current="register" demo={demo} sell>
+      <div className="contents" onPointerDown={() => primePosAudio()} onKeyDown={() => primePosAudio()}>
       <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_320px] lg:overflow-hidden">
         <section className="flex min-h-[28rem] flex-col overflow-hidden rounded-[14px] border border-border bg-card p-4 lg:min-h-0">
           <div className="flex items-center justify-between gap-2">
             <p className="text-sm font-extrabold text-muted-foreground">揀貨</p>
-            <p className="text-xs font-bold text-muted-foreground">撳一下就加入</p>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className={cn(
+                  styles.chip,
+                  "inline-flex h-8 items-center gap-1 rounded-full border px-3 text-sm font-bold",
+                  soundOn && styles.on,
+                )}
+                aria-pressed={soundOn}
+                data-sound={soundOn ? "on" : "off"}
+                onClick={toggleSound}
+              >
+                {soundOn ? <Volume2 className="size-4" aria-hidden /> : <VolumeX className="size-4" aria-hidden />}
+                掃碼有聲
+              </button>
+              <p className="text-xs font-bold text-muted-foreground">撳一下就加入</p>
+            </div>
           </div>
           <div className="mt-3">
             <label className="block text-xs font-bold text-muted-foreground" htmlFor="pos-scan">
@@ -442,6 +509,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                 className={cn(fieldClass, "h-11 min-w-0 flex-1")}
               />
               <BarcodeScanButton
+                className={cn(styles.pop, "border")}
                 disabled={confirmOpen}
                 onDetect={(code) => {
                   if (confirmOpen) return;
@@ -471,10 +539,9 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                   setPage(1);
                 }}
                 className={cn(
+                  styles.chip,
                   "h-8 rounded-full border px-3 text-sm font-bold",
-                  kind === item.value
-                    ? "border-pink-500 bg-pink-500 text-white"
-                    : "border-border bg-muted text-muted-foreground",
+                  kind === item.value && styles.on,
                 )}
               >
                 {item.label}
@@ -507,6 +574,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               total={shelfCatalogTotal}
               hint="撳一下把官方卡名填到手動貨品，售價要自己輸入。"
               onPick={(card) => {
+                playPosCue("ok");
                 setManual((current) => ({ ...current, name: catalogHitManualName(card) }));
                 setScanNote({
                   tone: "warn",
@@ -526,7 +594,14 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                   <button
                     type="button"
                     onClick={() => addProduct(product)}
-                    className="flex h-full w-full flex-col rounded-[10px] border border-border bg-card p-2 text-left hover:border-pink-400"
+                    data-added={addedId === product.id ? "true" : undefined}
+                    data-oos={stock <= 0 ? "true" : undefined}
+                    className={cn(
+                      styles.tile,
+                      "flex h-full w-full flex-col rounded-[10px] border border-border bg-card p-2 text-left",
+                      stock <= 0 && styles.oos,
+                      addedId === product.id && styles.added,
+                    )}
                   >
                     <span className="relative flex h-24 items-center justify-center overflow-hidden rounded-lg bg-muted">
                       {image ? (
@@ -564,7 +639,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
             <button
               type="button"
               onClick={() => setPage((current) => current + 1)}
-              className="mt-2 h-9 rounded-xl border border-border text-sm font-bold text-muted-foreground hover:border-pink-400"
+              className={cn(styles.pop, "mt-2 h-9 rounded-xl border text-sm font-bold")}
             >
               載入更多
             </button>
@@ -593,7 +668,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               />
               <button
                 type="submit"
-                className="h-10 rounded-xl border border-border bg-muted px-3 text-sm font-extrabold text-foreground"
+                className={cn(styles.pop, "h-10 rounded-xl border px-3 text-sm font-extrabold")}
               >
                 加入
               </button>
@@ -629,7 +704,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                         type="button"
                         aria-label={`減少 ${line.name}`}
                         onClick={() => patchLine(line.key, { quantity: Math.max(1, line.quantity - 1) })}
-                        className="flex size-9 items-center justify-center rounded-full border border-border bg-muted text-lg font-extrabold"
+                        className={cn(styles.pop, "flex size-9 items-center justify-center rounded-full border text-lg font-extrabold")}
                       >
                         −
                       </button>
@@ -638,7 +713,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                         type="button"
                         aria-label={`增加 ${line.name}`}
                         onClick={() => patchLine(line.key, { quantity: line.quantity + 1 })}
-                        className="flex size-9 items-center justify-center rounded-full border border-border bg-muted text-lg font-extrabold"
+                        className={cn(styles.pop, "flex size-9 items-center justify-center rounded-full border text-lg font-extrabold")}
                       >
                         +
                       </button>
@@ -652,12 +727,12 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                           onChange={(event) =>
                             patchLine(line.key, { unitPrice: Math.max(0, Number(event.target.value) || 0) })
                           }
-                          className="mt-1 h-9 w-full rounded-xl border border-border bg-background px-2 text-right text-sm font-extrabold tabular-nums text-foreground outline-none focus:border-pink-400"
+                          className={cn(styles.search, "mt-1 h-9 w-full rounded-xl border border-border bg-background px-2 text-right text-sm font-extrabold tabular-nums text-foreground outline-none")}
                         />
                       </label>
                       <button
                         type="button"
-                        className="ml-auto inline-flex h-9 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                        className={cn(styles.pop, styles.danger, "ml-auto inline-flex h-9 items-center rounded-lg border px-3 text-xs font-bold")}
                         onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}
                       >
                         刪走
@@ -686,7 +761,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                     {!sale.voided && (
                       <button
                         type="button"
-                        className="inline-flex h-8 shrink-0 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20"
+                        className={cn(styles.pop, styles.danger, "inline-flex h-8 shrink-0 items-center rounded-lg border px-3 text-xs font-bold")}
                         onClick={() => voidTicket(sale.id)}
                       >
                         作廢
@@ -727,7 +802,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               type="button"
               disabled={pending || lines.length === 0}
               onClick={openConfirm}
-              className="mt-3 h-[72px] w-full rounded-[14px] bg-pink-500 text-lg font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+              className={cn(styles.key, "mt-3 h-[72px] w-full rounded-[14px] text-lg font-extrabold")}
             >
               {pending ? "入帳中…" : `收款 ${formatPrice(total)}`}
             </button>
@@ -738,7 +813,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               type="button"
               onClick={clearTicket}
               disabled={lines.length === 0 && discount === 0 && note === ""}
-              className="mt-2 h-11 w-full rounded-[10px] border border-border bg-muted text-sm font-extrabold hover:bg-muted/80 disabled:text-muted-foreground"
+              className={cn(styles.pop, "mt-2 h-11 w-full rounded-[10px] border text-sm font-extrabold")}
             >
               清除
             </button>
@@ -771,10 +846,9 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                   type="button"
                   onClick={() => setMethod(value)}
                   className={cn(
+                    styles.chip,
                     "h-12 rounded-xl border text-base font-extrabold",
-                    method === value
-                      ? "border-pink-500 bg-pink-500 text-white"
-                      : "border-border bg-muted text-muted-foreground",
+                    method === value && styles.on,
                   )}
                 >
                   {label}
@@ -801,7 +875,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               type="submit"
               autoFocus
               disabled={pending || !tenderedOk || lines.length === 0}
-              className="mt-4 h-[72px] w-full rounded-[14px] bg-pink-500 text-xl font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+              className={cn(styles.key, "mt-4 h-[72px] w-full rounded-[14px] text-xl font-extrabold")}
             >
               {pending ? "入帳中…" : `確認收款 ${formatPrice(total)}`}
             </button>
@@ -810,13 +884,14 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               type="button"
               onClick={closeConfirm}
               disabled={pending}
-              className="mt-2 h-11 w-full rounded-[10px] border border-border bg-muted text-sm font-extrabold hover:bg-muted/80 disabled:text-muted-foreground"
+              className={cn(styles.pop, "mt-2 h-11 w-full rounded-[10px] border text-sm font-extrabold")}
             >
               返回
             </button>
           </form>
         </div>
       )}
+      </div>
     </PosShell>
   );
 }

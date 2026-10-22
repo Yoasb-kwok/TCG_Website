@@ -1,0 +1,225 @@
+/* Sell desk feel. Scoped to the register shell. Sky values match the existing demo primary (#0284c7). */
+
+.root {
+  --pos-sky: #0284c7;
+  --pos-sky-bright: #0ea5e9;
+  --pos-sky-pale: #e0f2fe;
+  --pos-sky-border: #7dd3fc;
+  --pos-sky-deep: #075985;
+  --pos-sky-ink: #0c4a6e;
+  --pos-lip: #0369a1;
+  --pos-added: #22c55e;
+}
+
+.tile {
+  transition:
+    transform 140ms ease-out,
+    box-shadow 140ms ease-out,
+    border-color 140ms ease-out,
+    opacity 140ms ease-out;
+}
+
+.root .tile:hover:not(:disabled):not(.oos) {
+  transform: translateY(-2px);
+  border-color: var(--pos-sky-border);
+  box-shadow: 0 10px 18px rgb(14 165 233 / 0.22);
+}
+
+.root .tile:hover:active:not(:disabled):not(.oos),
+.root .tile:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.root .tile.added:hover:not(:disabled):not(.oos),
+.root .tile.added:active:not(:disabled) {
+  transform: none;
+}
+
+.root .tile.oos {
+  opacity: 0.45;
+}
+
+.root .tile.oos:hover,
+.root .tile.oos:active {
+  transform: none;
+  box-shadow: none;
+}
+
+.root .tile.added {
+  animation: added-ring 450ms ease-out;
+}
+
+@keyframes added-ring {
+  0%,
+  75% {
+    box-shadow: 0 0 0 3px var(--pos-added);
+    border-color: var(--pos-added);
+  }
+
+  100% {
+    box-shadow: none;
+  }
+}
+
+.chip {
+  border-color: var(--border);
+  background: var(--muted);
+  color: var(--muted-foreground);
+  transition:
+    background-color 140ms ease-out,
+    border-color 140ms ease-out,
+    color 140ms ease-out;
+}
+
+.root .chip:hover:not(:disabled):not(.on) {
+  background: var(--pos-sky-pale);
+  border-color: var(--pos-sky-border);
+  color: var(--pos-sky-ink);
+}
+
+.root .chip.on {
+  background: var(--pos-sky);
+  border-color: var(--pos-sky);
+  color: #fff;
+}
+
+.root .chip.on:hover:not(:disabled) {
+  background: var(--pos-sky-bright);
+}
+
+.search {
+  transition:
+    border-color 140ms ease-out,
+    box-shadow 140ms ease-out;
+}
+
+.root .search:hover,
+.root .search:focus {
+  border-color: var(--pos-sky-border);
+  box-shadow: 0 0 0 3px rgb(14 165 233 / 0.16);
+}
+
+.pop {
+  background: var(--muted);
+  color: var(--foreground);
+  box-shadow: 0 3px 0 0 var(--pos-lip);
+  transition:
+    transform 140ms ease-out,
+    box-shadow 140ms ease-out,
+    background-color 140ms ease-out,
+    border-color 140ms ease-out,
+    color 140ms ease-out;
+}
+
+.root .pop:hover:not(:disabled) {
+  background: var(--pos-sky-pale);
+  border-color: var(--pos-sky-border);
+  color: var(--pos-sky-ink);
+}
+
+.root .pop:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow: none;
+}
+
+.root .pop:disabled {
+  transform: none;
+  box-shadow: none;
+  color: var(--muted-foreground);
+}
+
+.root .pop.danger {
+  background: rgb(239 68 68 / 0.1);
+  border-color: rgb(248 113 113 / 0.45);
+  color: rgb(248 113 113);
+  box-shadow: 0 3px 0 0 rgb(127 29 29 / 0.9);
+}
+
+.root .pop.danger:hover:not(:disabled) {
+  background: rgb(239 68 68 / 0.2);
+  border-color: rgb(248 113 113 / 0.75);
+  color: rgb(252 165 165);
+}
+
+.key {
+  background: var(--pos-sky);
+  color: #fff;
+  box-shadow: 0 6px 0 0 var(--pos-sky-deep);
+  transition:
+    transform 140ms ease-out,
+    box-shadow 140ms ease-out,
+    background-color 140ms ease-out,
+    color 140ms ease-out;
+}
+
+.root .key:hover:not(:disabled) {
+  background: var(--pos-sky-bright);
+}
+
+.root .key:active:not(:disabled) {
+  transform: translateY(5px);
+  box-shadow: 0 1px 0 0 var(--pos-sky-deep);
+}
+
+.root .key:disabled {
+  transform: none;
+  box-shadow: none;
+  background: var(--muted);
+  color: var(--muted-foreground);
+}
+
+.tabs a {
+  transition: transform 140ms ease-out;
+  transform-origin: center;
+}
+
+.tabs a:active {
+  transform: scale(0.97);
+}
+
+.root :global([aria-label="卡表對照"]) button {
+  transition:
+    transform 140ms ease-out,
+    box-shadow 140ms ease-out,
+    border-color 140ms ease-out;
+}
+
+.root :global([aria-label="卡表對照"]) button:hover {
+  transform: translateY(-2px);
+  border-color: var(--pos-sky-border);
+  box-shadow: 0 8px 16px rgb(14 165 233 / 0.18);
+}
+
+.root :global([aria-label="卡表對照"]) button:active {
+  transform: none;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile,
+  .chip,
+  .pop,
+  .key,
+  .search,
+  .tabs a,
+  .root :global([aria-label="卡表對照"]) button {
+    transition: none;
+    animation: none;
+  }
+
+  .root .tile:hover,
+  .root .tile:active,
+  .root .pop:active,
+  .root .key:active,
+  .tabs a:active,
+  .root :global([aria-label="卡表對照"]) button:hover,
+  .root :global([aria-label="卡表對照"]) button:active {
+    transform: none;
+  }
+
+  .root .tile.added {
+    box-shadow: 0 0 0 3px var(--pos-added);
+    border-color: var(--pos-added);
+  }
+}
