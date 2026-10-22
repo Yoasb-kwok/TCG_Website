@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import styles from "@/components/pos/pos-sell.module.css";
 import { SITE_BRAND } from "@/lib/constants";
 import { demoCtaClass } from "@/components/demo/demo-look";
-import { DEMO_STORE_PATH, demoSurface, type DemoSurface } from "@/lib/demo-paths";
+import { DEMO_POS_PATH, DEMO_STORE_PATH, demoSurface, type DemoSurface } from "@/lib/demo-paths";
 import { cn } from "@/lib/utils";
 
 const TABS: { id: DemoSurface; href: string; label: string }[] = [
@@ -16,6 +17,7 @@ const TABS: { id: DemoSurface; href: string; label: string }[] = [
 export function DemoChrome({ trialHref }: { trialHref: string | null }) {
   const pathname = usePathname() ?? DEMO_STORE_PATH;
   const surface = demoSurface(pathname);
+  const sellDesk = pathname === DEMO_POS_PATH;
 
   return (
     <div className="sticky top-0 z-40 border-b border-white/10 bg-[#070b14]/95 text-slate-50 backdrop-blur-md">
@@ -30,7 +32,13 @@ export function DemoChrome({ trialHref }: { trialHref: string | null }) {
           <span className="hidden rounded-full bg-gradient-to-r from-cyan-400 to-violet-500 px-2 py-0.5 text-[11px] font-bold tracking-wide text-white sm:inline">
             示範店
           </span>
-          <nav aria-label="示範店表面" className="flex rounded-full border border-white/10 bg-white/5 p-0.5 text-sm">
+          <nav
+            aria-label="示範店表面"
+            className={cn(
+              "flex rounded-full border border-white/10 bg-white/5 p-0.5 text-sm",
+              sellDesk && styles.tabs,
+            )}
+          >
             {TABS.map((tab) => {
               const active = surface === tab.id;
               return (

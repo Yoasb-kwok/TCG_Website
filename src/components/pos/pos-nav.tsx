@@ -1,4 +1,5 @@
 import Link from "next/link";
+import styles from "@/components/pos/pos-sell.module.css";
 import { NAV_ITEMS, SITE_BRAND } from "@/lib/constants";
 import { demoPosPath } from "@/lib/demo-paths";
 import { DEMO_OWNER, DEMO_SHOP } from "@/lib/demo-shop";
@@ -10,6 +11,7 @@ export function PosShell({
   children,
   storefrontNav = false,
   demo = false,
+  sell = false,
 }: {
   current: PosTabId;
   children: React.ReactNode;
@@ -17,6 +19,8 @@ export function PosShell({
   storefrontNav?: boolean;
   /** Public demo register. Tabs stay under /pos/demo and skip auth. */
   demo?: boolean;
+  /** Sell desk only. Hover, press, and tab scale stay off the other cashiers. */
+  sell?: boolean;
 }) {
   const tabClass = (active: boolean) =>
     cn(
@@ -29,6 +33,7 @@ export function PosShell({
       className={cn(
         "flex min-h-0 flex-col bg-background text-foreground",
         demo ? "h-full" : "h-dvh",
+        sell && styles.root,
       )}
       style={{ fontFamily: "var(--font-pos), var(--font-sans), sans-serif" }}
     >
@@ -51,7 +56,7 @@ export function PosShell({
               </p>
             </div>
           </div>
-          <nav className="flex gap-1" aria-label="收銀">
+          <nav className={cn("flex gap-1", sell && styles.tabs)} aria-label="收銀">
             {POS_TABS.map((item) => (
               <Link
                 key={item.id}
