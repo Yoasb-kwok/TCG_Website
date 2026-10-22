@@ -1,5 +1,6 @@
-import Link from "next/link";
 import { Calendar, MapPin, Users } from "lucide-react";
+import { TournamentCustomerActions } from "@/components/tournaments/customer-actions";
+import { RegistrantNames } from "@/components/tournaments/registrant-names";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { formatDate, formatPrice } from "@/lib/format";
@@ -8,6 +9,9 @@ import type { TournamentItem } from "@/lib/types";
 
 interface TournamentCardProps {
   tournament: TournamentItem;
+  playerNames: string[];
+  signedUp: boolean;
+  showScoreboard?: boolean;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -19,12 +23,14 @@ const STATUS_LABELS: Record<string, string> = {
   CANCELLED: "已取消",
 };
 
-export function TournamentCard({ tournament }: TournamentCardProps) {
+export function TournamentCard({
+  tournament,
+  playerNames,
+  signedUp,
+  showScoreboard = false,
+}: TournamentCardProps) {
   const closedLabel = registrationClosedLabel(tournament);
   const isOpen = closedLabel === null;
-  const detailsHref = isOpen
-    ? `/tournaments/${tournament.slug}/register`
-    : `/tournaments/${tournament.slug}`;
 
   return (
     <Card className="border-border bg-card text-foreground">
@@ -55,6 +61,7 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
           <Users className="h-4 w-4 shrink-0" />
           {tournament.registeredCount} / {tournament.maxPlayers} 人
         </div>
+        <RegistrantNames names={playerNames} />
         {tournament.prizePool && (
           <p className="text-muted-foreground">獎品：{tournament.prizePool}</p>
         )}
@@ -66,20 +73,13 @@ export function TournamentCard({ tournament }: TournamentCardProps) {
             ? formatPrice(tournament.entryFee)
             : "免費"}
         </span>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/tournaments/live"
-            className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
-          >
-            現場計分板
-          </Link>
-          <Link
-            href={detailsHref}
-            className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
-          >
-            {isOpen ? "立即報名" : "查看詳情"}
-          </Link>
-        </div>
+        <TournamentCustomerActions
+          slug={tournament.slug}
+          canRegister={isOpen}
+          signedUp={signedUp}
+          closedLabel={closedLabel}
+          showScoreboard={showScoreboard}
+        />
       </CardFooter>
     </Card>
   );

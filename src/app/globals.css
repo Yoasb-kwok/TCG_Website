@@ -126,6 +126,9 @@
   }
   html {
     @apply font-sans;
+    /* 1.25× the 16px browser default. rem type and spacing follow this root size
+       on the storefront, demo shop, admin, and POS. */
+    font-size: 125%;
   }
 }
 

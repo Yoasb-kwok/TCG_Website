@@ -2,9 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Calendar, MapPin, Users } from "lucide-react";
 import { GoogleCalendarLink } from "@/components/tournaments/google-calendar-link";
+import { RegistrantNames } from "@/components/tournaments/registrant-names";
+import { TournamentCustomerActions } from "@/components/tournaments/customer-actions";
 import { formatDate, formatPrice } from "@/lib/format";
+import { loadPublicTournamentView } from "@/lib/public-tournament-view";
 import { decodeRouteSlug, registrationClosedLabel } from "@/lib/registration-input";
-import { getPublicTournament } from "@/lib/tournament-registrations";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -13,12 +15,14 @@ interface PageProps {
 export default async function TournamentDetailPage({ params }: PageProps) {
   const { slug: rawSlug } = await params;
   const slug = decodeRouteSlug(rawSlug);
-  const tournament = await getPublicTournament(slug);
+  const { tournaments, namesBySlug, registeredSlugs, isAdmin } = await loadPublicTournamentView();
+  const tournament = tournaments.find((item) => item.slug === slug);
 
   if (!tournament) notFound();
 
   const spotsLeft = tournament.maxPlayers - tournament.registeredCount;
   const closedLabel = registrationClosedLabel(tournament);
+  const signedUp = registeredSlugs.has(tournament.slug);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 lg:px-6">
@@ -71,23 +75,19 @@ export default async function TournamentDetailPage({ params }: PageProps) {
         </div>
       </dl>
 
+      <div className="mt-8">
+        <RegistrantNames names={namesBySlug.get(tournament.slug) ?? []} />
+      </div>
+
       <div className="mt-8 flex flex-wrap items-center gap-3">
-        <Link
-          href="/tournaments/live"
-          className="inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted"
-        >
-          現場計分板
-        </Link>
-        {closedLabel ? (
-          <p className="text-sm text-muted-foreground">{closedLabel}</p>
-        ) : (
-          <Link
-            href={`/tournaments/${tournament.slug}/register`}
-            className="inline-flex h-8 items-center justify-center rounded-lg bg-white px-3 text-sm font-medium text-black hover:bg-white/90"
-          >
-            立即報名
-          </Link>
-        )}
+        <TournamentCustomerActions
+          slug={tournament.slug}
+          canRegister={!closedLabel}
+          signedUp={signedUp}
+          closedLabel={closedLabel}
+          showScoreboard={isAdmin}
+          detailsCurrent
+        />
         <GoogleCalendarLink tournament={tournament} />
       </div>
     </div>
