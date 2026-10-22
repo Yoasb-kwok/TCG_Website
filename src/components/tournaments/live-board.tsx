@@ -46,6 +46,17 @@ import {
   type Match,
   type ScorePreset,
 } from "@/lib/tournament-board";
+import { createStaffBoardPersist } from "@/lib/staff-board-persist";
+
+type StaffSync = "idle" | "saving" | "ok" | "error" | "denied";
+
+function staffSaveLabel(state: StaffSync) {
+  if (state === "ok") return "已儲存";
+  if (state === "saving") return "儲存中";
+  if (state === "denied") return "需要職員登入先可以儲存";
+  if (state === "error") return "未能儲存";
+  return "計時同設定會儲存";
+}
 
 let audioContext: AudioContext | null = null;
 let alarmNodes: OscillatorNode[] = [];
@@ -190,15 +201,20 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [alarmOn, setAlarmOn] = useState(false);
   const [clockDraft, setClockDraft] = useState<string | null>(null);
-  const [syncState, setSyncState] = useState<"idle" | "ok" | "error" | "denied">("idle");
+  const [syncState, setSyncState] = useState<StaffSync>("idle");
   const expiredRef = useRef(false);
   const skipClockCommit = useRef(false);
   const clockDraftRef = useRef<string | null>(null);
   const storageKeyRef = useRef("default");
   const remoteReady = useRef(false);
-  const loadedJson = useRef("");
   const saveTimer = useRef(0);
   const saveChain = useRef(Promise.resolve());
+  const boardRef = useRef<BoardState | null>(null);
+  const persistRef = useRef(createStaffBoardPersist());
+  const mountedRef = useRef(true);
+  const flushRef = useRef<(unload?: boolean) => void>(() => {});
+  const commitRef = useRef<(next: BoardState, immediate?: boolean) => void>(() => {});
+  const rememberRef = useRef<(state: BoardState, immediate: boolean) => void>(() => {});
 
   const setClockText = (value: string | null) => {
     clockDraftRef.current = value;
@@ -214,7 +230,8 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
         .then((data: { board?: unknown }) => {
           if (cancelled) return;
           const loaded = publishBoardInput(data.board);
-          loadedJson.current = JSON.stringify(loaded);
+          persistRef.current.saved(JSON.stringify(loaded));
+          boardRef.current = loaded;
           remoteReady.current = true;
           storageKeyRef.current = "remote";
           setBoard(loaded);
@@ -222,11 +239,13 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
           setEventSlug("");
           setEventTitle("");
           setViewRound(Math.max(1, latestRound(loaded.matches)));
+          setSyncState("ok");
         })
         .catch(() => {
           if (cancelled) return;
           const loaded = defaultBoard();
-          loadedJson.current = JSON.stringify(loaded);
+          persistRef.current.saved(JSON.stringify(loaded));
+          boardRef.current = loaded;
           remoteReady.current = true;
           storageKeyRef.current = "remote";
           setBoard(loaded);
@@ -251,6 +270,8 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
     if (key === SHOP_TEST_BOARD_KEY && loaded.players.length === 0 && loaded.matches.length === 0) {
       loaded.players = testPlayers();
     }
+    boardRef.current = loaded;
+    saveBoard(loaded, key);
     setBoard(loaded);
     setStoredKey(key);
     setEventSlug(slug);
@@ -261,36 +282,150 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
   useEffect(() => () => stopAlarm(), []);
 
   useEffect(() => {
-    if (!board || !storedKey || storedKey !== storageKeyRef.current) return;
-    if (!remote) {
-      saveBoard(board, storedKey);
-      return;
-    }
-    if (!remoteReady.current) return;
-    const snapshot = board;
-    const json = JSON.stringify(snapshot);
-    if (json === loadedJson.current) return;
-    window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => {
+    mountedRef.current = true;
+
+    const flush = (unload = false) => {
+      if (!remote || !remoteReady.current) return;
+      window.clearTimeout(saveTimer.current);
+      const current = boardRef.current;
+      if (current) persistRef.current.note(JSON.stringify(current));
+      const stateJson = persistRef.current.peek();
+      if (!stateJson) return;
+
+      const sentAt = Date.now();
+      const state = JSON.parse(stateJson) as BoardState;
+      const request = fetch("/api/tournaments/board", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...state, issuedAt: sentAt }),
+        keepalive: true,
+      });
+
+      const finish = async () => {
+        try {
+          const res = await request;
+          if (!res.ok) {
+            if (mountedRef.current) setSyncState(res.status === 401 || res.status === 403 ? "denied" : "error");
+            return false;
+          }
+          const data = (await res.json()) as { board?: unknown };
+          const saved = publishBoardInput(data.board);
+          const pending = persistRef.current.peek();
+          if (saved.issuedAt === sentAt) {
+            persistRef.current.ack(stateJson);
+            if (mountedRef.current) setSyncState(persistRef.current.dirty() ? "saving" : "ok");
+            return true;
+          }
+          if (pending === null || pending === stateJson) {
+            persistRef.current.saved(JSON.stringify(saved));
+            boardRef.current = saved;
+            if (mountedRef.current) {
+              setBoard(saved);
+              setSyncState("ok");
+            }
+          }
+          return true;
+        } catch {
+          if (mountedRef.current) setSyncState("error");
+          return false;
+        }
+      };
+
+      if (unload) {
+        void finish();
+        return;
+      }
+
+      if (mountedRef.current) setSyncState("saving");
       saveChain.current = saveChain.current
         .catch(() => undefined)
-        .then(async () => {
-          const res = await fetch("/api/tournaments/board", {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: json,
-          });
-          if (res.ok) {
-            loadedJson.current = json;
-            setSyncState("ok");
-            return;
-          }
-          setSyncState(res.status === 401 || res.status === 403 ? "denied" : "error");
+        .then(finish)
+        .then((accepted) => {
+          if (accepted && persistRef.current.dirty()) flush(false);
+        });
+    };
+
+    const remember = (state: BoardState, immediate: boolean) => {
+      boardRef.current = state;
+      if (!remote) {
+        saveBoard(state, storageKeyRef.current);
+        return;
+      }
+      if (!remoteReady.current) return;
+      persistRef.current.note(JSON.stringify(state));
+      window.clearTimeout(saveTimer.current);
+      if (immediate) {
+        flush(false);
+        return;
+      }
+      saveTimer.current = window.setTimeout(() => flush(false), 200);
+    };
+
+    const commit = (next: BoardState, immediate = false) => {
+      boardRef.current = next;
+      setBoard(next);
+      remember(next, immediate);
+    };
+
+    commitRef.current = commit;
+    rememberRef.current = remember;
+    flushRef.current = flush;
+
+    if (!remote) {
+      return () => {
+        mountedRef.current = false;
+        commitRef.current = () => {};
+        rememberRef.current = () => {};
+        flushRef.current = () => {};
+      };
+    }
+
+    const pull = () => {
+      if (!remoteReady.current || persistRef.current.dirty() || !mountedRef.current) return;
+      void fetch("/api/tournaments/board", { cache: "no-store" })
+        .then((res) => (res.ok ? res.json() : Promise.reject(new Error("board"))))
+        .then((data: { board?: unknown }) => {
+          if (!mountedRef.current || persistRef.current.dirty()) return;
+          const next = publishBoardInput(data.board);
+          const nextJson = JSON.stringify(next);
+          const local = boardRef.current ? JSON.stringify(publishBoardInput(boardRef.current)) : "";
+          if (nextJson === local) return;
+          persistRef.current.saved(nextJson);
+          boardRef.current = next;
+          setBoard(next);
+          setSyncState("ok");
         })
-        .catch(() => setSyncState("error"));
-    }, 200);
-    return () => window.clearTimeout(saveTimer.current);
-  }, [board, storedKey, remote]);
+        .catch(() => undefined);
+    };
+
+    const onHide = () => flushRef.current(true);
+    const onVisible = () => {
+      if (document.visibilityState === "hidden") {
+        flushRef.current(true);
+        return;
+      }
+      setNow(Date.now());
+      pull();
+    };
+    window.addEventListener("pagehide", onHide);
+    document.addEventListener("visibilitychange", onVisible);
+    const poll = window.setInterval(() => {
+      if (document.visibilityState !== "visible") return;
+      if (persistRef.current.dirty()) {
+        flushRef.current(false);
+        return;
+      }
+      pull();
+    }, 3000);
+
+    return () => {
+      mountedRef.current = false;
+      window.removeEventListener("pagehide", onHide);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.clearInterval(poll);
+      flushRef.current(true);
+    };
+  }, [remote]);
 
   useEffect(() => {
     if (!board?.timerRunning || board.timerEndsAt == null) return;
@@ -298,16 +433,14 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
     const id = window.setInterval(() => {
       const left = endsAt - Date.now();
       if (left <= 0) {
-        if (!expiredRef.current) {
-          expiredRef.current = true;
-          setAlarmOn(true);
-          playAlarm(() => setAlarmOn(false));
+        if (expiredRef.current) return;
+        expiredRef.current = true;
+        setAlarmOn(true);
+        playAlarm(() => setAlarmOn(false));
+        const prev = boardRef.current;
+        if (prev?.timerRunning) {
+          commitRef.current({ ...prev, timerRunning: false, timerEndsAt: null, timerRemainingMs: 0 }, true);
         }
-        setBoard((prev) =>
-          prev && prev.timerRunning
-            ? { ...prev, timerRunning: false, timerEndsAt: null, timerRemainingMs: 0 }
-            : prev,
-        );
         return;
       }
       setNow(Date.now());
@@ -382,7 +515,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
   const activeCount = board.players.filter((player) => !player.dropped).length;
   const pairReady = canPair(board);
 
-  const update = (next: BoardState) => setBoard(next);
+  const update = (next: BoardState, immediate = false) => commitRef.current(next, immediate);
 
   const addPlayers = (names: string[]) => {
     const nextPlayers = names
@@ -425,20 +558,19 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
     expiredRef.current = false;
     const typed = clockDraftRef.current == null ? null : parseClockInput(clockDraftRef.current);
     const started = Date.now();
+    const prev = boardRef.current;
+    if (!prev) return;
     setNow(started);
     setClockText(null);
-    setBoard((prev) => (prev ? startTimerState(prev, typed, started) : prev));
+    commitRef.current(startTimerState(prev, typed, started), true);
   };
 
   const pauseTimer = () => {
-    setBoard((prev) => {
-      if (!prev) return prev;
-      const left =
-        prev.timerEndsAt != null
-          ? Math.max(0, prev.timerEndsAt - Date.now())
-          : prev.timerRemainingMs;
-      return { ...prev, timerRunning: false, timerEndsAt: null, timerRemainingMs: left };
-    });
+    const prev = boardRef.current;
+    if (!prev) return;
+    const left =
+      prev.timerEndsAt != null ? Math.max(0, prev.timerEndsAt - Date.now()) : prev.timerRemainingMs;
+    commitRef.current({ ...prev, timerRunning: false, timerEndsAt: null, timerRemainingMs: left }, true);
   };
 
   const setMinutes = (minutes: number) => {
@@ -452,7 +584,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
       timerRunning: false,
       timerEndsAt: null,
       timerRemainingMs: minutes * 60_000,
-    });
+    }, true);
   };
 
   const commitClock = (raw: string) => {
@@ -469,7 +601,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
       timerRunning: false,
       timerEndsAt: null,
       timerRemainingMs: parsed,
-    });
+    }, true);
   };
 
   const addMinutes = (minutes: number) => {
@@ -480,7 +612,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
         ? parseClockInput(clockDraftRef.current)
         : null;
     setClockText(null);
-    update(addMinutesState(board, minutes, typed));
+    update(addMinutesState(board, minutes, typed), true);
   };
 
   const pairNext = () => {
@@ -506,7 +638,7 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
     expiredRef.current = false;
     setViewRound(1);
     setEditing(null);
-    update(defaultBoard());
+    update(defaultBoard(), true);
   };
 
   const toggleFullscreen = () => {
@@ -624,14 +756,17 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
             {timeUp ? "時間到" : board.timerRunning ? "計時中" : "計時暫停 · 點擊時間可修改"}
           </p>
           {remote && (
-            <p className={cn("text-xs", syncState === "ok" ? "text-emerald-300" : syncState === "idle" ? "text-zinc-500" : "text-red-300")}>
-              {syncState === "ok"
-                ? "已同步公開計分板"
-                : syncState === "denied"
-                  ? "需要職員登入先可以同步"
-                  : syncState === "error"
-                    ? "未能同步到公開計分板"
-                    : "改動會送到公開計分板"}
+            <p
+              className={cn(
+                "text-xs",
+                syncState === "ok"
+                  ? "text-emerald-300"
+                  : syncState === "error" || syncState === "denied"
+                    ? "text-red-300"
+                    : "text-zinc-500",
+              )}
+            >
+              {staffSaveLabel(syncState)}
             </p>
           )}
           {board.timerRunning ? (
@@ -952,16 +1087,36 @@ export function LiveBoard({ remote = false }: { remote?: boolean }) {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+      <Dialog
+        open={settingsOpen}
+        onOpenChange={(open) => {
+          setSettingsOpen(open);
+          if (!open && boardRef.current) rememberRef.current(boardRef.current, true);
+        }}
+      >
         <DialogContent className="bg-zinc-900 text-zinc-50 sm:max-w-md">
           <DialogHeader>
             <DialogTitle>場次設定</DialogTitle>
             <DialogDescription className="text-zinc-400">
               {remote
-                ? "場次編號、主題同日期會顯示喺公開計分板。"
+                ? "場次編號、主題同日期會儲存，並顯示喺公開計分板。"
                 : "試賽設定只留喺這部電腦。"}
             </DialogDescription>
           </DialogHeader>
+          {remote ? (
+            <p
+              className={cn(
+                "text-sm",
+                syncState === "ok"
+                  ? "text-emerald-300"
+                  : syncState === "error" || syncState === "denied"
+                    ? "text-red-300"
+                    : "text-zinc-400",
+              )}
+            >
+              {staffSaveLabel(syncState)}
+            </p>
+          ) : null}
           <label className="block text-sm font-medium">
             場次編號
             <input

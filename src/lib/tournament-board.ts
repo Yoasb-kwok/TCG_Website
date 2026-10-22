@@ -33,6 +33,11 @@ export type BoardState = {
    * Sessions saved when 50:00 was the untouched default omit this.
    */
   timerChosen?: boolean;
+  /**
+   * Client time of the last staff save. A later action wins; an older request
+   * cannot rewind the clock or the session settings.
+   */
+  issuedAt?: number;
 };
 
 export type Standing = {
@@ -132,6 +137,11 @@ function cleanLine(value: unknown, max: number) {
 }
 
 /** Keep a real calendar date. Anything else is stored as unset. */
+export function cleanIssuedAt(value: unknown) {
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) return undefined;
+  return value;
+}
+
 export function cleanSessionDate(value: unknown) {
   if (typeof value !== "string") return "";
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
@@ -194,6 +204,7 @@ function sanitizeBoard(parsed: Partial<BoardState>): BoardState {
     timerRemainingMs:
       typeof parsed.timerRemainingMs === "number" ? parsed.timerRemainingMs : fallback.timerRemainingMs,
     timerChosen: parsed.timerChosen === true,
+    issuedAt: cleanIssuedAt(parsed.issuedAt),
   });
 }
 
@@ -273,6 +284,7 @@ export function coerceBoard(input: unknown): BoardState {
     timerEndsAt: timerRunning ? timerEndsAt : null,
     timerRemainingMs,
     timerChosen: parsed.timerChosen === true,
+    issuedAt: cleanIssuedAt(parsed.issuedAt),
   });
 }
 
