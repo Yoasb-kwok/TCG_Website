@@ -6,6 +6,7 @@ import {
   listPublicTournaments,
   listRegistrationRosters,
   parseSignupCookie,
+  viewerOwnedSlugs,
   viewerRegisteredSlugs,
 } from "@/lib/tournament-registrations";
 
@@ -20,14 +21,24 @@ export const loadPublicTournamentView = cache(async () => {
   const namesBySlug = new Map(
     rosters.map((roster) => [roster.slug, roster.registrations.map((row) => row.playerName)]),
   );
+  const accountUserId = session?.user?.id ?? null;
+  const accountEmail = session?.user?.email ?? null;
   const registeredSlugs = viewerRegisteredSlugs(rosters, {
-    email: session?.user?.email,
+    email: accountEmail,
+    userId: accountUserId,
     signedSlugs: parseSignupCookie(cookieStore.get(SIGNUP_COOKIE)?.value),
   });
+  const ownedSlugs =
+    accountUserId && accountEmail
+      ? viewerOwnedSlugs(rosters, { email: accountEmail, userId: accountUserId })
+      : new Set<string>();
   return {
     tournaments,
     namesBySlug,
     registeredSlugs,
+    ownedSlugs,
+    accountEmail,
+    accountName: session?.user?.name ?? null,
     isAdmin: session?.user?.role === "ADMIN",
   };
 });

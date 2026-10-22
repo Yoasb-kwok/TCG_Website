@@ -6,8 +6,9 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CancelRegistrationButton } from "@/components/tournaments/cancel-registration-button";
 import { formatDate } from "@/lib/format";
-import { normalizePhone } from "@/lib/registration-input";
+import { normalizeEmail, normalizePhone } from "@/lib/registration-input";
 
 const quietClass =
   "inline-flex h-8 items-center text-sm font-medium text-muted-foreground";
@@ -40,6 +41,8 @@ export function RegistrationForm({
   location,
   closedLabel,
   showScoreboard = false,
+  accountEmail = null,
+  accountName = null,
 }: {
   slug: string;
   title: string;
@@ -47,10 +50,12 @@ export function RegistrationForm({
   location: string;
   closedLabel: string | null;
   showScoreboard?: boolean;
+  accountEmail?: string | null;
+  accountName?: string | null;
 }) {
   const router = useRouter();
-  const [playerName, setPlayerName] = useState("");
-  const [email, setEmail] = useState("");
+  const [playerName, setPlayerName] = useState(accountName ?? "");
+  const [email, setEmail] = useState(accountEmail ?? "");
   const [phone, setPhone] = useState("");
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -107,6 +112,9 @@ export function RegistrationForm({
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <span className={quietClass}>已報名</span>
+          {accountEmail && normalizeEmail(email) === normalizeEmail(accountEmail) ? (
+            <CancelRegistrationButton slug={slug} onCancelled={() => setDone(false)} />
+          ) : null}
           <DetailsLink slug={slug} />
           {showScoreboard ? <StartTournamentLink /> : null}
           <Link

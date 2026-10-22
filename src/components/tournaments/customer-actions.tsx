@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CancelRegistrationButton } from "@/components/tournaments/cancel-registration-button";
 
 const scoreboardClass =
   "inline-flex h-8 items-center justify-center rounded-lg border border-border px-3 text-sm font-medium hover:bg-muted";
@@ -10,6 +11,7 @@ export function TournamentCustomerActions({
   slug,
   canRegister,
   signedUp,
+  canCancel = false,
   closedLabel,
   showScoreboard = false,
   detailsCurrent = false,
@@ -17,12 +19,15 @@ export function TournamentCustomerActions({
   slug: string;
   canRegister: boolean;
   signedUp: boolean;
+  /** Signed-in member owns this signup. Cookie-only signup stays read-only. */
+  canCancel?: boolean;
   closedLabel: string | null;
   showScoreboard?: boolean;
   detailsCurrent?: boolean;
 }) {
   const registerHref = `/tournaments/${slug}/register`;
   const detailsHref = `/tournaments/${slug}`;
+  const joined = signedUp || canCancel;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -31,13 +36,14 @@ export function TournamentCustomerActions({
           現場計分板
         </Link>
       ) : null}
-      {signedUp ? (
-        <span className={quietClass}>已報名</span>
-      ) : canRegister ? (
+      {joined ? <span className={quietClass}>已報名</span> : null}
+      {canCancel ? <CancelRegistrationButton slug={slug} /> : null}
+      {!joined && canRegister ? (
         <Link href={registerHref} className={signupClass}>
           立即報名
         </Link>
-      ) : closedLabel ? (
+      ) : null}
+      {!joined && !canRegister && closedLabel ? (
         <span className={quietClass}>{closedLabel}</span>
       ) : null}
       <Link

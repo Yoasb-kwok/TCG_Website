@@ -6,6 +6,7 @@ import { RegistrantNames } from "@/components/tournaments/registrant-names";
 import { TournamentCustomerActions } from "@/components/tournaments/customer-actions";
 import { formatDate, formatPrice } from "@/lib/format";
 import { loadPublicTournamentView } from "@/lib/public-tournament-view";
+import { cancelRegistrationRefusal } from "@/lib/tournament-registrations";
 import { decodeRouteSlug, registrationClosedLabel } from "@/lib/registration-input";
 
 interface PageProps {
@@ -15,7 +16,8 @@ interface PageProps {
 export default async function TournamentDetailPage({ params }: PageProps) {
   const { slug: rawSlug } = await params;
   const slug = decodeRouteSlug(rawSlug);
-  const { tournaments, namesBySlug, registeredSlugs, isAdmin } = await loadPublicTournamentView();
+  const { tournaments, namesBySlug, registeredSlugs, ownedSlugs, isAdmin } =
+    await loadPublicTournamentView();
   const tournament = tournaments.find((item) => item.slug === slug);
 
   if (!tournament) notFound();
@@ -84,6 +86,10 @@ export default async function TournamentDetailPage({ params }: PageProps) {
           slug={tournament.slug}
           canRegister={!closedLabel}
           signedUp={signedUp}
+          canCancel={
+            ownedSlugs.has(tournament.slug) &&
+            cancelRegistrationRefusal(tournament.status) === null
+          }
           closedLabel={closedLabel}
           showScoreboard={isAdmin}
           detailsCurrent
