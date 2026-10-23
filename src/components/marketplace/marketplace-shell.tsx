@@ -14,7 +14,9 @@ import {
 import { CatalogHitStrip } from "@/components/catalog/catalog-hit-strip";
 import { FilterPanel } from "@/components/marketplace/filter-panel";
 import { ProductsLoading } from "@/components/marketplace/products-loading";
-import { ProductCard } from "@/components/marketplace/product-card";
+import { CatalogProductCard } from "@/components/marketplace/catalog-product-card";
+import { homeContainer } from "@/components/home/home-layout";
+import type { ProductSort } from "@/lib/types";
 import { catalogGame } from "@/lib/games";
 import { describeProductCategoryQuery } from "@/lib/storefront-categories";
 import {
@@ -94,70 +96,99 @@ export function MarketplaceShell({
     cardSet: searchParams.get("cardSet"),
     setCodes: searchParams.getAll("setCode"),
   });
+  const preorderListing =
+    searchParams.get("type") === "SEALED_BOX" &&
+    !searchQuery &&
+    !searchParams.get("game") &&
+    !searchParams.get("language") &&
+    !searchParams.get("cardSet") &&
+    searchParams.getAll("setCode").length === 0;
+
+  const sortLabel: Record<ProductSort, string> = {
+    newest: "排序 · 最新上架",
+    setCode: "排序 · 系列編號",
+    rarityTier: "排序 · 稀有度",
+    priceAsc: "排序 · 價格由低至高",
+    priceDesc: "排序 · 價格由高至低",
+  };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {searchQuery
-              ? `搜尋「${searchQuery}」`
-              : game
-                ? game.label
-                : "商品"}
-          </h1>
-          {categoryCaption && (
-            <p className="mt-1 text-sm text-muted-foreground">分類：{categoryCaption}</p>
-          )}
-          {shown && (
-            <p className="mt-1 text-sm text-muted-foreground">
-              {unsupportedGame
-                ? "此遊戲尚未上架，暫時只提供 Pokémon TCG。"
-                : searchQuery
-                  ? `找到 ${shown.total} 件相關商品${
-                      shown.catalog && shown.catalog.total > 0 ? `，卡表 ${shown.catalog.total} 張` : ""
-                    }`
-                  : `共 ${shown.total} 件商品`}
-            </p>
-          )}
-        </div>
-
-        <Sheet>
-          <SheetTrigger
-            render={
-              <Button variant="outline" className="border-border text-foreground lg:hidden">
-                <Filter className="mr-2 h-4 w-4" />
-                篩選
-              </Button>
-            }
-          />
-          <SheetContent side="left" className="w-80 border-border bg-background text-foreground">
-            <SheetHeader>
-              <SheetTitle>篩選</SheetTitle>
-            </SheetHeader>
-            {filterSource && (
-              <FilterPanel
-                filters={filters}
-                onChange={changeFilters}
-                availableFilters={filterSource.filters}
-              />
-            )}
-          </SheetContent>
-        </Sheet>
+    <div className={`${homeContainer} flex flex-col gap-8 pt-16 pb-8 text-[#0a0a09]`}>
+      <div className="flex flex-col gap-3">
+        <h1 className="text-[40px] font-medium leading-[1.3] text-[#0a0a09]">
+          {searchQuery ? `搜尋「${searchQuery}」` : game ? game.label : "商品"}
+        </h1>
+        {categoryCaption && !preorderListing && (
+          <p className="text-[16px] leading-[1.65] text-[#625f58]">分類：{categoryCaption}</p>
+        )}
+        {shown && (
+          <p className="text-[16px] leading-[1.65] text-[#625f58]">
+            {unsupportedGame
+              ? "此遊戲尚未上架，暫時只提供 Pokémon TCG。"
+              : searchQuery
+                ? `找到 ${shown.total} 件相關商品${
+                    shown.catalog && shown.catalog.total > 0 ? `，卡表 ${shown.catalog.total} 張` : ""
+                  }`
+                : `共 ${shown.total} 件商品`}
+          </p>
+        )}
       </div>
 
-      <div className="flex gap-8">
-        <div className="hidden w-56 shrink-0 lg:block">
+      <div className="flex flex-col items-start gap-8 xl:flex-row">
+        <div className="hidden shrink-0 xl:block">
           {filterSource && (
             <FilterPanel
               filters={filters}
               onChange={changeFilters}
               availableFilters={filterSource.filters}
+              showSort={false}
             />
           )}
         </div>
 
-        <div className="min-w-0 flex-1" data-product-list={shown ? "ready" : "pending"}>
+        <div className="flex w-full min-w-0 flex-1 flex-col gap-6" data-product-list={shown ? "ready" : "pending"}>
+          <div className="flex items-center justify-between gap-4">
+            <Sheet>
+              <SheetTrigger
+                render={
+                  <Button variant="outline" className="border-[#080808] bg-white text-[#0a0a09] xl:hidden">
+                    <Filter className="mr-2 h-4 w-4" />
+                    篩選
+                  </Button>
+                }
+              />
+              <SheetContent side="left" className="w-80 border-[#e7e1d6] bg-[#f7f5ef] text-[#0a0a09]">
+                <SheetHeader>
+                  <SheetTitle>篩選</SheetTitle>
+                </SheetHeader>
+                {filterSource && (
+                  <FilterPanel
+                    filters={filters}
+                    onChange={changeFilters}
+                    availableFilters={filterSource.filters}
+                    showSort={false}
+                  />
+                )}
+              </SheetContent>
+            </Sheet>
+            <p className="hidden text-[14px] font-medium leading-[1.45] text-[#0a0a09] xl:block">篩選</p>
+            <label className="relative">
+              <span className="sr-only">排序</span>
+              <select
+                value={filters.sort}
+                onChange={(event) =>
+                  changeFilters({ ...filters, sort: event.target.value as ProductSort })
+                }
+                className="h-[48px] w-[200px] appearance-none rounded-[10px] border border-[#080808] bg-white px-4 text-center text-[14px] font-medium text-[#080808]"
+              >
+                {(Object.keys(sortLabel) as ProductSort[]).map((value) => (
+                  <option key={value} value={value}>
+                    {sortLabel[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           {shown ? (
             <>
               {searchQuery && shown.catalog && (
@@ -177,9 +208,9 @@ export function MarketplaceShell({
                 </p>
               ) : (
                 <>
-                  <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
                     {shown.products.map((product) => (
-                      <ProductCard key={product.id} product={product} />
+                      <CatalogProductCard key={product.id} product={product} />
                     ))}
                   </div>
 

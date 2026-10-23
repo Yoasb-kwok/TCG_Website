@@ -1,12 +1,10 @@
+import { catalogFrameProduct } from "@/lib/catalog-frame";
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { isSupportedCatalogGame, productMatchesGame } from "@/lib/games";
 import { taxonomyFromCard } from "@/lib/card-taxonomy";
 import { resolveCatalogProductSearch } from "@/lib/catalog-product-search";
 import { productMatchesSearch, productSearchOr } from "@/lib/product-search";
-import {
-  getSortIndexFromMap,
-  getTaxonomySortMaps,
-} from "@/lib/taxonomy-db";
+import { getSortIndexFromMap } from "@/lib/taxonomy-db";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import type {
   ProductType,
@@ -280,7 +278,7 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
     }
 
     const prisma = getPrisma();
-    let [products, total, allProducts] = await Promise.all([
+    const [products, total, allProducts] = await Promise.all([
       prisma.product.findMany({
         where,
         include: {
@@ -343,9 +341,10 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
 
 export async function getProductBySlug(slug: string): Promise<ProductWithVariants | null> {
   const demo = DEMO_PRODUCTS.find((product) => product.slug === slug);
+  const framed = catalogFrameProduct(slug);
 
   if (!isDatabaseConfigured()) {
-    return demo ? enrichProduct(demo) : null;
+    return framed ? enrichProduct(framed) : demo ? enrichProduct(demo) : null;
   }
 
   try {
@@ -359,6 +358,6 @@ export async function getProductBySlug(slug: string): Promise<ProductWithVariant
     if (!product) return null;
     return enrichProduct(product as ProductWithVariants);
   } catch {
-    return demo ? enrichProduct(demo) : null;
+    return framed ? enrichProduct(framed) : demo ? enrichProduct(demo) : null;
   }
 }

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
-import { M_PLUS_Rounded_1c, Noto_Sans_TC } from "next/font/google";
+import { DM_Sans, M_PLUS_Rounded_1c, Noto_Sans_TC, Playfair_Display } from "next/font/google";
 import { StorefrontFrame } from "@/components/layout/storefront-frame";
 import { AuthSessionProvider } from "@/providers/session-provider";
 import { CartProvider } from "@/providers/cart-provider";
@@ -28,6 +28,19 @@ const posRounded = M_PLUS_Rounded_1c({
   variable: "--font-pos",
 });
 
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["500"],
+  variable: "--font-dm",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  style: "italic",
+  weight: "400",
+  variable: "--font-playfair",
+});
+
 export const metadata: Metadata = {
   title: {
     default: SITE_BRAND,
@@ -52,7 +65,7 @@ export default async function RootLayout({
   return (
     <html
       lang="zh-HK"
-      className={`${notoSansTC.variable} ${posRounded.variable} ${resolved} h-full`}
+      className={`${notoSansTC.variable} ${posRounded.variable} ${dmSans.variable} ${playfair.variable} ${resolved} h-full`}
       suppressHydrationWarning
     >
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground antialiased">

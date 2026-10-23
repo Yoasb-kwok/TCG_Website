@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
@@ -11,26 +12,34 @@ interface SiteSearchToggleProps {
   expanded: boolean;
   onToggle: () => void;
   className?: string;
+  appearance?: "default" | "ink";
 }
 
 export function SiteSearchToggle({
   expanded,
   onToggle,
   className,
+  appearance = "default",
 }: SiteSearchToggleProps) {
   return (
     <button
       type="button"
       className={cn(
-        "p-2 hover:text-foreground",
-        expanded && "text-foreground",
+        appearance === "ink"
+          ? "inline-flex items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+          : "p-2 hover:text-foreground",
+        expanded && appearance !== "ink" && "text-foreground",
         className,
       )}
       aria-label={expanded ? "關閉搜尋" : "搜尋商品"}
       aria-expanded={expanded}
       onClick={onToggle}
     >
-      <Search className="h-5 w-5" />
+      {appearance === "ink" ? (
+        <Image src="/brand/home/icon-search.svg" alt="" width={22} height={22} unoptimized />
+      ) : (
+        <Search className="h-5 w-5" />
+      )}
     </button>
   );
 }
@@ -40,27 +49,23 @@ interface SiteSearchBarProps {
   onClose: () => void;
 }
 
-export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
+function SiteSearchForm({ onClose }: { onClose: () => void }) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
 
   useEffect(() => {
-    if (!expanded) {
-      setQuery("");
-      return;
-    }
-    requestAnimationFrame(() => inputRef.current?.focus());
-  }, [expanded]);
+    const frame = requestAnimationFrame(() => inputRef.current?.focus());
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
-    if (!expanded) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [expanded, onClose]);
+  }, [onClose]);
 
   const submit = () => {
     const q = query.trim();
@@ -69,11 +74,9 @@ export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
     router.push(`/products?search=${encodeURIComponent(q)}`);
   };
 
-  if (!expanded) return null;
-
   return (
-    <div className="border-t border-border bg-background/95 px-4 py-3 lg:px-6">
-      <div className="mx-auto max-w-7xl">
+    <div className="border-t border-[#c8a24a]/40 bg-[#080808] px-4 py-3 sm:px-6">
+      <div className="mx-auto max-w-[1280px]">
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -105,4 +108,9 @@ export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
       </div>
     </div>
   );
+}
+
+export function SiteSearchBar({ expanded, onClose }: SiteSearchBarProps) {
+  if (!expanded) return null;
+  return <SiteSearchForm onClose={onClose} />;
 }

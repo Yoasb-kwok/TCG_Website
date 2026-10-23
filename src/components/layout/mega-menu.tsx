@@ -49,11 +49,18 @@ export function MegaMenu({ open, links, onClose, onPointerEnter, onPointerLeave 
 
   return (
     <div
-      className="absolute left-0 right-0 top-full z-40 border-t border-border bg-background/95 shadow-lg backdrop-blur-sm"
+      className="absolute top-full right-0 left-0 z-40 border-t border-[rgba(200,162,74,0.55)] bg-[#f7f5ef] text-[#0a0a09] shadow-lg"
+      style={{
+        ["--foreground" as string]: "#0a0a09",
+        ["--muted-foreground" as string]: "#625f58",
+        ["--muted" as string]: "#ece7dc",
+        ["--border" as string]: "rgba(221,213,195,0.9)",
+        ["--background" as string]: "#f7f5ef",
+      }}
       onMouseEnter={onPointerEnter}
       onMouseLeave={onPointerLeave}
     >
-      <div className="mx-auto flex max-w-7xl gap-8 px-6 py-6">
+      <div className="mx-auto flex max-w-[1280px] gap-8 px-4 py-6 sm:px-6 xl:px-0">
         <div className="w-52 shrink-0">
           <p className="mb-2 px-2 text-xs font-semibold tracking-wider text-muted-foreground">遊戲</p>
           <Link

@@ -1,20 +1,49 @@
 "use client";
 
+import Image from "next/image";
 import { Moon, Sun } from "lucide-react";
+import { useSyncExternalStore } from "react";
 import { useTheme } from "@/providers/theme-provider";
-import { useEffect, useState } from "react";
 
 interface ThemeToggleProps {
   className?: string;
+  /** Header glyph from the storefront frame. Stays the moon mark on the black bar. */
+  appearance?: "default" | "ink";
 }
 
-export function ThemeToggle({ className = "" }: ThemeToggleProps) {
+function useHydrated() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+}
+
+function InkThemeToggle({ className = "" }: { className?: string }) {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const isDark = resolvedTheme !== "light";
 
-  useEffect(() => setMounted(true), []);
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      className={`inline-flex items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a] ${className}`}
+      aria-label={isDark ? "切換至淺色模式" : "切換至深色模式"}
+    >
+      <Image src="/brand/home/icon-moon.svg" alt="" width={22} height={22} unoptimized />
+    </button>
+  );
+}
 
-  if (!mounted) {
+export function ThemeToggle({ className = "", appearance = "default" }: ThemeToggleProps) {
+  const { resolvedTheme, setTheme } = useTheme();
+  const hydrated = useHydrated();
+
+  if (appearance === "ink") {
+    return <InkThemeToggle className={className} />;
+  }
+
+  if (!hydrated) {
     return (
       <button
         type="button"
