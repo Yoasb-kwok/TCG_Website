@@ -1,4 +1,5 @@
 import { MarketplaceShell } from "@/components/marketplace/marketplace-shell";
+import { CATALOG_FRAME_PRODUCTS, isGenericDemoCatalog } from "@/lib/catalog-frame";
 import { getProducts } from "@/lib/products";
 import {
   DEFAULT_STOREFRONT_FILTERS,
@@ -28,9 +29,28 @@ export default async function ProductsPage({
     1,
   );
   const initialKey = request.toString();
-  const initialData = toClientCatalog(
+  const loaded = toClientCatalog(
     await getProducts(productFiltersFromSearchParams(request)),
   );
+  const narrowed = ["search", "type", "cardSet", "rarity", "game", "language", "inStock", "setCode", "minPrice", "maxPrice"].some(
+    (key) => raw[key],
+  );
+  const initialData =
+    !narrowed && isGenericDemoCatalog(loaded.products)
+      ? {
+          ...loaded,
+          products: CATALOG_FRAME_PRODUCTS,
+          total: CATALOG_FRAME_PRODUCTS.length,
+          totalPages: 1,
+          filters: {
+            ...loaded.filters,
+            cardSets: [...new Set(CATALOG_FRAME_PRODUCTS.map((product) => product.cardSet).filter(Boolean))] as string[],
+            pokemonTypes: [...new Set(CATALOG_FRAME_PRODUCTS.map((product) => product.pokemonType).filter(Boolean))] as string[],
+            rarities: [...new Set(CATALOG_FRAME_PRODUCTS.map((product) => product.rarity).filter(Boolean))] as string[],
+            types: [...new Set(CATALOG_FRAME_PRODUCTS.map((product) => product.type))],
+          },
+        }
+      : loaded;
 
   return <MarketplaceShell initialData={initialData} initialKey={initialKey} />;
 }

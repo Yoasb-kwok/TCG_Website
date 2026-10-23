@@ -5,22 +5,21 @@ import { useState } from "react";
 import type { HomeBannerItem } from "@/lib/site-content";
 
 const FALLBACK_SLIDE: HomeBannerItem = {
-  id: "store-events",
-  title: "店賽報名",
-  subtitle: "每週舉辦 Pokémon 標準賽",
+  id: "scarlet-violet-151",
+  title: "Scarlet & Violet 151",
+  subtitle: "香港現貨 · 單卡及封盒",
   image: "",
-  href: "/tournaments",
+  href: "/products?cardSet=151",
   gradient: "",
 };
 
-function startingIndex(slides: HomeBannerItem[]): number {
-  const match = slides.findIndex((slide) => slide.title.includes("店賽報名"));
-  return match >= 0 ? match : 0;
+function isSetHero(title: string): boolean {
+  return title.includes("Scarlet") && title.includes("151");
 }
 
 export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
   const slides = banners.length > 0 ? banners : [FALLBACK_SLIDE];
-  const [index, setIndex] = useState(() => startingIndex(slides));
+  const [index, setIndex] = useState(0);
   const slide = slides[index % slides.length] ?? slides[0];
 
   const go = (delta: number) => {
@@ -28,23 +27,36 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-10 px-4 py-14 sm:px-6 xl:flex-row xl:items-center xl:gap-16 xl:px-0">
+    <section className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-10 px-4 py-[56px] sm:px-6 xl:flex-row xl:items-center xl:gap-16 xl:px-0">
       <div className="flex w-full max-w-[576px] shrink-0 flex-col items-start gap-7">
         <div className="flex flex-col gap-7">
-          <h1
-            className="text-[40px] font-medium leading-none text-[#0a0a09] sm:text-[52px] xl:text-[64px]"
-            aria-live="polite"
-          >
-            {slide.title}
-          </h1>
+          {isSetHero(slide.title) ? (
+            <h1
+              className="text-[84px] font-medium leading-none text-[#0a0a09]"
+              style={{ fontFamily: "var(--font-dm), var(--font-sans), sans-serif" }}
+              aria-live="polite"
+            >
+              <span className="block">Scarlet &</span>
+              <span className="block">
+                Violet{" "}
+                <span className="font-normal italic" style={{ fontFamily: "var(--font-playfair), serif" }}>
+                  151
+                </span>
+              </span>
+            </h1>
+          ) : (
+            <h1 className="text-[64px] font-medium leading-none text-[#0a0a09]" aria-live="polite">
+              {slide.title}
+            </h1>
+          )}
           <p className="max-w-[540px] text-[16px] leading-[1.65] text-[#625f58]">{slide.subtitle}</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-[12px]">
           <button
             type="button"
             aria-label="上一張 Banner"
             onClick={() => go(-1)}
-            className="inline-flex h-12 w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+            className="inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
           >
             ←
           </button>
@@ -52,7 +64,7 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
             type="button"
             aria-label="下一張 Banner"
             onClick={() => go(1)}
-            className="inline-flex h-12 w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+            className="inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
           >
             →
           </button>
