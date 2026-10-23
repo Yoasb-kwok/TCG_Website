@@ -344,7 +344,7 @@ export async function getProductBySlug(slug: string): Promise<ProductWithVariant
   const framed = catalogFrameProduct(slug);
 
   if (!isDatabaseConfigured()) {
-    return demo ? enrichProduct(demo) : framed ? enrichProduct(framed) : null;
+    return framed ? enrichProduct(framed) : demo ? enrichProduct(demo) : null;
   }
 
   try {
@@ -358,6 +358,6 @@ export async function getProductBySlug(slug: string): Promise<ProductWithVariant
     if (!product) return null;
     return enrichProduct(product as ProductWithVariants);
   } catch {
-    return demo ? enrichProduct(demo) : null;
+    return framed ? enrichProduct(framed) : demo ? enrichProduct(demo) : null;
   }
 }

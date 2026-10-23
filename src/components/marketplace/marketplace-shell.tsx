@@ -96,6 +96,13 @@ export function MarketplaceShell({
     cardSet: searchParams.get("cardSet"),
     setCodes: searchParams.getAll("setCode"),
   });
+  const preorderListing =
+    searchParams.get("type") === "SEALED_BOX" &&
+    !searchQuery &&
+    !searchParams.get("game") &&
+    !searchParams.get("language") &&
+    !searchParams.get("cardSet") &&
+    searchParams.getAll("setCode").length === 0;
 
   const sortLabel: Record<ProductSort, string> = {
     newest: "排序 · 最新上架",
@@ -111,7 +118,7 @@ export function MarketplaceShell({
         <h1 className="text-[40px] font-medium leading-[1.3] text-[#0a0a09]">
           {searchQuery ? `搜尋「${searchQuery}」` : game ? game.label : "商品"}
         </h1>
-        {categoryCaption && (
+        {categoryCaption && !preorderListing && (
           <p className="text-[16px] leading-[1.65] text-[#625f58]">分類：{categoryCaption}</p>
         )}
         {shown && (

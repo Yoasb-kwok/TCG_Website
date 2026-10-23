@@ -8,7 +8,7 @@ export const CATALOG_FRAME_PRODUCTS: ProductWithVariants[] = [
     id: "frame-charizard-sold-out",
     name: "噴火龍ex SAR（已售罄）",
     slug: "demo-charizard-sold-out",
-    description: "Scarlet & Violet—151 特別繪製卡，示範已售罄。",
+    description: "用來試「淨係有貨」。取消勾選後才會出現。",
     type: "SINGLE",
     cardSet: "Scarlet & Violet—151",
     cardNumber: "201/165",
@@ -54,7 +54,8 @@ export const CATALOG_FRAME_PRODUCTS: ProductWithVariants[] = [
     id: "frame-umbreon",
     name: "Umbreon VMAX",
     slug: "umbreon-vmax-evolving",
-    description: "Evolving Skies 月亮伊布 VMAX",
+    description:
+      "A powerful Darkness-type Pokémon that lurks in the night. This Alternate Art Secret Rare from the Evolving Skies set is highly sought after by collectors.",
     type: "SINGLE",
     cardSet: "Evolving Skies",
     cardNumber: "215/203",
@@ -206,6 +207,16 @@ export function isGenericDemoCatalog(products: { id: string }[]): boolean {
   return products.length > 0 && products.every((product) => GENERIC_DEMO_IDS.has(product.id));
 }
 
+const FRAME_SLUG_ALIASES: Record<string, string> = {
+  "demo-umbreon-vmax-evolving": "umbreon-vmax-evolving",
+  "demo-sv151-etb": "sv151-etb",
+  "demo-sv151-booster": "sv151-booster",
+  "demo-pikachu-151": "pikachu-151",
+  "demo-mew-ex-151": "mew-ex-151",
+  "demo-charizard-ex-151": "charizard-ex-151",
+};
+
 export function catalogFrameProduct(slug: string): ProductWithVariants | undefined {
-  return CATALOG_FRAME_PRODUCTS.find((product) => product.slug === slug);
+  const canonical = FRAME_SLUG_ALIASES[slug] ?? slug;
+  return CATALOG_FRAME_PRODUCTS.find((product) => product.slug === canonical);
 }

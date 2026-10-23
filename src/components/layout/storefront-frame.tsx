@@ -43,7 +43,8 @@ export function StorefrontFrame({
   const pathname = usePathname();
   const locked = pathname === "/tournaments/live" || pathname.startsWith("/pos");
   const demoShell = isDemoShellPath(pathname);
-  const figmaCanvas = pathname === "/" || pathname === "/cart" || pathname === "/products";
+  const catalogPath = pathname === "/products" || pathname.startsWith("/products/");
+  const figmaCanvas = pathname === "/" || pathname === "/cart" || catalogPath;
 
   if (locked || demoShell) {
     return (
@@ -67,7 +68,7 @@ export function StorefrontFrame({
         className={cn(
           "relative z-[1]",
           figmaCanvas && "mx-auto w-full max-w-[1280px] px-4 sm:px-6 xl:px-0",
-          (pathname === "/" || pathname === "/products") && "pt-8 pb-12",
+          (pathname === "/" || catalogPath) && "pt-8 pb-12",
           pathname === "/cart" && "pb-[48px]",
         )}
       >

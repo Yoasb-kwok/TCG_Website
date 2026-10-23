@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
   ChevronDown,
@@ -35,8 +35,46 @@ export function SiteHeader({
   socialLinks: ResolvedSocialLink[];
   pokemonCategories: StorefrontCategoryLink[];
 }) {
+  return (
+    <Suspense
+      fallback={
+        <SiteHeaderView socialLinks={socialLinks} pokemonCategories={pokemonCategories} preorder={false} />
+      }
+    >
+      <SiteHeaderQuery socialLinks={socialLinks} pokemonCategories={pokemonCategories} />
+    </Suspense>
+  );
+}
+
+function SiteHeaderQuery({
+  socialLinks,
+  pokemonCategories,
+}: {
+  socialLinks: ResolvedSocialLink[];
+  pokemonCategories: StorefrontCategoryLink[];
+}) {
+  const searchParams = useSearchParams();
+  return (
+    <SiteHeaderView
+      socialLinks={socialLinks}
+      pokemonCategories={pokemonCategories}
+      preorder={searchParams.get("type") === "SEALED_BOX"}
+    />
+  );
+}
+
+function SiteHeaderView({
+  socialLinks,
+  pokemonCategories,
+  preorder,
+}: {
+  socialLinks: ResolvedSocialLink[];
+  pokemonCategories: StorefrontCategoryLink[];
+  preorder: boolean;
+}) {
   const { data: session } = useSession();
   const pathname = usePathname();
+  const preorderCurrent = preorder && pathname === "/products";
   const { itemCount } = useCart();
   const storeMapsUrl = getStoreMapsUrl();
   const cartLabel = itemCount > 0 ? `購物車，${itemCount} 件商品` : "購物車";
@@ -161,7 +199,15 @@ export function SiteHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className="text-[14px] font-medium leading-[1.45] whitespace-nowrap text-white transition hover:text-[#c8a24a]"
+                className={cn(
+                  "text-[14px] font-medium leading-[1.45] whitespace-nowrap transition hover:text-[#c8a24a]",
+                  preorderCurrent && item.href === "/products?type=SEALED_BOX"
+                    ? "text-[#c8a24a]"
+                    : "text-white",
+                )}
+                aria-current={
+                  preorderCurrent && item.href === "/products?type=SEALED_BOX" ? "page" : undefined
+                }
                 onMouseEnter={scheduleClose}
                 onClick={() => setMegaOpen(false)}
               >
@@ -320,7 +366,15 @@ export function SiteHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className="block py-2 text-sm text-white/80 hover:text-white"
+                className={cn(
+                  "block py-2 text-sm hover:text-white",
+                  preorderCurrent && item.href === "/products?type=SEALED_BOX"
+                    ? "text-[#c8a24a]"
+                    : "text-white/80",
+                )}
+                aria-current={
+                  preorderCurrent && item.href === "/products?type=SEALED_BOX" ? "page" : undefined
+                }
                 onClick={closeMenus}
               >
                 {item.label}
