@@ -25,17 +25,22 @@ const LOCALE_MENU: Record<string, string> = {
  * Prices and interface copy are HKD + Traditional Chinese only.
  * The menu shows that selection instead of leaving the header control inert.
  */
-export function LocaleCurrencyMenu() {
+export function LocaleCurrencyMenu({ tone = "default" }: { tone?: "default" | "onDark" }) {
   const buttonLocale = LOCALE_BUTTON[LOCALE] ?? LOCALE;
   const menuLocale = LOCALE_MENU[LOCALE] ?? LOCALE;
+  const onDark = tone === "onDark";
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className="hidden items-center gap-1 rounded-md px-2 py-1 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
+        className={
+          onDark
+            ? "hidden items-center rounded-md text-[13px] leading-[1.6] whitespace-nowrap text-white hover:text-[#c8a24a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a] xl:flex"
+            : "hidden items-center gap-1 rounded-md px-2 py-1 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
+        }
         aria-label={`貨幣與語言，目前為${CURRENCY}及${menuLocale}`}
       >
-        <Globe className="h-4 w-4" aria-hidden="true" />
+        {onDark ? null : <Globe className="h-4 w-4" aria-hidden="true" />}
         {CURRENCY} | {buttonLocale}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 min-w-64">

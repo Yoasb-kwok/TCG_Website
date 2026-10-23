@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -8,8 +9,6 @@ import {
   ChevronDown,
   LayoutDashboard,
   LogOut,
-  MapPin,
-  ShoppingBag,
   User,
   Menu,
   X,
@@ -104,33 +103,90 @@ export function SiteHeader({
     };
   }, [megaOpen]);
 
+  const iconButton =
+    "inline-flex items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]";
+
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 lg:px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-xs font-bold text-white">
+    <header className="sticky top-0 z-50 bg-[#080808] text-white">
+      <div className="mx-auto flex h-[88px] w-full max-w-[1280px] items-center justify-between gap-6 px-4 sm:px-6 xl:px-0">
+        <Link href="/" className="flex w-[190px] shrink-0 items-center gap-2.5">
+          <span className="flex size-10 items-center justify-center rounded-full bg-[#c8a24a] text-[13px] leading-[1.6] text-[#080808]">
             TCG
           </span>
-          <span className="hidden text-sm font-semibold tracking-tight text-foreground sm:inline">
-            {SITE_BRAND}
-          </span>
+          <span className="text-[20px] font-medium leading-[1.45] text-white">{SITE_BRAND}</span>
         </Link>
 
-        <div className="flex items-center gap-1 text-sm text-muted-foreground sm:gap-2">
-          <UserMenu />
-          <LocaleCurrencyMenu />
+        <nav className="hidden min-w-0 flex-1 items-center gap-7 xl:flex" aria-label="商店">
+          {NAV_ITEMS.map((item) =>
+            item.hasMegaMenu ? (
+              <div
+                key={item.href}
+                ref={categoryAnchorRef}
+                onMouseEnter={cancelClose}
+                onMouseLeave={scheduleClose}
+              >
+                <button
+                  ref={productsButtonRef}
+                  type="button"
+                  className="inline-flex items-center rounded-md text-[14px] font-medium leading-[1.45] text-white transition hover:text-[#c8a24a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+                  aria-expanded={megaOpen}
+                  aria-controls="storefront-l2-menu"
+                  aria-haspopup="true"
+                  onMouseEnter={() => {
+                    cancelClose();
+                    setMegaOpen(true);
+                  }}
+                  onClick={() => {
+                    cancelClose();
+                    setMegaOpen((open) => !open);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "ArrowDown") return;
+                    event.preventDefault();
+                    focusCategoryMenu.current = true;
+                    setMegaOpen(true);
+                  }}
+                >
+                  {item.label}
+                </button>
+                <MegaMenu
+                  open={megaOpen}
+                  links={pokemonCategories}
+                  onClose={() => setMegaOpen(false)}
+                  onPointerEnter={cancelClose}
+                  onPointerLeave={scheduleClose}
+                />
+              </div>
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-[14px] font-medium leading-[1.45] whitespace-nowrap text-white transition hover:text-[#c8a24a]"
+                onMouseEnter={scheduleClose}
+                onClick={() => setMegaOpen(false)}
+              >
+                {item.label}
+              </Link>
+            ),
+          )}
+        </nav>
+
+        <div className="flex shrink-0 items-center gap-3 text-white sm:gap-[22px]">
+          <UserMenu tone="onDark" />
+          <LocaleCurrencyMenu tone="onDark" />
           <a
             href={storeMapsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="hidden rounded-md p-2 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:inline-flex"
+            className={cn(iconButton, "hidden md:inline-flex")}
             aria-label={`開啟門市地圖：${STORE.address.zh}`}
             title={STORE.address.zh}
           >
-            <MapPin className="h-5 w-5" aria-hidden="true" />
+            <Image src="/brand/home/icon-pin.svg" alt="" width={22} height={22} unoptimized />
           </a>
-          <ThemeToggle />
+          <ThemeToggle appearance="ink" />
           <SiteSearchToggle
+            appearance="ink"
             expanded={searchOpen}
             onToggle={() => {
               setSearchOpen((v) => !v);
@@ -143,17 +199,17 @@ export function SiteHeader({
           />
           <button
             type="button"
-            className="relative rounded-md p-2 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className={cn(iconButton, "relative")}
             onClick={() => setIsOpen(true)}
             aria-haspopup="dialog"
             aria-expanded={cartOpen}
             aria-label={cartLabel}
           >
-            <ShoppingBag className="h-5 w-5" aria-hidden="true" />
+            <Image src="/brand/home/icon-bag.svg" alt="" width={22} height={22} unoptimized />
             {itemCount > 0 && (
               <span
                 aria-hidden="true"
-                className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-pink-500 text-[10px] font-bold text-white"
+                className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c8a24a] px-1 text-[10px] font-medium text-[#080808]"
               >
                 {itemCount}
               </span>
@@ -161,7 +217,7 @@ export function SiteHeader({
           </button>
           <button
             type="button"
-            className="rounded-md p-2 text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+            className={cn(iconButton, "xl:hidden")}
             onClick={() => {
               setMobileOpen((open) => {
                 if (open) setProductsOpen(false);
@@ -181,78 +237,11 @@ export function SiteHeader({
         onClose={() => setSearchOpen(false)}
       />
 
-      <nav className="hidden border-t border-border lg:block" aria-label="商店">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-6 py-2">
-          <div className="flex gap-6">
-            {NAV_ITEMS.map((item) =>
-              item.hasMegaMenu ? (
-                <div
-                  key={item.href}
-                  ref={categoryAnchorRef}
-                  onMouseEnter={cancelClose}
-                  onMouseLeave={scheduleClose}
-                >
-                  <button
-                    ref={productsButtonRef}
-                    type="button"
-                    className={cn(
-                      "inline-flex items-center gap-1 rounded-md text-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                      megaOpen ? "text-foreground" : "text-muted-foreground hover:text-foreground",
-                    )}
-                    aria-expanded={megaOpen}
-                    aria-controls="storefront-l2-menu"
-                    aria-haspopup="true"
-                    onMouseEnter={() => {
-                      cancelClose();
-                      setMegaOpen(true);
-                    }}
-                    onClick={() => {
-                      cancelClose();
-                      setMegaOpen((open) => !open);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "ArrowDown") return;
-                      event.preventDefault();
-                      focusCategoryMenu.current = true;
-                      setMegaOpen(true);
-                    }}
-                  >
-                    {item.label}
-                    <ChevronDown
-                      className={cn("h-3.5 w-3.5 transition", megaOpen && "rotate-180")}
-                      aria-hidden="true"
-                    />
-                  </button>
-                  <MegaMenu
-                    open={megaOpen}
-                    links={pokemonCategories}
-                    onClose={() => setMegaOpen(false)}
-                    onPointerEnter={cancelClose}
-                    onPointerLeave={scheduleClose}
-                  />
-                </div>
-              ) : (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm text-muted-foreground transition hover:text-foreground"
-                  onMouseEnter={scheduleClose}
-                  onClick={() => setMegaOpen(false)}
-                >
-                  {item.label}
-                </Link>
-              ),
-            )}
-          </div>
-          <SocialLinks links={socialLinks} variant="header" />
-        </div>
-      </nav>
-
       {mobileOpen && (
-        <div className="border-t border-border bg-background px-4 py-4 lg:hidden">
+        <div className="border-t border-[#c8a24a]/40 bg-[#080808] px-4 py-4 text-white xl:hidden">
           {session?.user ? (
             <>
-              <p className="mb-2 truncate py-2 text-sm text-foreground">
+              <p className="mb-2 truncate py-2 text-sm text-white">
                 {session.user.name ?? session.user.email}
               </p>
               {isAdmin && (
@@ -267,7 +256,7 @@ export function SiteHeader({
               )}
               <button
                 type="button"
-                className="mb-2 flex w-full items-center gap-2 py-2 text-sm text-muted-foreground hover:text-foreground"
+                className="mb-2 flex w-full items-center gap-2 py-2 text-sm text-white/80 hover:text-white"
                 onClick={() => {
                   closeMenus();
                   signOut({ callbackUrl: "/login" });
@@ -280,7 +269,7 @@ export function SiteHeader({
           ) : (
             <Link
               href="/login"
-              className="mb-2 flex items-center gap-2 py-2 text-sm text-muted-foreground hover:text-foreground"
+              className="mb-2 flex items-center gap-2 py-2 text-sm text-white/80 hover:text-white"
               onClick={closeMenus}
             >
               <User className="h-4 w-4" />
@@ -292,7 +281,7 @@ export function SiteHeader({
               <div key={item.href}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between py-2 text-sm text-muted-foreground hover:text-foreground"
+                  className="flex w-full items-center justify-between py-2 text-sm text-white/80 hover:text-white"
                   aria-expanded={productsOpen}
                   aria-controls="storefront-l2-menu-mobile"
                   onClick={() => setProductsOpen((open) => !open)}
@@ -304,10 +293,18 @@ export function SiteHeader({
                   />
                 </button>
                 {productsOpen && (
-                  <div className="border-l border-border pb-2 pl-3">
+                  <div
+                    className="border-l border-white/15 pb-2 pl-3 text-[#0a0a09]"
+                    style={{
+                      ["--foreground" as string]: "#0a0a09",
+                      ["--muted-foreground" as string]: "#625f58",
+                      ["--muted" as string]: "#ece7dc",
+                      ["--background" as string]: "#f7f5ef",
+                    }}
+                  >
                     <Link
                       href={POKEMON_TCG_CATEGORY.href}
-                      className="block rounded px-2 py-2 text-sm font-medium text-foreground hover:bg-muted"
+                      className="block rounded bg-[#f7f5ef] px-2 py-2 text-sm font-medium text-[#0a0a09] hover:bg-[#ece7dc]"
                       onClick={closeMenus}
                     >
                       {POKEMON_TCG_CATEGORY.label}
@@ -325,7 +322,7 @@ export function SiteHeader({
               <Link
                 key={item.href}
                 href={item.href}
-                className="block py-2 text-sm text-muted-foreground hover:text-foreground"
+                className="block py-2 text-sm text-white/80 hover:text-white"
                 onClick={closeMenus}
               >
                 {item.label}
@@ -333,14 +330,15 @@ export function SiteHeader({
             ),
           )}
           {socialLinks.length > 0 && (
-            <div className="mt-3 border-t border-border pt-3">
-              <p className="mb-1 text-xs font-semibold text-foreground">社交媒體</p>
+            <div className="mt-3 border-t border-white/15 pt-3">
+              <p className="mb-1 text-xs font-semibold text-white">社交媒體</p>
               <SocialLinks links={socialLinks} variant="header" />
             </div>
           )}
         </div>
       )}
 
+      <div className="h-px bg-[rgba(200,162,74,0.55)]" />
       <CartSheet />
     </header>
   );

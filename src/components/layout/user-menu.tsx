@@ -5,12 +5,19 @@ import { signOut, useSession } from "next-auth/react";
 import { LayoutDashboard, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-export function UserMenu() {
+export function UserMenu({ tone = "default" }: { tone?: "default" | "onDark" }) {
   const { data: session, status } = useSession();
+  const onDark = tone === "onDark";
 
   if (status === "loading") {
     return (
-      <span className="hidden h-8 w-16 animate-pulse rounded-md bg-muted md:inline-block" />
+      <span
+        className={
+          onDark
+            ? "hidden h-8 w-16 animate-pulse rounded-md bg-white/10 xl:inline-block"
+            : "hidden h-8 w-16 animate-pulse rounded-md bg-muted md:inline-block"
+        }
+      />
     );
   }
 
@@ -18,9 +25,13 @@ export function UserMenu() {
     return (
       <Link
         href="/login"
-        className="hidden items-center gap-1 hover:text-foreground md:flex"
+        className={
+          onDark
+            ? "hidden text-[13px] leading-[1.6] whitespace-nowrap text-white transition hover:text-[#c8a24a] xl:inline"
+            : "hidden items-center gap-1 hover:text-foreground md:flex"
+        }
       >
-        <User className="h-4 w-4" />
+        {onDark ? null : <User className="h-4 w-4" />}
         登入 / 註冊
       </Link>
     );
@@ -30,8 +41,11 @@ export function UserMenu() {
   const label = session.user.name ?? session.user.email ?? "帳戶";
 
   return (
-    <div className="hidden items-center gap-2 md:flex">
-      <span className="max-w-[8rem] truncate text-sm text-muted-foreground" title={label}>
+    <div className={onDark ? "hidden items-center gap-2 xl:flex" : "hidden items-center gap-2 md:flex"}>
+      <span
+        className={onDark ? "max-w-[8rem] truncate text-[13px] text-white" : "max-w-[8rem] truncate text-sm text-muted-foreground"}
+        title={label}
+      >
         {label}
       </span>
       {isAdmin && (
@@ -47,7 +61,7 @@ export function UserMenu() {
         type="button"
         variant="ghost"
         size="sm"
-        className="h-8 px-2 text-muted-foreground hover:text-foreground"
+        className={onDark ? "h-8 px-2 text-white hover:bg-white/10 hover:text-white" : "h-8 px-2 text-muted-foreground hover:text-foreground"}
         onClick={() => signOut({ callbackUrl: "/login" })}
       >
         <LogOut className="h-4 w-4" />
