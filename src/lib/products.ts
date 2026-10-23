@@ -339,6 +339,18 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
   }
 }
 
+/** Figma smoke path uses the short slug. The seeded demo row keeps the demo- prefix. */
+const STOREFRONT_SLUG_ALIASES: Record<string, string> = {
+  "umbreon-vmax-evolving": "demo-umbreon-vmax-evolving",
+};
+
+function productDetailInclude() {
+  return {
+    variants: { orderBy: { price: "asc" as const } },
+    images: { orderBy: { sortOrder: "asc" as const } },
+  };
+}
+
 export async function getProductBySlug(slug: string): Promise<ProductWithVariants | null> {
   const demo = DEMO_PRODUCTS.find((product) => product.slug === slug);
   const framed = catalogFrameProduct(slug);
@@ -348,13 +360,16 @@ export async function getProductBySlug(slug: string): Promise<ProductWithVariant
   }
 
   try {
-    const product = await getPrisma().product.findUnique({
-      where: { slug },
-      include: {
-        variants: { orderBy: { price: "asc" } },
-        images: { orderBy: { sortOrder: "asc" } },
-      },
-    });
+    const prisma = getPrisma();
+    const include = productDetailInclude();
+    const product =
+      (await prisma.product.findUnique({ where: { slug }, include })) ??
+      (STOREFRONT_SLUG_ALIASES[slug]
+        ? await prisma.product.findUnique({
+            where: { slug: STOREFRONT_SLUG_ALIASES[slug] },
+            include,
+          })
+        : null);
     if (!product) return null;
     return enrichProduct(product as ProductWithVariants);
   } catch {
