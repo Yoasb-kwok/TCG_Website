@@ -10,7 +10,7 @@ import type { ResolvedSocialLink } from "@/lib/social";
 import type { StorefrontCategoryLink } from "@/lib/storefront-categories";
 import { cn } from "@/lib/utils";
 
-function WhatsAppButton({ href, home }: { href: string; home: boolean }) {
+function WhatsAppButton({ href, canvas }: { href: string; canvas: boolean }) {
   return (
     <a
       href={href}
@@ -18,7 +18,7 @@ function WhatsAppButton({ href, home }: { href: string; home: boolean }) {
       rel="noopener noreferrer"
       className={cn(
         "z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#ece7dc] shadow-[0_10px_24px_rgba(0,0,0,0.1)] transition hover:bg-white",
-        home
+        canvas
           ? "fixed right-4 bottom-6 xl:absolute xl:right-[max(16px,calc((100%-1328px)/2))] xl:bottom-auto xl:top-[818px]"
           : "fixed right-6 bottom-6",
       )}
@@ -43,7 +43,7 @@ export function StorefrontFrame({
   const pathname = usePathname();
   const locked = pathname === "/tournaments/live" || pathname.startsWith("/pos");
   const demoShell = isDemoShellPath(pathname);
-  const home = pathname === "/";
+  const figmaCanvas = pathname === "/" || pathname === "/cart";
 
   if (locked || demoShell) {
     return (
@@ -57,21 +57,23 @@ export function StorefrontFrame({
     <div
       className={cn(
         "relative flex min-h-full flex-1 flex-col",
-        home && "isolate bg-[#f7f5ef] text-[#0a0a09]",
+        figmaCanvas && "isolate bg-[#f7f5ef] text-[#0a0a09]",
       )}
     >
-      {home ? <HomeTextures /> : null}
+      {figmaCanvas ? <HomeTextures /> : null}
       <SiteHeader socialLinks={socialLinks} pokemonCategories={pokemonCategories} />
-      <main className="relative z-[1] flex-1">{children}</main>
+      <main className={cn("relative z-[1]", pathname === "/cart" ? "shrink-0" : "flex-1")}>{children}</main>
       <div
         className={cn(
           "relative z-[1]",
-          home && "mx-auto w-full max-w-[1280px] px-4 pt-8 pb-12 sm:px-6 xl:px-0",
+          figmaCanvas && "mx-auto w-full max-w-[1280px] px-4 sm:px-6 xl:px-0",
+          pathname === "/" && "pt-8 pb-12",
+          pathname === "/cart" && "pb-[48px]",
         )}
       >
-        <SiteFooter socialLinks={socialLinks} inset={home} />
+        <SiteFooter socialLinks={socialLinks} inset={figmaCanvas} />
       </div>
-      {whatsappHref ? <WhatsAppButton href={whatsappHref} home={home} /> : null}
+      {whatsappHref ? <WhatsAppButton href={whatsappHref} canvas={figmaCanvas} /> : null}
     </div>
   );
 }

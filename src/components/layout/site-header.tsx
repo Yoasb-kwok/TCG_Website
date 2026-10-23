@@ -37,7 +37,7 @@ export function SiteHeader({
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
-  const { itemCount, isOpen: cartOpen, setIsOpen } = useCart();
+  const { itemCount } = useCart();
   const storeMapsUrl = getStoreMapsUrl();
   const cartLabel = itemCount > 0 ? `購物車，${itemCount} 件商品` : "購物車";
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -197,13 +197,11 @@ export function SiteHeader({
               }
             }}
           />
-          <button
-            type="button"
+          <Link
+            href="/cart"
             className={cn(iconButton, "relative")}
-            onClick={() => setIsOpen(true)}
-            aria-haspopup="dialog"
-            aria-expanded={cartOpen}
             aria-label={cartLabel}
+            aria-current={pathname === "/cart" ? "page" : undefined}
           >
             <Image src="/brand/home/icon-bag.svg" alt="" width={22} height={22} unoptimized />
             {itemCount > 0 && (
@@ -214,7 +212,7 @@ export function SiteHeader({
                 {itemCount}
               </span>
             )}
-          </button>
+          </Link>
           <button
             type="button"
             className={cn(iconButton, "xl:hidden")}
