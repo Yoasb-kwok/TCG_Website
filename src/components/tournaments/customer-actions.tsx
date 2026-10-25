@@ -15,6 +15,7 @@ export function TournamentCustomerActions({
   closedLabel,
   showScoreboard = false,
   detailsCurrent = false,
+  appearance = "compact",
 }: {
   slug: string;
   canRegister: boolean;
@@ -24,13 +25,22 @@ export function TournamentCustomerActions({
   closedLabel: string | null;
   showScoreboard?: boolean;
   detailsCurrent?: boolean;
+  appearance?: "compact" | "frame";
 }) {
   const registerHref = `/tournaments/${slug}/register`;
   const detailsHref = `/tournaments/${slug}`;
   const joined = signedUp || canCancel;
 
+  const frame = appearance === "frame";
+  const primaryClass = frame
+    ? "inline-flex h-12 w-full items-center justify-center rounded-[10px] border border-[#c8a24a] bg-[#080808] px-6 text-[14px] font-medium text-white hover:bg-[#1c1c1c]"
+    : signupClass;
+  const quietFrame = frame
+    ? "inline-flex h-12 w-fit items-center justify-center rounded-[10px] bg-[#e7f3c9] px-5 text-[14px] font-medium text-[#080808] hover:bg-[#dcebb6]"
+    : scoreboardClass;
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className={frame ? "flex flex-col items-start gap-4" : "flex flex-wrap items-center gap-2"}>
       {showScoreboard ? (
         <Link href="/tournaments/live" className={scoreboardClass}>
           現場計分板
@@ -39,7 +49,7 @@ export function TournamentCustomerActions({
       {joined ? <span className={quietClass}>已報名</span> : null}
       {canCancel ? <CancelRegistrationButton slug={slug} /> : null}
       {!joined && canRegister ? (
-        <Link href={registerHref} className={signupClass}>
+        <Link href={registerHref} className={primaryClass}>
           立即報名
         </Link>
       ) : null}
@@ -49,7 +59,7 @@ export function TournamentCustomerActions({
       <Link
         href={detailsHref}
         aria-current={detailsCurrent ? "page" : undefined}
-        className={scoreboardClass}
+        className={frame ? quietFrame : scoreboardClass}
       >
         比賽詳情
       </Link>

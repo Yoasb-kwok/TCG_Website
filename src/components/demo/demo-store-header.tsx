@@ -20,11 +20,16 @@ export function DemoStoreHeader() {
   const cartLabel = itemCount > 0 ? `購物車，${itemCount} 件商品` : "購物車";
 
   return (
-    <header className="sticky top-14 z-30 border-b border-white/10 bg-[#070b14]/90 backdrop-blur-md">
+    <header className="sticky top-14 z-30 bg-[#080808] text-white">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 lg:px-6">
-        <Link href={DEMO_STORE_PATH} className="min-w-0">
-          <span className="block truncate text-sm font-bold tracking-tight text-white">{DEMO_SHOP.name}</span>
-          <span className="hidden text-xs text-slate-400 sm:block">{DEMO_SHOP.address.zh}</span>
+        <Link href={DEMO_STORE_PATH} className="flex min-w-0 items-center gap-3">
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-bold tracking-tight text-white">{DEMO_SHOP.name}</span>
+            <span className="hidden text-xs text-white/70 sm:block">{DEMO_SHOP.address.zh}</span>
+          </span>
+          <span className="shrink-0 rounded-full bg-[#e7f3c9] px-2.5 py-1 text-[11px] font-medium text-[#080808]">
+            公開展示
+          </span>
         </Link>
         <nav aria-label="示範網店" className="hidden items-center gap-5 text-sm md:flex">
           {LINKS.map((link) => {
@@ -36,7 +41,7 @@ export function DemoStoreHeader() {
                 key={link.href}
                 href={link.href}
                 className={cn(
-                  active ? "font-semibold text-white" : "text-slate-400 hover:text-white",
+                  active ? "font-semibold text-white" : "text-white/70 hover:text-white",
                 )}
               >
                 {link.label}
@@ -65,7 +70,7 @@ export function DemoStoreHeader() {
       </div>
       <nav aria-label="示範網店" className="flex gap-4 border-t border-white/10 px-4 py-2 text-sm md:hidden">
         {LINKS.map((link) => (
-          <Link key={link.href} href={link.href} className="text-slate-400 hover:text-white">
+          <Link key={link.href} href={link.href} className="text-white/70 hover:text-white">
             {link.label}
           </Link>
         ))}

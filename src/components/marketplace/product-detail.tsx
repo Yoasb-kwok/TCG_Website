@@ -79,7 +79,7 @@ export function ProductDetail({
       <section className={`${homeContainer} flex flex-col gap-[36px] py-[64px] text-[#0a0a09]`}>
         <Link
           href={catalogHref}
-          className="inline-flex h-[48px] items-center text-[14px] font-medium leading-[1.45] text-[#0a0a09]"
+          className="inline-flex h-12 w-fit items-center rounded-[10px] bg-[#e7f3c9] px-4 text-[14px] font-medium leading-[1.45] text-[#080808] transition hover:bg-[#dcebb6]"
         >
           ← 返回商品
         </Link>

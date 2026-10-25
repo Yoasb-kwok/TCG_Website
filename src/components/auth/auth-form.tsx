@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { getSession, signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
-import { Loader2, Store } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -139,13 +140,32 @@ export function AuthForm() {
     router.refresh();
   };
 
+  const tabClass = (active: boolean) =>
+    cn(
+      "inline-flex h-12 flex-1 items-center justify-center rounded-[10px] text-[14px] font-medium transition",
+      active
+        ? "border border-[#c8a24a] bg-[#080808] text-white"
+        : "bg-[#e7f3c9] text-[#080808] hover:bg-[#dcebb6]",
+    );
+
   return (
-    <div className="mx-auto w-full max-w-md">
-      <div className="text-center">
-        <h1 className="text-2xl font-bold text-foreground">{SITE_BRAND}</h1>
+    <div className="mx-auto grid w-full max-w-[1060px] overflow-hidden rounded-[24px] bg-white shadow-[0_18px_42px_rgba(0,0,0,0.08)] lg:grid-cols-[480px_minmax(0,1fr)]">
+      <div className="flex flex-col justify-center bg-[#e6dfff] px-8 py-12 sm:px-10">
+        <p className="text-[64px] font-medium leading-none text-[#080808]">{SITE_BRAND}</p>
+        <Image
+          src="/brand/home/umbreon-vmax.png"
+          alt=""
+          width={310}
+          height={380}
+          unoptimized
+          className="mt-8 h-auto w-full max-w-[310px] object-contain"
+        />
       </div>
 
-      <div className="mt-6 flex rounded-lg border border-border bg-muted/30 p-1">
+      <div className="flex flex-col gap-6 px-6 py-10 sm:px-12">
+      <h1 className="text-[40px] font-medium leading-[1.3] text-[#0a0a09]">{SITE_BRAND}</h1>
+
+      <div className="flex gap-3">
         <button
           type="button"
           onClick={() => {
@@ -153,12 +173,7 @@ export function AuthForm() {
             setError(null);
             setFieldErrors({});
           }}
-          className={cn(
-            "flex-1 rounded-md py-2 text-sm font-medium transition",
-            tab === "login"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
+          className={tabClass(tab === "login")}
         >
           登入
         </button>
@@ -169,29 +184,20 @@ export function AuthForm() {
             setError(null);
             setFieldErrors({});
           }}
-          className={cn(
-            "flex-1 rounded-md py-2 text-sm font-medium transition",
-            tab === "register"
-              ? "bg-background text-foreground shadow-sm"
-              : "text-muted-foreground hover:text-foreground",
-          )}
+          className={tabClass(tab === "register")}
         >
           註冊
         </button>
       </div>
 
-      <div className="mt-4 flex items-start gap-2 rounded-lg border border-pink-500/20 bg-pink-500/5 px-3 py-2.5 text-xs text-muted-foreground">
-        <Store className="mt-0.5 h-4 w-4 shrink-0 text-pink-400" />
-        <p>
-          店家管理員使用已授權帳戶登入後，將<strong className="text-foreground">自動進入商家後台</strong>
-          管理商品與訂單。
-        </p>
-      </div>
+      <p className="text-[13px] leading-[1.6] text-[#625f58]">
+        店家管理員使用已授權帳戶登入後，將自動進入商家後台管理商品與訂單。
+      </p>
 
       <form
         noValidate={tab === "register"}
         onSubmit={tab === "login" ? handleLogin : handleRegister}
-        className="mt-6 space-y-4 rounded-xl border border-border bg-card p-6"
+        className="flex flex-col gap-4"
       >
         {tab === "register" && (
           <div className="space-y-2">
@@ -297,7 +303,11 @@ export function AuthForm() {
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
-        <Button type="submit" className="w-full" disabled={loading}>
+        <Button
+          type="submit"
+          className="h-12 w-full rounded-[10px] border border-[#c8a24a] bg-[#080808] text-white hover:bg-[#1c1c1c]"
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -311,11 +321,13 @@ export function AuthForm() {
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        <Link href="/" className="hover:text-foreground">
-          ← 返回首頁
-        </Link>
-      </p>
+      <Link
+        href="/"
+        className="inline-flex h-12 w-fit items-center rounded-[10px] bg-[#e7f3c9] px-5 text-[14px] font-medium text-[#080808] transition hover:bg-[#dcebb6]"
+      >
+        ← 返回首頁
+      </Link>
+      </div>
     </div>
   );
 }

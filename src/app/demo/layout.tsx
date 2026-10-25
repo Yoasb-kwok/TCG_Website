@@ -1,6 +1,7 @@
 import { DemoChrome } from "@/components/demo/demo-chrome";
 import { DemoStoreFooter } from "@/components/demo/demo-store-footer";
 import { DemoStoreHeader } from "@/components/demo/demo-store-header";
+import { StorefrontWallpaper } from "@/components/home/home-textures";
 import { DEMO_CART_STORAGE_KEY, demoTrialWhatsAppHref } from "@/lib/demo-shop";
 import { resolveWhatsAppHref } from "@/lib/whatsapp";
 import { CartProvider } from "@/providers/cart-provider";
@@ -14,11 +15,14 @@ export default function DemoStoreLayout({ children }: { children: React.ReactNod
   const trialHref = demoTrialWhatsAppHref(resolveWhatsAppHref());
   return (
     <CartProvider storageKey={DEMO_CART_STORAGE_KEY}>
-      <div className="demo-night flex min-h-full flex-1 flex-col bg-[#070b14] text-slate-100 [color-scheme:dark]">
-        <DemoChrome trialHref={trialHref} />
-        <DemoStoreHeader />
-        <main className="flex-1">{children}</main>
-        <DemoStoreFooter />
+      <div className="storefront-canvas relative flex min-h-full flex-1 flex-col">
+        <StorefrontWallpaper />
+        <div className="relative z-[1] flex min-h-full flex-1 flex-col">
+          <DemoChrome trialHref={trialHref} />
+          <DemoStoreHeader />
+          <main className="flex-1">{children}</main>
+          <DemoStoreFooter />
+        </div>
       </div>
     </CartProvider>
   );

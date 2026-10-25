@@ -148,6 +148,44 @@
 }
 
 /* Scoped navy palette for the public demo shop. Live storefront tokens stay unchanged. */
+/* Cream content field. Header and footer keep their own #080808 bars. */
+.storefront-canvas {
+  background-color: #f7f5ef;
+  color: #0a0a09;
+  color-scheme: light;
+  --background: #f7f5ef;
+  --foreground: #0a0a09;
+  --card: #ffffff;
+  --card-foreground: #0a0a09;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a09;
+  --primary: #080808;
+  --primary-foreground: #ffffff;
+  --secondary: #f3efe6;
+  --secondary-foreground: #0a0a09;
+  --muted: #f3efe6;
+  --muted-foreground: #625f58;
+  --accent: #f3efe6;
+  --accent-foreground: #0a0a09;
+  --border: #e6dfd2;
+  --input: #e7e1d6;
+  --ring: #c8a24a;
+}
+
+.storefront-wallpaper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("/brand/home/sparse-cloud-crane-wallpaper.png");
+  background-repeat: repeat;
+  background-position: top left;
+  /* The bitmap's cloud rows sit ~80px apart. Uniform 1.625× scale places them
+     ~130px apart on the 1440 frame (the rendered Figma layer). A literal
+     160×160 box would squash this non-square artwork. */
+  background-size: 764px 1357px;
+  opacity: 0.5;
+}
+
 .demo-night {
   --background: #070b14;
   --foreground: #f1f5f9;

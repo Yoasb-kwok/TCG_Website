@@ -21,6 +21,7 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
   const slides = banners.length > 0 ? banners : [FALLBACK_SLIDE];
   const [index, setIndex] = useState(0);
   const slide = slides[index % slides.length] ?? slides[0];
+  const tournamentSlide = slide.title.includes("店賽");
 
   const go = (delta: number) => {
     setIndex((current) => (current + delta + slides.length) % slides.length);
@@ -56,7 +57,11 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
             type="button"
             aria-label="上一張 Banner"
             onClick={() => go(-1)}
-            className="inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+            className={
+              tournamentSlide
+                ? "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#6f59c7] bg-[#e6dfff] text-[14px] font-medium text-[#080808] transition hover:bg-[#ddd4fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+                : "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+            }
           >
             ←
           </button>
@@ -64,7 +69,11 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
             type="button"
             aria-label="下一張 Banner"
             onClick={() => go(1)}
-            className="inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+            className={
+              tournamentSlide
+                ? "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#6f59c7] bg-[#e6dfff] text-[14px] font-medium text-[#080808] transition hover:bg-[#ddd4fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+                : "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+            }
           >
             →
           </button>
@@ -74,8 +83,9 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
       <div
         className="relative w-full min-w-0 overflow-hidden rounded-[24px] border border-[#c8a24a] shadow-[0_18px_42px_rgba(0,0,0,0.18)] xl:max-w-[640px] xl:flex-1 [container-type:inline-size]"
         style={{
-          backgroundImage:
-            "linear-gradient(139deg, rgb(5, 5, 5) 13%, rgb(36, 33, 26) 57%, rgb(200, 162, 74) 84%)",
+          backgroundImage: tournamentSlide
+            ? "linear-gradient(139deg, rgb(61, 44, 120) 13%, rgb(124, 92, 196) 48%, rgb(224, 163, 40) 86%)"
+            : "linear-gradient(139deg, rgb(5, 5, 5) 13%, rgb(36, 33, 26) 57%, rgb(200, 162, 74) 84%)",
         }}
       >
         <div className="aspect-[640/530] w-full" />
@@ -95,7 +105,7 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
           <div className="absolute top-[63.93px] left-[99px] flex h-[371.856px] w-[299.454px] items-center justify-center">
             <div className="-rotate-12">
               <Image
-                src="/brand/home/charizard-ex.png"
+                src={tournamentSlide ? "/brand/home/mew-ex-151.png" : "/brand/home/charizard-ex.png"}
                 alt=""
                 width={236}
                 height={330}
@@ -108,7 +118,7 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
           <div className="absolute top-[77px] left-[276.7px] flex h-[365.968px] w-[289.719px] items-center justify-center">
             <div className="rotate-[10deg]">
               <Image
-                src="/brand/home/umbreon-vmax.png"
+                src={tournamentSlide ? "/brand/home/pikachu-151.png" : "/brand/home/umbreon-vmax.png"}
                 alt=""
                 width={236}
                 height={330}

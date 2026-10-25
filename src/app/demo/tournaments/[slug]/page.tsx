@@ -31,11 +31,11 @@ export default async function DemoTournamentPage({ params }: PageProps) {
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 lg:px-6">
-      <Link href={`${DEMO_STORE_PATH}/tournaments`} className="text-sm text-slate-400 hover:text-white">
+      <Link href={`${DEMO_STORE_PATH}/tournaments`} className="text-sm text-[#625f58] hover:text-[#0a0a09]">
         ← 返回店賽
       </Link>
-      <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">{tournament.title}</h1>
-      <p className="mt-3 text-sm leading-6 text-slate-400">{tournament.description}</p>
+      <h1 className="mt-4 text-3xl font-bold tracking-tight text-[#0a0a09] sm:text-4xl">{tournament.title}</h1>
+      <p className="mt-3 text-sm leading-6 text-[#625f58]">{tournament.description}</p>
       <dl className={`${demoPanelClass} mt-6 grid gap-4 p-5 text-sm sm:grid-cols-2`}>
         <div>
           <dt className="text-muted-foreground">時間</dt>
@@ -65,7 +65,7 @@ export default async function DemoTournamentPage({ params }: PageProps) {
         </div>
       </dl>
       {closed ? (
-        <p className={`${demoPanelClass} mt-8 p-4 text-sm text-slate-300`}>{closed}</p>
+        <p className={`${demoPanelClass} mt-8 p-4 text-sm text-[#625f58]`}>{closed}</p>
       ) : (
         <DemoRegisterForm slug={tournament.slug} />
       )}
