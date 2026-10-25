@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { HomeTextures } from "@/components/home/home-textures";
+import { StorefrontWallpaper } from "@/components/home/home-textures";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { isDemoShellPath } from "@/lib/demo-paths";
@@ -43,8 +43,9 @@ export function StorefrontFrame({
   const pathname = usePathname();
   const locked = pathname === "/tournaments/live" || pathname.startsWith("/pos");
   const demoShell = isDemoShellPath(pathname);
+  const merchant = pathname.startsWith("/admin");
   const catalogPath = pathname === "/products" || pathname.startsWith("/products/");
-  const figmaCanvas = pathname === "/" || pathname === "/cart" || catalogPath;
+  const surface = !locked && !demoShell && !merchant;
 
   if (locked || demoShell) {
     return (
@@ -58,23 +59,24 @@ export function StorefrontFrame({
     <div
       className={cn(
         "relative flex min-h-full flex-1 flex-col",
-        figmaCanvas && "isolate bg-[#f7f5ef] text-[#0a0a09]",
+        surface && "storefront-canvas isolate",
       )}
     >
-      {figmaCanvas ? <HomeTextures /> : null}
+      {surface ? <StorefrontWallpaper /> : null}
       <SiteHeader socialLinks={socialLinks} pokemonCategories={pokemonCategories} />
       <main className={cn("relative z-[1]", pathname === "/cart" ? "shrink-0" : "flex-1")}>{children}</main>
       <div
         className={cn(
           "relative z-[1]",
-          figmaCanvas && "mx-auto w-full max-w-[1280px] px-4 sm:px-6 xl:px-0",
+          surface && "mx-auto w-full max-w-[1280px] px-4 sm:px-6 xl:px-0",
           (pathname === "/" || catalogPath) && "pt-8 pb-12",
           pathname === "/cart" && "pb-[48px]",
+          surface && pathname !== "/" && !catalogPath && pathname !== "/cart" && "pb-12",
         )}
       >
-        <SiteFooter socialLinks={socialLinks} inset={figmaCanvas} />
+        <SiteFooter socialLinks={socialLinks} inset={surface} />
       </div>
-      {whatsappHref ? <WhatsAppButton href={whatsappHref} canvas={figmaCanvas} /> : null}
+      {whatsappHref ? <WhatsAppButton href={whatsappHref} canvas={surface} /> : null}
     </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,7 @@ export function MarketplaceShell({
   initialData: ProductsResponse;
   initialKey: string;
 }) {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [filters, setFilters] = useState<FilterState>(DEFAULT_STOREFRONT_FILTERS);
   const [page, setPage] = useState(1);
@@ -112,8 +113,45 @@ export function MarketplaceShell({
     priceDesc: "排序 · 價格由高至低",
   };
 
+  const submitSearch = (query: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    const trimmed = query.trim();
+    if (trimmed) params.set("search", trimmed);
+    else params.delete("search");
+    params.delete("page");
+    const next = params.toString();
+    router.push(next ? `/products?${next}` : "/products");
+  };
+
   return (
     <div className={`${homeContainer} flex flex-col gap-8 pt-16 pb-8 text-[#0a0a09]`}>
+      {searchQuery ? (
+        <form
+          className="flex flex-col items-stretch gap-4 rounded-[16px] bg-white p-6 shadow-[0_10px_24px_rgba(0,0,0,0.06)] sm:flex-row sm:items-end"
+          onSubmit={(event) => {
+            event.preventDefault();
+            const data = new FormData(event.currentTarget);
+            submitSearch(String(data.get("search") ?? ""));
+          }}
+        >
+          <label className="flex min-w-0 flex-1 flex-col gap-2 text-[14px] font-medium">
+            搜尋
+            <input
+              name="search"
+              defaultValue={searchQuery}
+              key={searchQuery}
+              placeholder="搜尋商品、卡名或卡號…"
+              className="h-12 rounded-[10px] border border-[#e6dfd2] bg-[#fbf6ea] px-4 text-[16px] font-normal outline-none focus:border-[#c8a24a]"
+            />
+          </label>
+          <button
+            type="submit"
+            className="inline-flex h-12 shrink-0 items-center justify-center rounded-[10px] border border-[#c8a24a] bg-[#080808] px-6 text-[14px] font-medium text-white"
+          >
+            搜尋
+          </button>
+        </form>
+      ) : null}
       <div className="flex flex-col gap-3">
         <h1 className="text-[40px] font-medium leading-[1.3] text-[#0a0a09]">
           {searchQuery ? `搜尋「${searchQuery}」` : game ? game.label : "商品"}

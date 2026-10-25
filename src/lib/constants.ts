@@ -93,7 +93,7 @@ export const HERO_BANNERS = [
   {
     id: "2",
     title: "店賽報名",
-    subtitle: "每週舉辦 Pokémon 標準賽",
+    subtitle: "每週舉辦 Pokémon 標準賽 · 現場報到",
     image:
       "https://images.pokemontcg.io/sv1/logo.png",
     href: "/tournaments",

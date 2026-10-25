@@ -11,8 +11,8 @@ export default function DemoTournamentsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 lg:px-6">
       <p className="text-[11px] font-semibold tracking-[0.18em] text-cyan-300">店內賽事</p>
-      <h1 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">店賽</h1>
-      <p className="mt-3 text-sm text-slate-400">{DEMO_SHOP.name} 的固定示範賽程。</p>
+      <h1 className="mt-2 text-3xl font-bold tracking-tight text-[#0a0a09] sm:text-4xl">店賽</h1>
+      <p className="mt-3 text-sm text-[#625f58]">{DEMO_SHOP.name} 的固定示範賽程。</p>
       <ul className="mt-6 space-y-4">
         {DEMO_TOURNAMENTS.map((tournament) => {
           const closed = registrationClosedLabel(tournament);

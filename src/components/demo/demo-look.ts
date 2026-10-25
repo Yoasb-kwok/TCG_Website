@@ -6,4 +6,4 @@ export const demoGhostClass =
   "inline-flex items-center justify-center gap-2 rounded-full border border-white/15 bg-[#121a2e] px-5 py-2.5 text-sm font-semibold text-slate-100 transition hover:border-cyan-300/40 hover:bg-[#1a2438] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300";
 
 export const demoPanelClass =
-  "rounded-2xl border border-white/10 bg-[#10182b]/90 shadow-[0_16px_50px_rgba(2,6,23,0.45)]";
+  "rounded-2xl border border-[#e6dfd2] bg-white text-[#0a0a09] shadow-[0_10px_24px_rgba(0,0,0,0.06)]";

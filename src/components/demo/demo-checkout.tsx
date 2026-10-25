@@ -66,8 +66,8 @@ export function DemoCheckout() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-white">結帳</h1>
-        <p className="mt-3 text-sm text-slate-400">購物車是空的。</p>
+        <h1 className="text-3xl font-bold tracking-tight text-[#0a0a09]">結帳</h1>
+        <p className="mt-3 text-sm text-[#625f58]">購物車是空的。</p>
         <Link href={DEMO_STORE_PATH} className="mt-6 inline-block text-sm font-medium text-cyan-300 hover:text-cyan-200">
           返回商品
         </Link>
@@ -78,8 +78,8 @@ export function DemoCheckout() {
   return (
     <div className="mx-auto grid max-w-5xl gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:px-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">結帳</h1>
-        <p className="mt-2 text-sm leading-6 text-slate-400">
+        <h1 className="text-3xl font-bold tracking-tight text-[#0a0a09]">結帳</h1>
+        <p className="mt-2 text-sm leading-6 text-[#625f58]">
           示範店可以走到付款這一步。按下付款後不會建立 Stripe 付款，也不會寫入訂單。
         </p>
 
@@ -88,7 +88,7 @@ export function DemoCheckout() {
             <h2 className="font-semibold">1. 確認商品</h2>
             <ul className="mt-3 space-y-3">
               {items.map((item) => (
-                <li key={item.variantId} className="flex gap-3 rounded-2xl border border-white/10 bg-[#10182b] p-3">
+                <li key={item.variantId} className="flex gap-3 rounded-2xl border border-[#e6dfd2] bg-white p-3">
                   <div className="relative h-16 w-12 shrink-0 overflow-hidden rounded bg-muted">
                     {item.imageUrl && (
                       <Image src={item.imageUrl} alt="" fill className="object-contain p-1" unoptimized />

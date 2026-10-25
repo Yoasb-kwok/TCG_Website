@@ -23,5 +23,5 @@ export default async function DemoProductPage({ params }: PageProps) {
   const { slug } = await params;
   const product = getDemoProductBySlug(slug);
   if (!product) notFound();
-  return <ProductDetail product={product} catalogHref={DEMO_STORE_PATH} />;
+  return <ProductDetail product={product} catalogHref={DEMO_STORE_PATH} appearance="frame" />;
 }
