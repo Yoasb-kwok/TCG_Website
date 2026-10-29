@@ -8,17 +8,21 @@ export function StaffBoardLinks({
   tone = "theme",
   current,
 }: {
-  tone?: "theme" | "dark";
+  tone?: "theme" | "dark" | "pos";
   current?: "test" | "live";
 }) {
   const testClass =
-    tone === "dark"
-      ? "bg-white text-zinc-950"
-      : "border border-border bg-background text-foreground";
+    tone === "pos"
+      ? "border border-[#ded6cb] bg-white text-[#171514]"
+      : tone === "dark"
+        ? "bg-white text-zinc-950"
+        : "border border-border bg-background text-foreground";
   const liveClass =
-    tone === "dark"
-      ? "border border-white/50 bg-zinc-950 text-white"
-      : "bg-foreground text-background";
+    tone === "pos"
+      ? "bg-[#e84e9e] text-white"
+      : tone === "dark"
+        ? "border border-white/50 bg-zinc-950 text-white"
+        : "bg-foreground text-background";
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -39,11 +43,20 @@ export function StaffBoardLinks({
         className={cn(
           "inline-flex h-9 items-center rounded-full px-4 text-sm font-semibold",
           liveClass,
-          current === "live" && "ring-2 ring-pink-500",
+          current === "live" && tone !== "pos" && "ring-2 ring-pink-500",
         )}
       >
         {STAFF_BOARD_LINKS.live.label}
       </Link>
+      {tone === "pos" && (
+        <Link
+          href="/tournaments/live"
+          target="_blank"
+          className="inline-flex h-9 items-center rounded-full border border-[#ded6cb] bg-white px-4 text-sm font-semibold text-[#171514]"
+        >
+          公開計分板
+        </Link>
+      )}
     </div>
   );
 }

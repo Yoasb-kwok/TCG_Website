@@ -7,6 +7,7 @@ import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip, catalogHitManualName, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import styles from "@/components/pos/pos-sell.module.css";
+import { posBlackBtn, posChip, posGhostBtn, posInput, posKindLabel, posLavenderBtn, posPastel, posPinkBtn, posSub, posTitle } from "@/components/pos/pos-ui";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { DEMO_WRITE_DISCLAIMER, filterDemoCatalog } from "@/lib/demo-shop";
@@ -51,10 +52,7 @@ type LookupResponse = {
 const METHODS = Object.entries(PAYMENT_LABELS) as [PaymentMethod, string][];
 const KINDS = [{ value: "", label: "全部" }, ...PRODUCT_TYPES] as const;
 
-const fieldClass = cn(
-  styles.search,
-  "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground",
-);
+const fieldClass = cn(styles.search, posInput);
 
 function lineTotal(line: TicketLine) {
   return line.quantity * line.unitPrice;
@@ -453,21 +451,83 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
     await loadRecent();
   };
 
+  const openCamera = (code: string) => {
+    if (confirmOpen) return;
+    setQuery(code);
+    setScanNote(null);
+    setPage(1);
+    void scanCode(code);
+  };
+  const activeSales = recent.filter((sale) => !sale.voided);
+
   return (
     <PosShell current="register" demo={demo} sell>
       <div className="contents" onPointerDown={() => primePosAudio()} onKeyDown={() => primePosAudio()}>
-      <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[minmax(260px,340px)_minmax(0,1fr)_320px] lg:overflow-hidden">
-        <section className="flex min-h-[28rem] flex-col overflow-hidden rounded-[14px] border border-border bg-card p-4 lg:min-h-0">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-extrabold text-muted-foreground">揀貨</p>
-            <div className="flex items-center gap-2">
+      <div className="flex h-full min-h-0 flex-col gap-6 overflow-auto px-4 py-6 lg:px-16 lg:py-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className={posTitle}>收銀</h1>
+            <p className={posSub}>搜尋或掃描商品，建立店內銷售單據。</p>
+          </div>
+          <BarcodeScanButton
+            label="開啟掃描器"
+            className={cn(posBlackBtn, "w-[190px] border-0")}
+            disabled={confirmOpen}
+            onDetect={openCamera}
+          />
+        </div>
+
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_454px]">
+          <section className="flex min-w-0 flex-col gap-[18px]">
+            <div className="flex flex-wrap items-center gap-3">
+              <label className="min-w-[240px] flex-1" htmlFor="pos-scan">
+                <span className="sr-only">掃碼 / 搜尋</span>
+                <input
+                  id="pos-scan"
+                  ref={scanRef}
+                  autoFocus
+                  value={query}
+                  onChange={(event) => {
+                    setQuery(event.target.value);
+                    setScanNote(null);
+                    setPage(1);
+                  }}
+                  onKeyDown={(event) => {
+                    if (confirmOpen) return;
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void scanCode(query);
+                      return;
+                    }
+                    if (event.key === " " && query.trim() === "" && lines.length > 0) {
+                      event.preventDefault();
+                      openConfirm();
+                    }
+                  }}
+                  placeholder="搜尋商品名稱、卡號或條碼"
+                  className={fieldClass}
+                />
+              </label>
+              <BarcodeScanButton
+                label="掃描條碼"
+                className={cn(posLavenderBtn, "w-[160px] border-0")}
+                disabled={confirmOpen}
+                onDetect={openCamera}
+              />
               <button
                 type="button"
-                className={cn(
-                  styles.chip,
-                  "inline-flex h-8 items-center gap-1 rounded-full border px-3 text-sm font-bold",
-                  soundOn && styles.on,
-                )}
+                aria-pressed={inStockOnly}
+                onClick={() => {
+                  setInStockOnly((current) => !current);
+                  setPage(1);
+                }}
+                className={posChip(inStockOnly)}
+              >
+                僅顯示有庫存
+              </button>
+              <button
+                type="button"
+                className={cn(styles.chip, posChip(soundOn), "gap-1")}
                 aria-pressed={soundOn}
                 data-sound={soundOn ? "on" : "off"}
                 onClick={toggleSound}
@@ -475,249 +535,180 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                 {soundOn ? <Volume2 className="size-4" aria-hidden /> : <VolumeX className="size-4" aria-hidden />}
                 掃碼有聲
               </button>
-              <p className="text-xs font-bold text-muted-foreground">撳一下就加入</p>
             </div>
-          </div>
-          <div className="mt-3">
-            <label className="block text-xs font-bold text-muted-foreground" htmlFor="pos-scan">
-              掃碼 / 搜尋
-            </label>
-            <div className="mt-1 flex gap-2">
-              <input
-                id="pos-scan"
-                ref={scanRef}
-                autoFocus
-                value={query}
-                onChange={(event) => {
-                  setQuery(event.target.value);
-                  setScanNote(null);
-                  setPage(1);
-                }}
-                onKeyDown={(event) => {
-                  if (confirmOpen) return;
-                  if (event.key === "Enter") {
-                    event.preventDefault();
-                    void scanCode(query);
-                    return;
-                  }
-                  if (event.key === " " && query.trim() === "" && lines.length > 0) {
-                    event.preventDefault();
-                    openConfirm();
-                  }
-                }}
-                placeholder="條碼 / 卡名、卡號（083/101）、系列或 SKU"
-                className={cn(fieldClass, "h-11 min-w-0 flex-1")}
-              />
-              <BarcodeScanButton
-                className={cn(styles.pop, "border")}
-                disabled={confirmOpen}
-                onDetect={(code) => {
-                  if (confirmOpen) return;
-                  setQuery(code);
-                  setScanNote(null);
-                  setPage(1);
-                  void scanCode(code);
-                }}
-              />
-            </div>
-          </div>
-          <p className="mt-1 text-xs font-bold text-muted-foreground">
-            掃碼槍按 Enter，或者撳掃描用相機。名稱可以打完再喺下面揀。
-          </p>
-          {scanNote && (
-            <p className={cn("mt-1 text-sm font-extrabold", scanNote.tone === "ok" ? "text-emerald-400" : "text-amber-300")} role="status">
-              {scanNote.text}
-            </p>
-          )}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {KINDS.map((item) => (
-              <button
-                key={item.value || "all"}
-                type="button"
-                onClick={() => {
-                  setKind(item.value);
-                  setPage(1);
-                }}
-                className={cn(
-                  styles.chip,
-                  "h-8 rounded-full border px-3 text-sm font-bold",
-                  kind === item.value && styles.on,
-                )}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <label className="mt-3 flex items-center gap-2 text-sm font-bold text-muted-foreground">
-            <input
-              type="checkbox"
-              checked={inStockOnly}
-              onChange={(event) => {
-                setInStockOnly(event.target.checked);
-                setPage(1);
-              }}
-              className="size-4 accent-pink-500"
-            />
-            淨係有貨
-          </label>
-          {searching && (
-            <p className="mt-1 text-xs font-bold text-muted-foreground">搜尋會一併列出缺貨商品</p>
-          )}
-          <p className="mt-1 text-xs font-bold text-muted-foreground">
-            {searching ? `找到 ${shelfCount} 件` : `顯示 ${shelf.length} / ${shelfCount}`}
-            {searching && shelfCatalogTotal > 0 ? `，卡表 ${shelfCatalogTotal} 張` : ""}
-            {!shelfComplete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
-          </p>
-          {searching && (
-            <CatalogHitStrip
-              cards={shelfCatalog}
-              total={shelfCatalogTotal}
-              hint="撳一下把官方卡名填到手動貨品，售價要自己輸入。"
-              onPick={(card) => {
-                playPosCue("ok");
-                setManual((current) => ({ ...current, name: catalogHitManualName(card) }));
-                setScanNote({
-                  tone: "warn",
-                  text: `卡表：${catalogHitName(card)}（${card.setCode} ${card.collectorNumber}）。未有上架 SKU，請輸入售價後加入。`,
-                });
-              }}
-              className="mt-3 mb-0"
-            />
-          )}
-          <ul className="mt-3 grid min-h-0 flex-1 grid-cols-2 content-start gap-2 overflow-y-auto pr-1">
-            {shelf.map((product) => {
-              const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
-              const image = product.images[0];
-              const stock = product.variants.reduce((sum, item) => sum + item.stock, 0);
-              return (
-                <li key={product.id}>
-                  <button
-                    type="button"
-                    onClick={() => addProduct(product)}
-                    data-added={addedId === product.id ? "true" : undefined}
-                    data-oos={stock <= 0 ? "true" : undefined}
-                    className={cn(
-                      styles.tile,
-                      "flex h-full w-full flex-col rounded-[10px] border border-border bg-card p-2 text-left",
-                      stock <= 0 && styles.oos,
-                      addedId === product.id && styles.added,
-                    )}
-                  >
-                    <span className="relative flex h-24 items-center justify-center overflow-hidden rounded-lg bg-muted">
-                      {image ? (
-                        <Image src={image.url} alt="" fill className="object-contain p-1" sizes="140px" unoptimized />
-                      ) : (
-                        <span className="text-xs font-bold text-muted-foreground">無圖</span>
-                      )}
-                    </span>
-                    <span className="mt-2 line-clamp-2 text-sm font-extrabold leading-snug">{product.name}</span>
-                    {(product.setCode || product.cardNumber) && (
-                      <span className="text-xs font-bold text-muted-foreground">
-                        {[product.setCode, product.cardNumber].filter(Boolean).join(" · ")}
-                      </span>
-                    )}
-                    {variant?.barcode && (
-                      <span className="text-[11px] font-bold text-muted-foreground">{variant.barcode}</span>
-                    )}
-                    <span className="mt-auto pt-1 text-sm font-extrabold text-pink-400">
-                      {variant && variant.price > 0 ? formatPrice(variant.price) : "未定價"}
-                    </span>
-                    <span className="text-xs font-bold text-muted-foreground">
-                      {stock > 0 ? `存 ${stock}` : "缺貨"}
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-            {shelf.length === 0 && (
-              <li className="col-span-2 px-2 py-8 text-center text-sm font-bold text-muted-foreground">
-                找不到貨品，可以用下面手動加一項。
-              </li>
+            <p className="text-[13px] text-[#706c68]">掃碼槍按 Enter。搜尋時會一併列出缺貨商品。撳商品卡加入購物車。</p>
+            {scanNote && (
+              <p className={cn("text-[14px] font-bold", scanNote.tone === "ok" ? "text-[#3f6b16]" : "text-[#9a5b12]")} role="status">
+                {scanNote.text}
+              </p>
             )}
-          </ul>
-          {!needsFullList && !shelfComplete && (
-            <button
-              type="button"
-              onClick={() => setPage((current) => current + 1)}
-              className={cn(styles.pop, "mt-2 h-9 rounded-xl border text-sm font-bold")}
-            >
-              載入更多
-            </button>
-          )}
-          <form
-            className="mt-3 grid gap-2 border-t border-border pt-3"
-            onSubmit={(event) => {
-              event.preventDefault();
-              addManual();
-            }}
-          >
-            <input
-              value={manual.name}
-              onChange={(event) => setManual({ ...manual, name: event.target.value })}
-              placeholder="手動貨品名稱"
-              className={fieldClass}
-            />
-            <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-              <input
-                inputMode="decimal"
-                value={manual.unitPrice}
-                onChange={(event) => setManual({ ...manual, unitPrice: event.target.value })}
-                placeholder="售價"
-                aria-label="售價"
-                className={fieldClass}
-              />
-              <button
-                type="submit"
-                className={cn(styles.pop, "h-10 rounded-xl border px-3 text-sm font-extrabold")}
-              >
-                加入
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {KINDS.map((item) => (
+                <button
+                  key={item.value || "all"}
+                  type="button"
+                  onClick={() => {
+                    setKind(item.value);
+                    setPage(1);
+                  }}
+                  className={cn(styles.chip, posChip(kind === item.value), kind === item.value && styles.on)}
+                >
+                  {posKindLabel(item.value, item.label)}
+                </button>
+              ))}
             </div>
-          </form>
-        </section>
-
-        <section className="flex min-h-[24rem] flex-col overflow-hidden lg:min-h-0">
-          <div className="flex items-end justify-between gap-3">
-            <h2 className="text-xl font-extrabold">購物車</h2>
-            <p className="text-sm font-bold text-muted-foreground">{itemCount} 件</p>
-          </div>
-          <div className="mt-3 min-h-0 flex-1 overflow-y-auto">
-            {lines.length === 0 ? (
-              <div className="rounded-[14px] border border-dashed border-border px-4 py-12 text-center">
-                <p className="text-lg font-extrabold">喺左邊撳貨</p>
-                <p className="mt-2 text-sm font-bold text-muted-foreground">揀分類，撳一下就加入購物車。冇貨品資料可以手動加。</p>
+            <p className="text-[13px] text-[#706c68]">
+              {searching ? `找到 ${shelfCount} 件` : `顯示 ${shelf.length} / ${shelfCount}`}
+              {searching && shelfCatalogTotal > 0 ? `，卡表 ${shelfCatalogTotal} 張` : ""}
+              {!shelfComplete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
+            </p>
+            {searching && (
+              <CatalogHitStrip
+                cards={shelfCatalog}
+                total={shelfCatalogTotal}
+                hint="撳一下把官方卡名填到手動貨品，售價要自己輸入。"
+                onPick={(card) => {
+                  playPosCue("ok");
+                  setManual((current) => ({ ...current, name: catalogHitManualName(card) }));
+                  setScanNote({
+                    tone: "warn",
+                    text: `卡表：${catalogHitName(card)}（${card.setCode} ${card.collectorNumber}）。未有上架 SKU，請輸入售價後加入。`,
+                  });
+                }}
+                className="mb-0"
+              />
+            )}
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {shelf.map((product, index) => {
+                const variant = product.variants.find((item) => item.stock > 0) ?? product.variants[0];
+                const image = product.images[0];
+                const stock = product.variants.reduce((sum, item) => sum + item.stock, 0);
+                const meta = [
+                  product.setCode,
+                  product.rarityTier || product.rarity || product.cardNumber,
+                  `庫存 ${stock}`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ");
+                return (
+                  <li key={product.id}>
+                    <button
+                      type="button"
+                      onClick={() => addProduct(product)}
+                      data-added={addedId === product.id ? "true" : undefined}
+                      data-oos={stock <= 0 ? "true" : undefined}
+                      className={cn(
+                        styles.tile,
+                        "flex h-full w-full flex-col gap-2 rounded-[20px] border border-[rgba(222,214,203,0.7)] p-4 text-left shadow-[0_10px_14px_rgba(74,44,22,0.1)]",
+                        stock <= 0 && styles.oos,
+                        addedId === product.id && styles.added,
+                      )}
+                      style={{ backgroundColor: posPastel(index) }}
+                    >
+                      <span className="relative flex h-[118px] items-center justify-center overflow-hidden rounded-[14px] bg-[#faf8f3]">
+                        {image ? (
+                          <Image src={image.url} alt="" fill className="object-contain p-2" sizes="236px" unoptimized />
+                        ) : (
+                          <span className="text-[26px] font-bold text-[#706c68]">TCG</span>
+                        )}
+                      </span>
+                      <span className="line-clamp-2 text-[15px] font-bold text-[#171514]">{product.name}</span>
+                      <span className="text-[13px] text-[#706c68]">{meta}</span>
+                      <span className="text-[18px] font-bold text-[#171514]">
+                        {variant && variant.price > 0 ? formatPrice(variant.price) : "未定價"}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+              {shelf.length === 0 && (
+                <li className="px-2 py-8 text-[14px] text-[#706c68] sm:col-span-2 xl:col-span-3">
+                  找不到貨品，可以用下面手動加一項。
+                </li>
+              )}
+            </ul>
+            {!needsFullList && !shelfComplete && (
+              <button type="button" onClick={() => setPage((current) => current + 1)} className={posGhostBtn}>
+                載入更多
+              </button>
+            )}
+            <form
+              className="flex flex-col gap-3 rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 shadow-[0_10px_14px_rgba(74,44,22,0.1)]"
+              onSubmit={(event) => {
+                event.preventDefault();
+                addManual();
+              }}
+            >
+              <p className="text-[20px] font-bold text-[#171514]">手動項目</p>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="min-w-[220px] flex-1">
+                  <span className="mb-1.5 block text-[13px] font-bold">項目名稱</span>
+                  <input
+                    value={manual.name}
+                    onChange={(event) => setManual({ ...manual, name: event.target.value })}
+                    placeholder="輸入名稱"
+                    className={fieldClass}
+                  />
+                </label>
+                <label className="w-[180px]">
+                  <span className="mb-1.5 block text-[13px] font-bold">金額</span>
+                  <input
+                    inputMode="decimal"
+                    value={manual.unitPrice}
+                    onChange={(event) => setManual({ ...manual, unitPrice: event.target.value })}
+                    placeholder="HK$ 0"
+                    aria-label="金額"
+                    className={fieldClass}
+                  />
+                </label>
+                <button type="submit" className={cn(styles.pop, posBlackBtn, "w-[150px] border-0")}>
+                  加入
+                </button>
               </div>
+            </form>
+          </section>
+
+          <aside className="flex flex-col gap-3.5 rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-[22px] shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+            <div className="flex items-start justify-between">
+              <h2 className="text-[25px] font-bold text-[#171514]">購物車</h2>
+              <span className="inline-flex items-center rounded-full bg-[#090909] px-3.5 py-2 text-[14px] font-bold text-white">
+                {itemCount} 件
+              </span>
+            </div>
+            {lines.length === 0 ? (
+              <p className="rounded-[12px] bg-[#faf8f3] px-3 py-6 text-center text-[14px] text-[#706c68]">
+                撳左邊商品加入購物車。沒有貨品資料可以手動加。
+              </p>
             ) : (
-              <ul className="space-y-2">
+              <ul className="flex flex-col gap-2">
                 {lines.map((line) => (
-                  <li key={line.key} className="rounded-[14px] border border-border bg-card p-3">
-                    <div className="flex items-start gap-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-extrabold">{line.name}</p>
-                        {line.sku && <p className="text-xs font-bold text-muted-foreground">{line.sku}</p>}
-                        {line.barcode && <p className="text-xs font-bold text-muted-foreground">條碼 {line.barcode}</p>}
-                      </div>
-                      <p className="shrink-0 whitespace-nowrap text-right font-extrabold tabular-nums">{formatPrice(lineTotal(line))}</p>
+                  <li key={line.key} className="rounded-[12px] bg-[#faf8f3] p-3">
+                    <div className="flex items-start justify-between gap-3 text-[15px] font-bold text-[#171514]">
+                      <p className="min-w-0">
+                        {line.name}
+                        {line.quantity > 1 ? ` × ${line.quantity}` : ""}
+                      </p>
+                      <p className="shrink-0 tabular-nums">{formatPrice(lineTotal(line))}</p>
                     </div>
-                    <div className="mt-2 flex flex-wrap items-end gap-2">
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
                         aria-label={`減少 ${line.name}`}
                         onClick={() => patchLine(line.key, { quantity: Math.max(1, line.quantity - 1) })}
-                        className={cn(styles.pop, "flex size-9 items-center justify-center rounded-full border text-lg font-extrabold")}
+                        className={cn(styles.pop, "flex size-8 items-center justify-center rounded-full border border-[#ded6cb] text-[16px] font-bold")}
                       >
                         −
                       </button>
-                      <span className="flex h-9 w-8 items-center justify-center font-extrabold tabular-nums">{line.quantity}</span>
+                      <span className="w-6 text-center text-[14px] font-bold tabular-nums">{line.quantity}</span>
                       <button
                         type="button"
                         aria-label={`增加 ${line.name}`}
                         onClick={() => patchLine(line.key, { quantity: line.quantity + 1 })}
-                        className={cn(styles.pop, "flex size-9 items-center justify-center rounded-full border text-lg font-extrabold")}
+                        className={cn(styles.pop, "flex size-8 items-center justify-center rounded-full border border-[#ded6cb] text-[16px] font-bold")}
                       >
                         +
                       </button>
-                      <label className="ml-1 w-24 shrink-0 text-xs font-bold text-muted-foreground">
+                      <label className="ml-1 text-[12px] font-bold text-[#706c68]">
                         售價
                         <input
                           type="number"
@@ -727,12 +718,12 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                           onChange={(event) =>
                             patchLine(line.key, { unitPrice: Math.max(0, Number(event.target.value) || 0) })
                           }
-                          className={cn(styles.search, "mt-1 h-9 w-full rounded-xl border border-border bg-background px-2 text-right text-sm font-extrabold tabular-nums text-foreground outline-none")}
+                          className={cn(styles.search, "mt-1 h-8 w-20 rounded-[10px] border border-[#ded6cb] bg-white px-2 text-right text-[14px] font-bold text-[#171514] outline-none")}
                         />
                       </label>
                       <button
                         type="button"
-                        className={cn(styles.pop, styles.danger, "ml-auto inline-flex h-9 items-center rounded-lg border px-3 text-xs font-bold")}
+                        className="ml-auto text-[12px] font-bold text-[#9a3412]"
                         onClick={() => setLines((current) => current.filter((item) => item.key !== line.key))}
                       >
                         刪走
@@ -742,150 +733,141 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                 ))}
               </ul>
             )}
-
-            <div className="mt-4">
-              <div className="flex items-end justify-between">
-                <h3 className="font-extrabold">今日單據</h3>
-                <p className="text-sm font-extrabold tabular-nums">{formatPrice(todayTotal)}</p>
-              </div>
-              <ul className="mt-2 space-y-2">
-                {recent.length === 0 && <li className="text-sm font-bold text-muted-foreground">未有銷售</li>}
-                {recent.map((sale) => (
-                  <li key={sale.id} className="flex items-start justify-between gap-2 text-sm">
-                    <div className={sale.voided ? "font-bold text-muted-foreground line-through" : ""}>
-                      <p className="font-extrabold">
-                        {PAYMENT_LABELS[sale.paymentMethod]} · {formatPrice(saleAmount(sale))}
-                      </p>
-                      <p className="font-bold text-muted-foreground">{sale.items.map((item) => item.name).join("、")}</p>
-                    </div>
-                    {!sale.voided && (
-                      <button
-                        type="button"
-                        className={cn(styles.pop, styles.danger, "inline-flex h-8 shrink-0 items-center rounded-lg border px-3 text-xs font-bold")}
-                        onClick={() => voidTicket(sale.id)}
-                      >
-                        作廢
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-          <div className="rounded-[14px] border border-border bg-card p-4">
-            <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
-              <span>小計</span>
-              <span className="tabular-nums">{formatPrice(subtotal)}</span>
-            </div>
-            <label className="mt-3 block text-xs font-bold text-muted-foreground">
-              整單折扣
+            <label className="block">
+              <span className="mb-1.5 block text-[13px] font-bold">折扣</span>
               <input
                 type="number"
                 min={0}
                 value={discount}
                 onChange={(event) => setDiscount(Math.max(0, Number(event.target.value) || 0))}
-                className={cn(fieldClass, "mt-1")}
+                placeholder="HK$ 0"
+                className={fieldClass}
               />
             </label>
             <input
               value={note}
               onChange={(event) => setNote(event.target.value)}
               placeholder="備註，可以留空"
-              className={cn(fieldClass, "mt-2")}
+              aria-label="備註"
+              className={fieldClass}
             />
-            <p className="mt-4 text-sm font-bold text-muted-foreground">應收</p>
-            <p className="text-right text-4xl font-extrabold tabular-nums">{formatPrice(total)}</p>
+            <div className="h-px bg-[#ded6cb]" />
+            <div className="flex items-center justify-between text-[14px]">
+              <span className="text-[#706c68]">小計</span>
+              <span className="font-bold tabular-nums">{formatPrice(subtotal)}</span>
+            </div>
+            <div className="flex items-center justify-between text-[14px]">
+              <span className="text-[#706c68]">折扣</span>
+              <span className="font-bold tabular-nums">{formatPrice(discount)}</span>
+            </div>
+            <div className="flex items-center justify-between font-bold">
+              <span className="text-[18px]">應付金額</span>
+              <span className="text-[24px] tabular-nums">{formatPrice(total)}</span>
+            </div>
             <button
               type="button"
               disabled={pending || lines.length === 0}
               onClick={openConfirm}
-              className={cn(styles.key, "mt-3 h-[72px] w-full rounded-[14px] text-lg font-extrabold")}
+              className={cn(styles.key, posPinkBtn, "w-full")}
             >
-              {pending ? "入帳中…" : `收款 ${formatPrice(total)}`}
+              {pending ? "入帳中…" : "收款"}
             </button>
-            <p className="mt-2 text-center text-xs font-bold text-muted-foreground">
+            <p className="text-center text-[12px] text-[#706c68]">
               {demo ? DEMO_WRITE_DISCLAIMER : "按收款後先揀付款方式同確認金額"}
             </p>
             <button
               type="button"
               onClick={clearTicket}
               disabled={lines.length === 0 && discount === 0 && note === ""}
-              className={cn(styles.pop, "mt-2 h-11 w-full rounded-[10px] border text-sm font-extrabold")}
+              className={cn(styles.pop, posGhostBtn, "w-full")}
             >
-              清除
+              清空購物車
             </button>
-          </div>
-        </aside>
+            <div className="rounded-[14px] bg-[#ddeb9f] p-3.5 text-[#171514]">
+              <p className="text-[14px] font-bold">今日收據</p>
+              <p className="mt-1 text-[20px] font-bold">
+                {activeSales.length} 張 · {formatPrice(todayTotal)}
+              </p>
+            </div>
+            {recent.length > 0 && (
+              <ul className="space-y-2">
+                {recent.map((sale) => (
+                  <li key={sale.id} className="flex items-start justify-between gap-2 text-[13px]">
+                    <div className={sale.voided ? "text-[#706c68] line-through" : "text-[#171514]"}>
+                      <p className="font-bold">
+                        {PAYMENT_LABELS[sale.paymentMethod]} · {formatPrice(saleAmount(sale))}
+                      </p>
+                      <p className="text-[#706c68]">{sale.items.map((item) => item.name).join("、")}</p>
+                    </div>
+                    {!sale.voided && (
+                      <button type="button" className="shrink-0 font-bold text-[#9a3412]" onClick={() => voidTicket(sale.id)}>
+                        作廢
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </aside>
+        </div>
       </div>
       {confirmOpen && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/75 p-4 sm:items-center" role="presentation">
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-4 sm:items-center" role="presentation">
           <form
             role="dialog"
             aria-modal="true"
             aria-labelledby="pos-pay-title"
-            className="w-full max-w-xl rounded-[18px] border-2 border-pink-500 bg-card p-5 shadow-2xl"
+            className="w-full max-w-xl rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 text-[#171514] shadow-[0_10px_14px_rgba(74,44,22,0.1)]"
             onSubmit={(event) => {
               event.preventDefault();
               void checkout();
             }}
           >
-            <p className="text-sm font-extrabold text-pink-300">確認收款</p>
-            <h2 id="pos-pay-title" className="mt-1 text-lg font-extrabold">
+            <p className="text-[14px] font-bold text-[#e84e9e]">確認收款</p>
+            <h2 id="pos-pay-title" className="mt-1 text-[20px] font-bold">
               揀付款方式，核對金額後先入帳
             </h2>
-            <p className="mt-4 text-sm font-bold text-muted-foreground">應收</p>
-            <p className="text-5xl font-extrabold tabular-nums">{formatPrice(total)}</p>
-            <p className="mt-4 text-sm font-bold text-muted-foreground">付款方式</p>
+            <p className="mt-4 text-[14px] text-[#706c68]">應收</p>
+            <p className="text-[40px] font-bold tabular-nums">{formatPrice(total)}</p>
+            <p className="mt-4 text-[14px] text-[#706c68]">付款方式</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {METHODS.map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
                   onClick={() => setMethod(value)}
-                  className={cn(
-                    styles.chip,
-                    "h-12 rounded-xl border text-base font-extrabold",
-                    method === value && styles.on,
-                  )}
+                  className={cn(styles.chip, posChip(method === value), "h-12 justify-center text-[15px]", method === value && styles.on)}
                 >
                   {label}
                 </button>
               ))}
             </div>
-            <label className="mt-4 block text-sm font-bold text-muted-foreground" htmlFor="pos-tendered">
+            <label className="mt-4 block text-[14px] font-bold" htmlFor="pos-tendered">
               實收（留空即確認應收）
               <input
                 id="pos-tendered"
                 inputMode="decimal"
                 value={tendered}
                 onChange={(event) => setTendered(event.target.value)}
-                className={cn(fieldClass, "mt-1 text-lg font-extrabold")}
+                className={cn(fieldClass, "mt-1 text-[18px] font-bold")}
               />
             </label>
             {method === "CASH" && tenderedOk && changeDue > 0 && (
-              <p className="mt-2 text-sm font-extrabold text-emerald-400">找續 {formatMoney(changeDue)}</p>
+              <p className="mt-2 text-[14px] font-bold text-[#3f6b16]">找續 {formatMoney(changeDue)}</p>
             )}
-            {!tenderedOk && <p className="mt-2 text-sm font-bold text-red-400">實收少過應收</p>}
-            {error && <p className="mt-2 text-sm font-bold text-red-400">{error}</p>}
+            {!tenderedOk && <p className="mt-2 text-[14px] font-bold text-[#9a3412]">實收少過應收</p>}
+            {error && <p className="mt-2 text-[14px] font-bold text-[#9a3412]">{error}</p>}
             <button
               id="pos-confirm-pay"
               type="submit"
               autoFocus
               disabled={pending || !tenderedOk || lines.length === 0}
-              className={cn(styles.key, "mt-4 h-[72px] w-full rounded-[14px] text-xl font-extrabold")}
+              className={cn(styles.key, posPinkBtn, "mt-4 h-14 w-full text-[18px]")}
             >
               {pending ? "入帳中…" : `確認收款 ${formatPrice(total)}`}
             </button>
-            <p className="mt-2 text-center text-xs font-bold text-muted-foreground">空格鍵確認 · Esc 返回</p>
-            <button
-              type="button"
-              onClick={closeConfirm}
-              disabled={pending}
-              className={cn(styles.pop, "mt-2 h-11 w-full rounded-[10px] border text-sm font-extrabold")}
-            >
+            <p className="mt-2 text-center text-[12px] text-[#706c68]">空格鍵確認 · Esc 返回</p>
+            <button type="button" onClick={closeConfirm} disabled={pending} className={cn(styles.pop, posGhostBtn, "mt-2 w-full")}>
               返回
             </button>
           </form>

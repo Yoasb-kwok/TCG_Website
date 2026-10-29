@@ -5,19 +5,29 @@ import { useEffect, useState } from "react";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
+import {
+  posBlackBtn,
+  posChip,
+  posGhostBtn,
+  posInput,
+  posLavenderBtn,
+  posPastel,
+  posPinkBtn,
+  posSub,
+  posTitle,
+  posWhen,
+} from "@/components/pos/pos-ui";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
-import { formatDate, formatPrice, formatStaffMoney } from "@/lib/format";
+import { formatPrice, formatStaffMoney } from "@/lib/format";
 import { CatalogBuybackOffer } from "@/components/pos/catalog-buyback-offer";
 import { buybackDayTotal, buybackPriceCopy } from "@/lib/pos-buyback";
 import type { Buyback } from "@/lib/pos-shared";
 import type { CatalogSearchHit, ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { usePublicTaxonomy } from "@/hooks/use-public-taxonomy";
+import { SET_SERIES_CODES } from "@/lib/card-taxonomy";
 
-const fieldClass =
-  "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-pink-400";
-
-const dangerButton =
-  "inline-flex h-8 shrink-0 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20";
+const fieldClass = posInput;
 
 type Selection =
   | { kind: "variant"; product: ProductWithVariants; variantId: string }
@@ -41,7 +51,21 @@ function successCopy(data: BuybackResponse) {
 }
 
 export function PosBuyback() {
+  const { labelFor, options } = usePublicTaxonomy();
+  const taxonomySeries = options("SET_CODE").filter((item) => item.active);
+  const series = [
+    ...SET_SERIES_CODES.map((item) => {
+      const custom = taxonomySeries.find((entry) => entry.value === item.value);
+      return { value: item.value, label: custom?.label ?? item.label };
+    }),
+    ...taxonomySeries
+      .filter((item) => !SET_SERIES_CODES.some((entry) => entry.value === item.value))
+      .map((item) => ({ value: item.value, label: item.label })),
+  ];
   const [query, setQuery] = useState("");
+  const [setCode, setSetCode] = useState("");
+  const [rarity, setRarity] = useState("");
+  const [language, setLanguage] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [complete, setComplete] = useState(true);
@@ -95,15 +119,15 @@ export function PosBuyback() {
     const handle = window.setTimeout(() => {
       const run = async () => {
         const data = await fetchCatalogProducts(
-          { search: query },
-          searching ? { all: true } : { page, pageSize: 48 },
+          { search: query, setCodes: setCode ? [setCode] : undefined },
+          searching || setCode ? { all: true } : { page, pageSize: 48 },
         );
         if (cancelled) return;
-        setProducts((current) => (searching || page === 1 ? data.products : [...current, ...data.products]));
+        setProducts((current) => (searching || setCode || page === 1 ? data.products : [...current, ...data.products]));
         setCatalogCards(searching ? data.catalogCards : []);
         setCatalogTotal(searching ? data.catalogTotal : 0);
         setTotal(data.total);
-        setComplete(searching ? data.complete : page >= data.totalPages);
+        setComplete(searching || setCode ? data.complete : page >= data.totalPages);
       };
       run().catch(() => {
         if (cancelled) return;
@@ -118,7 +142,7 @@ export function PosBuyback() {
       cancelled = true;
       window.clearTimeout(handle);
     };
-  }, [query, searching, page, refreshKey]);
+  }, [query, searching, page, refreshKey, setCode]);
 
   const selectedProduct = selection?.kind === "variant" ? selection.product : null;
   const selectedVariant =
@@ -225,127 +249,246 @@ export function PosBuyback() {
     }
   };
 
-  const rows = products.flatMap((product) => product.variants.map((item) => ({ product, item })));
+  const matchesLanguage = (value: string) => {
+    if (!language) return true;
+    const text = value.toLowerCase();
+    if (language === "zh") return text.startsWith("zh") || text.includes("中");
+    if (language === "ja") return text.startsWith("ja") || text.includes("日");
+    return true;
+  };
+  const rarities = [...new Set(products.map((product) => product.rarityTier || product.rarity).filter(Boolean))] as string[];
+  const rows = products
+    .filter((product) => matchesLanguage(product.language))
+    .filter((product) => !rarity || (product.rarityTier || product.rarity) === rarity)
+    .flatMap((product) => product.variants.map((item) => ({ product, item })));
   const catalogCard = selection?.kind === "catalog" ? selection.card : null;
   const selectionName = selectedProduct?.name ?? (catalogCard ? catalogHitName(catalogCard) : "");
+  const activeBuys = buybacks.filter((row) => !row.voided);
 
   return (
     <PosShell current="buyback" storefrontNav>
-      <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[minmax(0,1fr)_22rem] lg:overflow-hidden">
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-[14px] border border-border bg-card p-3">
-          <div className="flex gap-2">
-            <input
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setPage(1);
-              }}
-              placeholder="條碼 / 卡名、卡號（083/101 或 M6a 001）、系列或 SKU"
-              aria-label="搜尋收卡"
-              className={cn(fieldClass, "h-11 min-w-0 flex-1")}
-            />
-            <BarcodeScanButton onDetect={(code) => void scanIntoBuyback(code)} />
+      <div className="flex h-full min-h-0 flex-col gap-6 overflow-auto px-4 py-6 lg:px-16 lg:py-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className={posTitle}>收卡</h1>
+            <p className={posSub}>搜尋卡牌、確認品相與收購價，完成店內收卡。</p>
           </div>
-          <p className="mt-2 text-xs font-bold text-muted-foreground">
-            {searching ? `找到 ${rows.length} 件已上架` : `顯示 ${products.length} / ${total}`}
-            {searching && !complete ? "（結果太多，請再縮小關鍵字）" : ""}
-          </p>
-          {searching && (
-            <CatalogHitStrip
-              cards={catalogCards}
-              total={catalogTotal}
-              hint="撳卡表可以直接收卡。未上架的卡會新建庫存，售價留空。"
-              onPick={chooseCatalog}
-              className="mt-3"
-            />
-          )}
-          <ul
-            className="mt-3 grid min-h-0 flex-1 content-start justify-start gap-2 overflow-auto pr-1"
-            style={{ gridTemplateColumns: "repeat(auto-fill, 7.25rem)" }}
-          >
-            {rows.map(({ product, item }) => {
-              const image = product.images[0];
-              const active = selection?.kind === "variant" && selection.variantId === item.id;
-              const label = product.variants.length > 1 ? `${product.name} · ${item.condition}` : product.name;
-              return (
-                <li key={item.id}>
-                  <button
-                    type="button"
-                    onClick={() => chooseVariant(product, item.id)}
-                    className={cn(
-                      "flex h-full w-[7.25rem] flex-col rounded-[10px] border bg-transparent p-1 text-left",
-                      active ? "border-pink-500" : "border-transparent hover:border-pink-400",
-                    )}
-                  >
-                    <span className="relative block aspect-[63/88] overflow-hidden rounded-md">
-                      {image ? (
-                        <Image src={image.url} alt="" fill className="object-cover" sizes="116px" unoptimized />
-                      ) : (
-                        <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-muted-foreground">
-                          無圖
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug">{label}</span>
-                    {product.cardNumber && (
-                      <span className="text-[10px] font-bold text-muted-foreground">
-                        {[product.setCode, product.cardNumber].filter(Boolean).join(" ")}
-                      </span>
-                    )}
-                    <span className="mt-auto pt-1 text-xs font-bold text-muted-foreground">
-                      存 {item.stock}
-                      {item.price > 0 ? ` · ${formatPrice(item.price)}` : " · 未定價"}
-                    </span>
-                    <CatalogBuybackOffer buybackPrice={item.buybackPrice} targetBuybackQty={item.targetBuybackQty} />
-                  </button>
-                </li>
-              );
-            })}
-            {rows.length === 0 && (
-              <li className="col-span-full px-2 py-8 text-center text-sm font-bold text-muted-foreground">
-                {searching ? "沒有已上架貨品。可以揀上面的卡表。" : "未有上架貨品。搜尋卡名或卡號就可以從卡表收卡。"}
-              </li>
-            )}
-          </ul>
-          {!searching && !complete && (
-            <button
-              type="button"
-              onClick={() => setPage((current) => current + 1)}
-              className="mt-2 h-9 rounded-xl border border-border text-sm font-bold text-muted-foreground hover:border-pink-400"
-            >
-              載入更多
-            </button>
-          )}
-        </section>
+          <BarcodeScanButton
+            label="開啟掃描器"
+            className={cn(posBlackBtn, "w-[160px] border-0")}
+            onDetect={(code) => void scanIntoBuyback(code)}
+          />
+        </div>
 
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-          <div className="rounded-[14px] border border-border bg-card p-4">
-            <h2 className="text-xl font-extrabold">收卡</h2>
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="flex min-w-0 flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="搜尋卡名、系列、卡號或條碼"
+                aria-label="搜尋收卡"
+                className={cn(fieldClass, "min-w-[240px] max-w-[520px] flex-1")}
+              />
+              <BarcodeScanButton label="掃描卡牌" className={cn(posLavenderBtn, "w-[140px] border-0")} onDetect={(code) => void scanIntoBuyback(code)} />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => { setSetCode(""); setPage(1); }} className={posChip(setCode === "")}>
+                全部系列
+              </button>
+              {series.slice(0, 8).map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  onClick={() => {
+                    setSetCode((current) => (current === item.value ? "" : item.value));
+                    setPage(1);
+                  }}
+                  className={posChip(setCode === item.value)}
+                >
+                  {item.label}
+                </button>
+              ))}
+              <button type="button" onClick={() => setRarity("")} className={posChip(rarity === "")}>
+                全部稀有度
+              </button>
+              {rarities.slice(0, 6).map((item) => (
+                <button key={item} type="button" onClick={() => setRarity((current) => (current === item ? "" : item))} className={posChip(rarity === item)}>
+                  {labelFor("RARITY", item)}
+                </button>
+              ))}
+              <button type="button" onClick={() => setLanguage((current) => (current === "zh" ? "" : "zh"))} className={posChip(language === "zh")}>
+                中文
+              </button>
+              <button type="button" onClick={() => setLanguage((current) => (current === "ja" ? "" : "ja"))} className={posChip(language === "ja")}>
+                日文
+              </button>
+            </div>
+            <p className="text-[13px] text-[#706c68]">
+              {searching ? `找到 ${rows.length} 件已上架` : `顯示 ${products.length} / ${total}`}
+              {searching && !complete ? "（結果太多，請再縮小關鍵字）" : ""}
+            </p>
+            {searching && (
+              <CatalogHitStrip
+                cards={catalogCards}
+                total={catalogTotal}
+                hint="撳卡表可以直接收卡。未上架的卡會新建庫存，售價留空。"
+                onPick={chooseCatalog}
+              />
+            )}
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+              {rows.map(({ product, item }, index) => {
+                const image = product.images[0];
+                const active = selection?.kind === "variant" && selection.variantId === item.id;
+                const offer = item.buybackPrice && item.buybackPrice > 0 ? `建議收購 ${formatPrice(item.buybackPrice)}` : "建議收購未設定";
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => chooseVariant(product, item.id)}
+                      className={cn(
+                        "flex h-full w-full flex-col gap-2 rounded-[20px] border p-4 text-left shadow-[0_10px_14px_rgba(74,44,22,0.1)]",
+                        active ? "border-[#171514]" : "border-[rgba(222,214,203,0.7)]",
+                      )}
+                      style={{ backgroundColor: posPastel(index) }}
+                    >
+                      <span className="relative flex h-[118px] items-center justify-center overflow-hidden rounded-[14px] bg-[#faf8f3]">
+                        {image ? (
+                          <Image src={image.url} alt="" fill className="object-contain p-2" sizes="236px" unoptimized />
+                        ) : (
+                          <span className="text-[26px] font-bold text-[#706c68]">TCG</span>
+                        )}
+                      </span>
+                      <span className="line-clamp-2 text-[15px] font-bold">{product.name}</span>
+                      <span className="text-[13px] text-[#706c68]">
+                        {[product.setCode, product.cardNumber, item.condition].filter(Boolean).join(" · ")}
+                      </span>
+                      <span className="text-[15px] font-bold">{offer}</span>
+                    </button>
+                  </li>
+                );
+              })}
+              {rows.length === 0 && (
+                <li className="text-[14px] text-[#706c68] sm:col-span-2 xl:col-span-3">
+                  {searching ? "沒有已上架貨品。可以揀上面的卡表。" : "未有上架貨品。搜尋卡名或卡號就可以從卡表收卡。"}
+                </li>
+              )}
+            </ul>
+            {!searching && !setCode && !complete && (
+              <button type="button" onClick={() => setPage((current) => current + 1)} className={posGhostBtn}>
+                載入更多
+              </button>
+            )}
+
+            <div className="overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+              <div className="flex items-baseline justify-between px-4 py-3">
+                <h2 className="text-[18px] font-bold">今日收卡紀錄</h2>
+                <p className="text-[14px] font-bold text-[#3f6b16]">
+                  {activeBuys.reduce((sum, row) => sum + row.quantity, 0)} 張 · {formatStaffMoney(buybackDayTotal(buybacks))}
+                </p>
+              </div>
+              <table className="w-full text-left text-[14px]">
+                <thead className="bg-[#faf8f3] text-[13px] text-[#706c68]">
+                  <tr>
+                    <th className="px-4 py-2 font-bold">時間</th>
+                    <th className="px-4 py-2 font-bold">卡牌</th>
+                    <th className="px-4 py-2 font-bold">品相</th>
+                    <th className="px-4 py-2 font-bold">收購價</th>
+                    <th className="px-4 py-2 font-bold" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {buybacks.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-6 text-[#706c68]">今日未有收卡</td>
+                    </tr>
+                  )}
+                  {buybacks.map((row) => (
+                    <tr key={row.id} className="border-t border-[#ded6cb]">
+                      <td className="px-4 py-3 text-[#706c68]">{posWhen(row.createdAt)}</td>
+                      <td className={cn("px-4 py-3 font-bold", row.voided && "text-[#706c68] line-through")}>{row.name}</td>
+                      <td className="px-4 py-3 text-[#706c68]">{row.note || "—"}</td>
+                      <td className="px-4 py-3 font-bold">{buybackPriceCopy(row)}</td>
+                      <td className="px-4 py-3 text-right">
+                        {!row.voided && (
+                          <button type="button" className="font-bold text-[#9a3412]" onClick={() => void undo(row.id)}>
+                            撤銷
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <aside className="rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+            <h2 className="text-[22px] font-bold">收卡明細</h2>
             {selection ? (
-              <div className="mt-3 space-y-3">
-                <p className="font-extrabold">{selectionName}</p>
+              <div className="mt-4 flex flex-col gap-3">
+                <div className="flex h-[140px] items-center justify-center rounded-[16px] bg-[#e8dfff] text-[18px] font-bold text-[#706c68]">
+                  {selectedProduct?.images[0] ? (
+                    <span className="relative block h-full w-full">
+                      <Image src={selectedProduct.images[0].url} alt="" fill className="object-contain p-4" sizes="320px" unoptimized />
+                    </span>
+                  ) : (
+                    "CARD PREVIEW"
+                  )}
+                </div>
+                <div>
+                  <p className="text-[18px] font-bold">{selectionName}</p>
+                  <p className="text-[13px] text-[#706c68]">
+                    {selectedProduct
+                      ? [selectedProduct.setCode, selectedProduct.cardNumber].filter(Boolean).join(" · ")
+                      : catalogCard
+                        ? [catalogCard.setCode, catalogCard.collectorNumber].filter(Boolean).join(" ")
+                        : ""}
+                  </p>
+                </div>
+                {selectedProduct && selectedVariant && (
+                  <label className="block text-[13px] font-bold">
+                    品相
+                    <select
+                      value={selectedVariant.id}
+                      onChange={(event) => chooseVariant(selectedProduct, event.target.value)}
+                      className={cn(fieldClass, "mt-1.5")}
+                    >
+                      {selectedProduct.variants.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.condition}
+                          {item.isFoil ? " · 閃" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
                 {selectedVariant && (
-                  <div className="space-y-1">
-                    <p className="text-xs font-bold text-muted-foreground">
-                      {selectedVariant.condition}
-                      {selectedVariant.isFoil ? " · 閃" : ""} · 現有庫存 {selectedVariant.stock}
-                      {selectedVariant.price > 0 ? ` · 售價 ${formatPrice(selectedVariant.price)}` : " · 未定價"}
-                    </p>
-                    <CatalogBuybackOffer
-                      variant="panel"
-                      buybackPrice={selectedVariant.buybackPrice}
-                      targetBuybackQty={selectedVariant.targetBuybackQty}
-                    />
-                  </div>
+                  <CatalogBuybackOffer
+                    variant="panel"
+                    buybackPrice={selectedVariant.buybackPrice}
+                    targetBuybackQty={selectedVariant.targetBuybackQty}
+                  />
                 )}
                 {catalogCard && (
-                  <p className="text-xs font-bold text-muted-foreground">
-                    {[catalogCard.setCode, catalogCard.collectorNumber].filter(Boolean).join(" ")}
-                    。如果店內已有這張卡，庫存會加到 Near Mint。要指定品相，請直接揀已上架的貨。
+                  <p className="text-[13px] text-[#706c68]">
+                    如果店內已有這張卡，庫存會加到 Near Mint。要指定品相，請直接揀已上架的貨。
                   </p>
                 )}
-                <p className="text-xs font-bold text-muted-foreground">收取價錢是店方付給客人的成本，不會改現有售價。</p>
-                <label className="block text-xs font-bold text-muted-foreground">
+                <label className="block text-[13px] font-bold">
+                  收購價
+                  <input
+                    inputMode="decimal"
+                    value={unitBuyPrice}
+                    onChange={(event) => setUnitBuyPrice(event.target.value)}
+                    placeholder="HK$0"
+                    className={cn(fieldClass, "mt-1.5")}
+                  />
+                </label>
+                <label className="block text-[13px] font-bold">
                   數量
                   <input
                     type="number"
@@ -353,122 +496,61 @@ export function PosBuyback() {
                     max={999}
                     value={quantity}
                     onChange={(event) => setQuantity(event.target.value)}
-                    className={cn(fieldClass, "mt-1")}
+                    className={cn(fieldClass, "mt-1.5")}
                   />
                 </label>
-                <label className="block text-xs font-bold text-muted-foreground">
-                  收取價錢（HKD）
-                  <input
-                    inputMode="decimal"
-                    value={unitBuyPrice}
-                    onChange={(event) => setUnitBuyPrice(event.target.value)}
-                    placeholder="每張收取價錢"
-                    className={cn(fieldClass, "mt-1")}
-                  />
-                </label>
-                <label className="block text-xs font-bold text-muted-foreground">
+                <label className="block text-[13px] font-bold">
                   客人姓名（可留空）
-                  <input
-                    value={customerName}
-                    onChange={(event) => setCustomerName(event.target.value)}
-                    className={cn(fieldClass, "mt-1")}
-                  />
+                  <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} className={cn(fieldClass, "mt-1.5")} />
                 </label>
-                <label className="block text-xs font-bold text-muted-foreground">
+                <label className="block text-[13px] font-bold">
                   電話（可留空）
                   <input
                     inputMode="tel"
                     value={customerPhone}
                     onChange={(event) => setCustomerPhone(event.target.value)}
                     placeholder="8 位香港號碼"
-                    className={cn(fieldClass, "mt-1")}
+                    className={cn(fieldClass, "mt-1.5")}
                   />
                 </label>
-                <label className="block text-xs font-bold text-muted-foreground">
+                <label className="block text-[13px] font-bold">
                   Pokémon ID（可留空）
-                  <input
-                    value={pokemonId}
-                    onChange={(event) => setPokemonId(event.target.value)}
-                    className={cn(fieldClass, "mt-1")}
-                  />
+                  <input value={pokemonId} onChange={(event) => setPokemonId(event.target.value)} className={cn(fieldClass, "mt-1.5")} />
                 </label>
-                <label className="block text-xs font-bold text-muted-foreground">
+                <label className="block text-[13px] font-bold">
                   備註（可留空）
-                  <input
-                    value={note}
-                    onChange={(event) => setNote(event.target.value)}
-                    className={cn(fieldClass, "mt-1")}
-                  />
+                  <input value={note} onChange={(event) => setNote(event.target.value)} className={cn(fieldClass, "mt-1.5")} />
                 </label>
-                <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
-                  <span>收取合計</span>
-                  <span className="text-lg font-extrabold text-foreground tabular-nums">{formatStaffMoney(lineTotal)}</span>
+                <div className="flex items-center justify-between text-[14px]">
+                  <span className="text-[#706c68]">收取合計</span>
+                  <span className="text-[18px] font-bold tabular-nums">{formatStaffMoney(lineTotal)}</span>
                 </div>
-                {error && <p className="text-sm font-bold text-red-400">{error}</p>}
-                {message && <p className="text-sm font-bold text-foreground">{message}</p>}
+                {error && <p className="text-[14px] font-bold text-[#9a3412]">{error}</p>}
+                {message && <p className="text-[14px] font-bold">{message}</p>}
                 <button
                   type="button"
-                  disabled={
-                    pending ||
-                    !Number.isInteger(qty) ||
-                    qty < 1 ||
-                    unitBuyPrice.trim() === "" ||
-                    !Number.isFinite(price) ||
-                    price <= 0
-                  }
+                  disabled={pending || !Number.isInteger(qty) || qty < 1 || unitBuyPrice.trim() === "" || !Number.isFinite(price) || price <= 0}
                   onClick={() => void submit()}
-                  className="h-14 w-full rounded-[14px] bg-pink-500 text-lg font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
+                  className={cn(posPinkBtn, "w-full")}
                 >
-                  {pending ? "入帳中…" : "收卡並入庫"}
+                  {pending ? "入帳中…" : "確認收卡"}
                 </button>
               </div>
             ) : (
-              <div className="mt-3 space-y-3">
-                <p className="text-sm font-bold text-muted-foreground">
-                  搜尋後撳一件已上架的貨，或者撳卡表的卡。再填數量同收取價錢。
-                </p>
-                {error && <p className="text-sm font-bold text-red-400">{error}</p>}
-                {message && <p className="text-sm font-bold text-foreground">{message}</p>}
+              <div className="mt-4 space-y-3">
+                <div className="flex h-[140px] items-center justify-center rounded-[16px] bg-[#e8dfff] text-[18px] font-bold text-[#706c68]">
+                  CARD PREVIEW
+                </div>
+                <p className="text-[14px] text-[#706c68]">搜尋後撳一件已上架的貨，或者撳卡表的卡。再填數量同收購價。</p>
+                {error && <p className="text-[14px] font-bold text-[#9a3412]">{error}</p>}
+                {message && <p className="text-[14px] font-bold">{message}</p>}
+                <button type="button" disabled className={cn(posPinkBtn, "w-full")}>
+                  確認收卡
+                </button>
               </div>
             )}
-          </div>
-
-          <div className="rounded-[14px] border border-border bg-card p-4">
-            <div className="flex items-baseline justify-between gap-2">
-              <h3 className="font-extrabold">今日收卡</h3>
-              <p className="text-sm font-extrabold tabular-nums">{formatStaffMoney(buybackDayTotal(buybacks))}</p>
-            </div>
-            <p className="mt-1 text-xs font-bold text-muted-foreground">香港時間今日。已撤銷唔計入合計。</p>
-            <ul className="mt-3 space-y-3">
-              {buybacks.length === 0 && <li className="text-sm font-bold text-muted-foreground">今日未有收卡</li>}
-              {buybacks.map((row) => (
-                <li key={row.id} className="flex items-start justify-between gap-2 text-sm">
-                  <div>
-                    <p className={cn("font-extrabold", row.voided && "text-muted-foreground line-through")}>
-                      {row.name} × {row.quantity}
-                    </p>
-                    <p className={cn("font-extrabold tabular-nums", row.voided ? "text-muted-foreground" : "text-foreground")}>
-                      {buybackPriceCopy(row)}
-                    </p>
-                    <p className="font-bold text-muted-foreground">{formatDate(row.createdAt)}</p>
-                    {(row.customerName || row.customerPhone || row.pokemonId) && (
-                      <p className="font-bold text-muted-foreground">
-                        {[row.customerName, row.customerPhone, row.pokemonId && `Pokémon ID ${row.pokemonId}`]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      </p>
-                    )}
-                  </div>
-                  {!row.voided && (
-                    <button type="button" className={dangerButton} onClick={() => void undo(row.id)}>
-                      撤銷
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+          </aside>
+        </div>
       </div>
     </PosShell>
   );
