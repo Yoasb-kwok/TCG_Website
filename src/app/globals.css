@@ -186,6 +186,68 @@
   opacity: 0.5;
 }
 
+/* POS desktop field. Scoped so the storefront cream and the dark theme stay put. */
+.pos-soft {
+  background-color: #faf8f3;
+  color: #171514;
+  color-scheme: light;
+  --background: #faf8f3;
+  --foreground: #171514;
+  --card: #ffffff;
+  --card-foreground: #171514;
+  --popover: #ffffff;
+  --popover-foreground: #171514;
+  --primary: #090909;
+  --primary-foreground: #ffffff;
+  --secondary: #faf8f3;
+  --secondary-foreground: #171514;
+  --muted: #faf8f3;
+  --muted-foreground: #706c68;
+  --accent: #e8dfff;
+  --accent-foreground: #171514;
+  --border: #ded6cb;
+  --input: #ded6cb;
+  --ring: #e84e9e;
+}
+
+.pos-wallpaper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("/brand/pos/sparse-cloud-crane-wallpaper.jpg");
+  background-repeat: repeat;
+  background-position: top left;
+  /* The POS tile is 470×835, with cloud rows about 80px apart. A 2× scale
+     spaces those rows about 160px apart on the desktop frame and keeps the
+     artwork's aspect ratio. Opacity matches the POS Figma field (32%). */
+  background-size: 940px 1670px;
+  opacity: 0.32;
+}
+
+.pos-scoreboard header > div button {
+  background: #fff;
+  color: #171514;
+  border: 1px solid #ded6cb;
+  border-radius: 999px;
+}
+
+.pos-scoreboard header > div button:disabled {
+  opacity: 0.45;
+}
+
+.pos-scoreboard thead {
+  background-color: #faf8f3;
+  color: #706c68;
+}
+
+.pos-scoreboard [class~="border-white/10"] {
+  border-color: #ded6cb;
+}
+
+.pos-scoreboard [class~="text-pink-300"] {
+  color: #e84e9e;
+}
+
 .demo-night {
   --background: #070b14;
   --foreground: #f1f5f9;

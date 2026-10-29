@@ -1,10 +1,21 @@
 "use client";
 
-import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
+import {
+  downloadCsv,
+  posBlackBtn,
+  posChip,
+  posGhostBtn,
+  posInput,
+  posKindLabel,
+  posSelectClass,
+  posSub,
+  posTitle,
+  posWhen,
+} from "@/components/pos/pos-ui";
 import { SET_SERIES_CODES } from "@/lib/card-taxonomy";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
@@ -42,17 +53,15 @@ function matchesStock(stock: number, price: number, filter: StockFilter) {
   return true;
 }
 
-const fieldClass =
-  "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm text-foreground outline-none placeholder:text-muted-foreground focus:border-pink-400";
+const fieldClass = posInput;
 
-const dangerButton =
-  "inline-flex h-8 shrink-0 items-center rounded-lg border border-red-400/40 bg-red-500/10 px-3 text-xs font-bold text-red-400 hover:bg-red-500/20";
-
-const pillClass = (active: boolean) =>
-  cn(
-    "h-8 rounded-full border px-3 text-sm font-bold",
-    active ? "border-pink-500 bg-pink-500 text-white" : "border-border bg-muted text-muted-foreground",
-  );
+function stockStatus(stock: number, price: number) {
+  if (price <= 0 && stock <= 0) return "缺貨";
+  if (stock <= 0) return "缺貨";
+  if (stock <= 2) return "低庫存";
+  if (price <= 0) return "未定價";
+  return "正常";
+}
 
 export function PosReceiving() {
   const { labelFor, options } = usePublicTaxonomy();
@@ -254,354 +263,272 @@ export function PosReceiving() {
       return 0;
     });
 
+  const exportRows = () => {
+    downloadCsv("pos-inventory.csv", [
+      ["商品", "系列 / 類型", "售價", "庫存", "狀態"],
+      ...rows.map(({ product, item }) => [
+        product.name,
+        [product.setCode ? labelFor("SET_CODE", product.setCode) : "", posKindLabel(product.type, product.type)].filter(Boolean).join(" · "),
+        item.price > 0 ? String(item.price) : "",
+        String(item.stock),
+        stockStatus(item.stock, item.price),
+      ]),
+    ]);
+  };
+
   return (
     <PosShell current="receiving">
-      <div className="grid h-full min-h-0 gap-4 overflow-auto p-4 lg:grid-cols-[14rem_minmax(0,1fr)_22rem] lg:overflow-hidden">
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto rounded-[14px] border border-border bg-card p-3">
-          <p className="text-sm font-extrabold text-muted-foreground">排序同篩選</p>
-          <div className="flex gap-2">
-            <input
-              value={query}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                setPage(1);
-              }}
-              placeholder="條碼 / 卡名、卡號（083/101）、系列或 SKU"
-              aria-label="搜尋倉存"
-              className={cn(fieldClass, "h-11 min-w-0 flex-1")}
-            />
-            <BarcodeScanButton onDetect={(code) => void scanIntoReceiving(code)} />
-          </div>
-          <p className="text-xs font-bold text-muted-foreground">
-            {searching || setCodes.length > 0 || kind || stockFilter !== "all"
-              ? `找到 ${rows.length} 件`
-              : `顯示 ${products.length} / ${total}`}
-            {!complete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
-          </p>
-          <label className="block text-xs font-bold text-muted-foreground">
-            排序
-            <select
-              value={sort}
-              onChange={(event) => {
-                setSort(event.target.value as ProductSort);
-                setPage(1);
-              }}
-              className={cn(fieldClass, "mt-1")}
-            >
-              <option value="newest">最新上架</option>
-              <option value="setCode">系列編號 (M3→M1L…)</option>
-              <option value="rarityTier">稀有度 (MUR→R…)</option>
-              <option value="priceAsc">價格由低至高</option>
-              <option value="priceDesc">價格由高至低</option>
-            </select>
-          </label>
+      <div className="flex h-full min-h-0 flex-col gap-6 overflow-auto px-4 py-6 lg:px-16 lg:py-8">
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-bold text-muted-foreground">系列</p>
-            <div className="mt-1 flex flex-wrap gap-1">
+            <h1 className={posTitle}>倉存</h1>
+            <p className={posSub}>搜尋商品、收貨入庫並查看最近收貨紀錄。</p>
+          </div>
+          <BarcodeScanButton label="開始掃描" className={cn(posBlackBtn, "w-[160px] border-0")} onDetect={(code) => void scanIntoReceiving(code)} />
+        </div>
+
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="flex min-w-0 flex-col gap-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <input
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="搜尋商品、卡號或條碼"
+                aria-label="搜尋倉存"
+                className={cn(fieldClass, "min-w-[240px] max-w-[480px] flex-1")}
+              />
+              <select
+                value={sort}
+                aria-label="排序"
+                onChange={(event) => {
+                  setSort(event.target.value as ProductSort);
+                  setPage(1);
+                }}
+                className={posSelectClass()}
+              >
+                <option value="newest">最新更新</option>
+                <option value="setCode">系列編號</option>
+                <option value="rarityTier">稀有度</option>
+                <option value="priceAsc">價格由低至高</option>
+                <option value="priceDesc">價格由高至低</option>
+              </select>
+              <select
+                value={kind}
+                aria-label="類型"
+                onChange={(event) => {
+                  setKind(event.target.value);
+                  setPage(1);
+                }}
+                className={posSelectClass()}
+              >
+                {KINDS.map((item) => (
+                  <option key={item.value || "all-kind"} value={item.value}>
+                    {item.value ? posKindLabel(item.value, item.label) : "全部類型"}
+                  </option>
+                ))}
+              </select>
+              <select
+                value={stockFilter}
+                aria-label="狀態"
+                onChange={(event) => {
+                  setStockFilter(event.target.value as StockFilter);
+                  setPage(1);
+                }}
+                className={posSelectClass()}
+              >
+                {STOCK_FILTERS.map((item) => (
+                  <option key={item.value} value={item.value}>
+                    {item.value === "all" ? "全部狀態" : item.label}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={exportRows} className={posGhostBtn}>
+                匯出倉存
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 onClick={() => {
                   setSetCodes([]);
                   setPage(1);
                 }}
-                className={pillClass(setCodes.length === 0)}
+                className={posChip(setCodes.length === 0)}
               >
-                全部系列
+                全部
               </button>
               {series.map((item) => (
-                <button
-                  key={item.value}
-                  type="button"
-                  onClick={() => toggleSet(item.value)}
-                  className={pillClass(setCodes.includes(item.value))}
-                >
+                <button key={item.value} type="button" onClick={() => toggleSet(item.value)} className={posChip(setCodes.includes(item.value))}>
                   {item.label}
                 </button>
               ))}
             </div>
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {KINDS.map((item) => (
-              <button
-                key={item.value || "all-kind"}
-                type="button"
-                onClick={() => {
-                  setKind(item.value);
-                  setPage(1);
-                }}
-                className={pillClass(kind === item.value)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-1">
-            {STOCK_FILTERS.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => {
-                  setStockFilter(item.value);
-                  setPage(1);
-                }}
-                className={pillClass(stockFilter === item.value)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <section className="flex min-h-0 flex-col overflow-hidden rounded-[14px] border border-border bg-card p-3">
-          <div className="flex items-center justify-between gap-2">
-            <div>
-              <p className="text-sm font-extrabold">倉存</p>
-              <p className="text-xs font-bold text-muted-foreground">已上架貨品 · 撳一下查看庫存</p>
+            <p className="text-[13px] text-[#706c68]">
+              {searching || setCodes.length > 0 || kind || stockFilter !== "all"
+                ? `找到 ${rows.length} 件`
+                : `顯示 ${products.length} / ${total}`}
+              {!complete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
+            </p>
+            {searching && (
+              <CatalogHitStrip cards={catalogCards} total={catalogTotal} hint="只供對名。入貨要揀已上架的 SKU 或條碼。" />
+            )}
+            <div className="overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+              <table className="w-full text-left text-[14px]">
+                <thead className="bg-[#faf8f3] text-[13px] text-[#706c68]">
+                  <tr>
+                    <th className="px-4 py-3 font-bold">商品</th>
+                    <th className="px-4 py-3 font-bold">系列 / 類型</th>
+                    <th className="px-4 py-3 font-bold">售價</th>
+                    <th className="px-4 py-3 font-bold">庫存</th>
+                    <th className="px-4 py-3 font-bold">狀態</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map(({ product, item }) => {
+                    const active = item.id === selectedVariantId;
+                    const seriesLabel = product.setCode ? labelFor("SET_CODE", product.setCode) : "";
+                    return (
+                      <tr
+                        key={item.id}
+                        className={cn("cursor-pointer border-t border-[#ded6cb]", active ? "bg-[#e8dfff]" : "hover:bg-[#faf8f3]")}
+                        onClick={() => choose(product, item.id)}
+                      >
+                        <td className="px-4 py-3 font-bold text-[#171514]">
+                          {product.name}
+                          {product.variants.length > 1 ? ` · ${item.condition}` : ""}
+                        </td>
+                        <td className="px-4 py-3 text-[#706c68]">
+                          {[seriesLabel, posKindLabel(product.type, product.type)].filter(Boolean).join(" · ")}
+                        </td>
+                        <td className="px-4 py-3 font-bold">{item.price > 0 ? formatPrice(item.price) : "未定價"}</td>
+                        <td className="px-4 py-3">{item.stock}</td>
+                        <td className="px-4 py-3">{stockStatus(item.stock, item.price)}</td>
+                      </tr>
+                    );
+                  })}
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-10 text-center text-[#706c68]">
+                        {products.length === 0 ? "未有上架貨品。請先在後台商品名單加入。" : "沒有符合條件的貨品"}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-            <button
-              type="button"
-              onClick={openInbound}
-              aria-expanded={inboundOpen}
-              className="h-9 shrink-0 rounded-full bg-pink-500 px-4 text-sm font-extrabold text-white hover:bg-pink-400"
-            >
-              進貨
-            </button>
-          </div>
-          {searching && (
-            <CatalogHitStrip
-              cards={catalogCards}
-              total={catalogTotal}
-              hint="只供對名。入貨要揀已上架的 SKU 或條碼。"
-              className="mt-3"
-            />
-          )}
-          <ul
-            className="mt-3 grid min-h-0 flex-1 content-start justify-start gap-2 overflow-auto pr-1"
-            style={{ gridTemplateColumns: "repeat(auto-fill, 7.25rem)" }}
-          >
-            {rows.map(({ product, item }) => {
-              const image = product.images[0];
-              const active = item.id === selectedVariantId;
-              const detail = item.condition;
-              const label = product.variants.length > 1 ? `${product.name} · ${detail}` : product.name;
-              const tags = stockTags(item.stock, item.price, item.isFoil);
-              return (
-                <li key={item.id}>
+            {!needsFullList && !complete && (
+              <button type="button" onClick={() => setPage((current) => current + 1)} className={posGhostBtn}>
+                載入更多
+              </button>
+            )}
+          </section>
+
+          <aside className="flex flex-col gap-4">
+            <div id="stock-inbound" data-open={inboundOpen ? "true" : "false"} className="flex flex-col gap-3 rounded-[20px] bg-[#e8dfff] p-5 text-[#171514]">
+              <div>
+                <p className="text-[20px] font-bold">收貨明細</p>
+                <p className="mt-1 text-[15px] font-bold">{selected ? selected.name : "揀一件商品"}</p>
+                <p className="text-[13px] text-[#706c68]">
+                  {variant
+                    ? `目前庫存 ${variant.stock} · 最近更新今天`
+                    : "從左邊表格揀已上架貨品，再填數量、成本同售價。"}
+                </p>
+              </div>
+              {selected && variant ? (
+                <>
+                  <div className="flex flex-wrap gap-1">
+                    {stockTags(variant.stock, variant.price, variant.isFoil).map((tag) => (
+                      <span key={tag.label} className={cn("rounded-full bg-white/70 px-2 py-0.5 text-[12px] font-bold", tag.className)}>
+                        {tag.label}
+                      </span>
+                    ))}
+                  </div>
+                  <label className="block text-[13px] font-bold">
+                    收貨數量
+                    <input
+                      ref={quantityRef}
+                      type="number"
+                      min={1}
+                      value={quantity}
+                      onChange={(event) => setQuantity(event.target.value)}
+                      className={cn(fieldClass, "mt-1.5")}
+                    />
+                  </label>
+                  <label className="block text-[13px] font-bold">
+                    單位成本
+                    <input
+                      inputMode="decimal"
+                      value={unitCost}
+                      onChange={(event) => setUnitCost(event.target.value)}
+                      placeholder="每件成本"
+                      className={cn(fieldClass, "mt-1.5")}
+                    />
+                  </label>
+                  <label className="block text-[13px] font-bold">
+                    售價
+                    <input
+                      inputMode="decimal"
+                      value={unitPrice}
+                      onChange={(event) => setUnitPrice(event.target.value)}
+                      placeholder="上架售價"
+                      className={cn(fieldClass, "mt-1.5")}
+                    />
+                  </label>
+                  <div className="flex items-center justify-between text-[14px]">
+                    <span>今次成本</span>
+                    <span className="text-[18px] font-bold tabular-nums">{formatPrice(totalCost)}</span>
+                  </div>
+                  {error && <p className="text-[14px] font-bold text-[#9a3412]">{error}</p>}
                   <button
                     type="button"
-                    onClick={() => choose(product, item.id)}
-                    className={cn(
-                      "flex h-full w-[7.25rem] flex-col rounded-[10px] border bg-transparent p-1 text-left",
-                      active ? "border-pink-500" : "border-transparent hover:border-pink-400",
-                    )}
+                    disabled={
+                      pending ||
+                      qty < 1 ||
+                      unitCost.trim() === "" ||
+                      !Number.isFinite(cost) ||
+                      cost < 0 ||
+                      unitPrice.trim() === "" ||
+                      !Number.isFinite(Number(unitPrice)) ||
+                      Number(unitPrice) < 0
+                    }
+                    onClick={receive}
+                    className={cn(posBlackBtn, "w-full")}
                   >
-                    <span className="relative block aspect-[63/88] overflow-hidden rounded-md">
-                      {image ? (
-                        <Image
-                          src={image.url}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          sizes="116px"
-                          unoptimized
-                        />
-                      ) : (
-                        <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-muted-foreground">
-                          無圖
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-1.5 flex flex-wrap gap-1">
-                      {product.setCode && (
-                        <span className="rounded-full bg-pink-500 px-1.5 text-[10px] font-bold text-white">
-                          {labelFor("SET_CODE", product.setCode)}
-                        </span>
-                      )}
-                      {(product.rarityTier || product.rarity) && (
-                        <span className="max-w-full truncate rounded-full bg-muted px-1.5 text-[10px] font-bold">
-                          {product.rarityTier ? labelFor("RARITY", product.rarityTier) : product.rarity}
-                        </span>
-                      )}
-                    </span>
-                    <span className="mt-1 line-clamp-2 text-sm font-extrabold leading-snug">{label}</span>
-                    {product.cardNumber && (
-                      <span className="text-[10px] font-bold text-muted-foreground">{product.cardNumber}</span>
-                    )}
-                    {tags.length > 0 && (
-                      <span className="mt-1 flex flex-wrap gap-1">
-                        {tags.map((tag) => (
-                          <span
-                            key={tag.label}
-                            className={cn("rounded-full px-1.5 text-[10px] font-bold", tag.className)}
-                          >
-                            {tag.label}
-                          </span>
-                        ))}
-                      </span>
-                    )}
-                    <span className="mt-auto pt-1 text-xs font-bold text-muted-foreground">
-                      存 {item.stock}
-                      {item.price > 0 ? ` · ${formatPrice(item.price)}` : ""}
-                    </span>
+                    {pending ? "入貨中…" : "確認入庫"}
                   </button>
-                </li>
-              );
-            })}
-            {rows.length === 0 && (
-              <li className="col-span-full px-2 py-8 text-center text-sm font-bold text-muted-foreground">
-                {products.length === 0
-                  ? "未有上架貨品。請先在後台商品名單加入。"
-                  : "沒有符合條件的貨品"}
-              </li>
-            )}
-          </ul>
-          {!needsFullList && !complete && (
-            <button
-              type="button"
-              onClick={() => setPage((current) => current + 1)}
-              className="mt-2 h-9 rounded-xl border border-border text-sm font-bold text-muted-foreground hover:border-pink-400"
-            >
-              載入更多
-            </button>
-          )}
-        </section>
-
-        <aside className="flex min-h-0 flex-col gap-3 overflow-y-auto">
-          <div id="stock-inbound" className="rounded-[14px] border border-border bg-card p-4">
-            <div className="flex items-center justify-between gap-2">
-              <h2 className="text-xl font-extrabold">{inboundOpen ? "進貨" : "倉存"}</h2>
-              {inboundOpen ? (
-                <button
-                  type="button"
-                  onClick={() => setInboundOpen(false)}
-                  className="text-sm font-bold text-muted-foreground hover:text-foreground"
-                >
-                  返回倉存
-                </button>
+                </>
               ) : (
-                <button
-                  type="button"
-                  onClick={openInbound}
-                  className="h-9 shrink-0 rounded-full bg-pink-500 px-4 text-sm font-extrabold text-white hover:bg-pink-400"
-                >
-                  進貨
-                </button>
+                <>
+                  {error && <p className="text-[14px] font-bold text-[#9a3412]">{error}</p>}
+                  <button type="button" onClick={openInbound} className={cn(posBlackBtn, "w-full")}>
+                    確認入庫
+                  </button>
+                </>
               )}
             </div>
-            {selected && variant ? (
-              <div className="mt-3 space-y-3">
-                <p className="font-extrabold">{selected.name}</p>
-                <div className="flex flex-wrap gap-1">
-                  {stockTags(variant.stock, variant.price, variant.isFoil).map((tag) => (
-                    <span key={tag.label} className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", tag.className)}>
-                      {tag.label}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-xs font-bold text-muted-foreground">
-                  現有庫存 {variant.stock}
-                  {variant.price > 0 ? ` · 售價 ${formatPrice(variant.price)}` : " · 未定價"}
-                </p>
-                {inboundOpen ? (
-                  <>
-                    <label className="block text-xs font-bold text-muted-foreground">
-                      進貨數量
-                      <input
-                        ref={quantityRef}
-                        type="number"
-                        min={1}
-                        value={quantity}
-                        onChange={(event) => setQuantity(event.target.value)}
-                        className={cn(fieldClass, "mt-1")}
-                      />
-                    </label>
-                    <label className="block text-xs font-bold text-muted-foreground">
-                      單位成本
-                      <input
-                        inputMode="decimal"
-                        value={unitCost}
-                        onChange={(event) => setUnitCost(event.target.value)}
-                        placeholder="每件成本"
-                        className={cn(fieldClass, "mt-1")}
-                      />
-                    </label>
-                    <label className="block text-xs font-bold text-muted-foreground">
-                      售價
-                      <input
-                        inputMode="decimal"
-                        value={unitPrice}
-                        onChange={(event) => setUnitPrice(event.target.value)}
-                        placeholder="上架售價"
-                        className={cn(fieldClass, "mt-1")}
-                      />
-                    </label>
-                    <div className="flex items-center justify-between text-sm font-bold text-muted-foreground">
-                      <span>今次成本</span>
-                      <span className="text-lg font-extrabold text-foreground tabular-nums">{formatPrice(totalCost)}</span>
-                    </div>
-                    {error && <p className="text-sm font-bold text-red-400">{error}</p>}
-                    <button
-                      type="button"
-                      disabled={
-                        pending ||
-                        qty < 1 ||
-                        unitCost.trim() === "" ||
-                        !Number.isFinite(cost) ||
-                        cost < 0 ||
-                        unitPrice.trim() === "" ||
-                        !Number.isFinite(Number(unitPrice)) ||
-                        Number(unitPrice) < 0
-                      }
-                      onClick={receive}
-                      className="h-14 w-full rounded-[14px] bg-pink-500 text-lg font-extrabold text-white shadow-[0_6px_0_0] shadow-pink-900 hover:bg-pink-400 disabled:bg-muted disabled:text-muted-foreground disabled:shadow-none"
-                    >
-                      {pending ? "入貨中…" : "確認進貨"}
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={openInbound}
-                    className="h-12 w-full rounded-[14px] bg-pink-500 text-base font-extrabold text-white hover:bg-pink-400"
-                  >
-                    進貨
-                  </button>
-                )}
-              </div>
-            ) : (
-              <div className="mt-4 space-y-3">
-                <p className="text-sm font-bold text-muted-foreground">
-                  {inboundOpen
-                    ? "請先揀一件已上架的貨，再填數量、成本和售價。"
-                    : "揀一件貨查看倉存。要入庫就撳「進貨」。"}
-                </p>
-                {error && <p className="text-sm font-bold text-red-400">{error}</p>}
-              </div>
-            )}
-          </div>
 
-          <div className="rounded-[14px] border border-border bg-card p-4">
-            <h3 className="font-extrabold">進貨紀錄</h3>
-            <ul className="mt-3 space-y-3">
-              {receipts.length === 0 && <li className="text-sm font-bold text-muted-foreground">未有進貨</li>}
-              {receipts.map((receipt) => (
-                <li key={receipt.id} className="flex items-start justify-between gap-2 text-sm">
-                  <div>
-                    <p className="font-extrabold">
-                      {receipt.name} × {receipt.quantity}
-                    </p>
-                    <p className="font-bold text-muted-foreground">
-                      成本 {formatPrice(receipt.quantity * receipt.unitCost)} · 售價 {formatPrice(receipt.unitPrice)}
-                    </p>
-                  </div>
-                  <button type="button" className={dangerButton} onClick={() => undo(receipt.id)}>
-                    撤銷
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </aside>
+            <div className="rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+              <h3 className="text-[18px] font-bold">最近收貨紀錄</h3>
+              <ul className="mt-3 divide-y divide-[#ded6cb]">
+                {receipts.length === 0 && <li className="py-3 text-[14px] text-[#706c68]">未有進貨</li>}
+                {receipts.map((receipt) => (
+                  <li key={receipt.id} className="flex items-center justify-between gap-3 py-3 text-[14px]">
+                    <span className="text-[#706c68]">{posWhen(receipt.createdAt)}</span>
+                    <span className="min-w-0 flex-1 text-right font-bold">
+                      {receipt.name} +{receipt.quantity}
+                    </span>
+                    <button type="button" className="shrink-0 font-bold text-[#9a3412]" onClick={() => undo(receipt.id)}>
+                      撤銷
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+        </div>
       </div>
     </PosShell>
   );

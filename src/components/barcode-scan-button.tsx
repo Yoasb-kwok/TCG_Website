@@ -58,10 +58,12 @@ export function BarcodeScanButton({
   onDetect,
   className,
   disabled = false,
+  label = "掃描",
 }: {
   onDetect: (code: string) => void;
   className?: string;
   disabled?: boolean;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [status, setStatus] = useState<ScanStatus>("starting");
@@ -207,7 +209,7 @@ export function BarcodeScanButton({
           className,
         )}
       >
-        掃描
+        {label}
       </button>
       {open && (
         <div
