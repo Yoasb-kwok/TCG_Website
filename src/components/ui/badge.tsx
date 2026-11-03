@@ -19,6 +19,8 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        foundation:
+          "h-[28px] rounded-full border-trtcg-badge-border bg-trtcg-badge px-[12px] text-[13px] font-normal leading-[1.6] text-trtcg-header [a]:hover:bg-trtcg-badge",
       },
     },
     defaultVariants: {
