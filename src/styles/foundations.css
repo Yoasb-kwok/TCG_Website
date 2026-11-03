@@ -1,0 +1,54 @@
+/*
+ * Foundations tokens (Figma file o26AughBZl9eZvIknlWVwD, page 0:1).
+ * Hexes follow the printed swatch labels on frame 21:2.
+ * Soft storefront (#f7f5ef) and POS (#faf8f3) fields are not aliases of paper.
+ * See docs/FOUNDATIONS.md.
+ */
+:root {
+  --trtcg-paper: #f2efeb;
+  --trtcg-surface: #ffffff;
+  --trtcg-ink: #191817;
+  --trtcg-lavender: #e8dff8;
+  --trtcg-peach: #f9dbbd;
+  --trtcg-lime: #eaf1ca;
+  --trtcg-line: #dccdaf;
+  --trtcg-muted: #5e5963;
+  --trtcg-gold: #c8a24a;
+  --trtcg-header: #080808;
+  --trtcg-disabled: #d9d4c9;
+  --trtcg-disabled-fg: #77736b;
+  --trtcg-badge: #ffe19a;
+  --trtcg-badge-border: #e0a328;
+  --trtcg-secondary-border: #6f59c7;
+  --trtcg-quiet: rgba(221, 235, 159, 0.42);
+  --trtcg-input-border: #dedad4;
+  --trtcg-input-well: #fff9f0;
+  --trtcg-shadow-card: 0 10px 26px #6f59c721;
+  --trtcg-shadow-float: 0 18px 42px #0000002e;
+
+  --foundation-paper: var(--trtcg-paper);
+  --foundation-surface: var(--trtcg-surface);
+  --foundation-ink: var(--trtcg-ink);
+  --foundation-lavender: var(--trtcg-lavender);
+  --foundation-peach: var(--trtcg-peach);
+  --foundation-lime: var(--trtcg-lime);
+  --foundation-line: var(--trtcg-line);
+  --foundation-muted: var(--trtcg-muted);
+  --foundation-gold: var(--trtcg-gold);
+  --foundation-header: var(--trtcg-header);
+  --foundation-disabled: var(--trtcg-disabled);
+  --foundation-disabled-fg: var(--trtcg-disabled-fg);
+  --foundation-badge: var(--trtcg-badge);
+  --foundation-badge-border: var(--trtcg-badge-border);
+  --foundation-quiet: var(--trtcg-quiet);
+  --foundation-shadow-card: var(--trtcg-shadow-card);
+  --foundation-shadow-float: var(--trtcg-shadow-float);
+}
+
+/* Canonical tile for new work. Soft wallpaper classes keep their own URLs. */
+.foundations-wallpaper {
+  background-image: url("/brand/foundations/sparse-cloud-crane-wallpaper.jpg");
+  background-repeat: repeat;
+  background-position: top left;
+  background-size: 470px 835px;
+}

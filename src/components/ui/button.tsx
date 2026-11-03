@@ -18,6 +18,15 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
+        /* Foundations (Figma 4:62). `secondary` stays the shadcn muted surface. */
+        primary:
+          "border-trtcg-gold bg-trtcg-header text-white hover:bg-trtcg-header",
+        "foundation-secondary":
+          "border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header hover:bg-trtcg-lavender",
+        quiet:
+          "border-transparent bg-trtcg-quiet text-trtcg-header hover:bg-trtcg-quiet",
+        disabled:
+          "border-transparent bg-trtcg-disabled text-trtcg-disabled-fg hover:bg-trtcg-disabled disabled:opacity-100",
       },
       size: {
         default:
@@ -37,6 +46,13 @@ const buttonVariants = cva(
       variant: "default",
       size: "default",
     },
+    compoundVariants: [
+      {
+        variant: ["primary", "foundation-secondary", "quiet", "disabled"],
+        class:
+          "h-[48px] rounded-[10px] px-[24px] text-[14px] font-bold leading-[1.45]",
+      },
+    ],
   }
 )
 
@@ -44,11 +60,13 @@ function Button({
   className,
   variant = "default",
   size = "default",
+  disabled,
   ...props
 }: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
   return (
     <ButtonPrimitive
       data-slot="button"
+      disabled={variant === "disabled" ? true : disabled}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

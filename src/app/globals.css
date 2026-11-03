@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "../styles/foundations.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -43,6 +44,26 @@
   --color-rice-foreground: var(--rice-foreground);
   --color-rice-muted: var(--rice-muted);
   --color-rice-border: var(--rice-border);
+  --color-trtcg-paper: var(--trtcg-paper);
+  --color-trtcg-surface: var(--trtcg-surface);
+  --color-trtcg-ink: var(--trtcg-ink);
+  --color-trtcg-lavender: var(--trtcg-lavender);
+  --color-trtcg-peach: var(--trtcg-peach);
+  --color-trtcg-lime: var(--trtcg-lime);
+  --color-trtcg-line: var(--trtcg-line);
+  --color-trtcg-muted: var(--trtcg-muted);
+  --color-trtcg-gold: var(--trtcg-gold);
+  --color-trtcg-header: var(--trtcg-header);
+  --color-trtcg-disabled: var(--trtcg-disabled);
+  --color-trtcg-disabled-fg: var(--trtcg-disabled-fg);
+  --color-trtcg-badge: var(--trtcg-badge);
+  --color-trtcg-badge-border: var(--trtcg-badge-border);
+  --color-trtcg-secondary-border: var(--trtcg-secondary-border);
+  --color-trtcg-quiet: var(--trtcg-quiet);
+  --color-trtcg-input-border: var(--trtcg-input-border);
+  --color-trtcg-input-well: var(--trtcg-input-well);
+  --shadow-trtcg-card: var(--trtcg-shadow-card);
+  --shadow-trtcg-float: var(--trtcg-shadow-float);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -148,7 +169,7 @@
 }
 
 /* Scoped navy palette for the public demo shop. Live storefront tokens stay unchanged. */
-/* Cream content field. Header and footer keep their own #080808 bars. */
+/* Soft field #f7f5ef. Foundations paper is --trtcg-paper (#F2EFEB). See docs/FOUNDATIONS.md. */
 .storefront-canvas {
   background-color: #f7f5ef;
   color: #0a0a09;
@@ -187,6 +208,7 @@
 }
 
 /* POS desktop field. Scoped so the storefront cream and the dark theme stay put. */
+/* Soft field #faf8f3. Foundations paper is --trtcg-paper (#F2EFEB). See docs/FOUNDATIONS.md. */
 .pos-soft {
   background-color: #faf8f3;
   color: #171514;
