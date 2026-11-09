@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from "lucide-react";
 import { ManualSingleForm } from "@/components/admin/manual-single-form";
 import { ProductEditDialog } from "@/components/admin/product-edit-dialog";
 import { SealedAccessoryForm } from "@/components/admin/sealed-accessory-form";
+import { AdminMetric } from "@/components/admin/admin-page-header";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -72,6 +73,7 @@ export function ProductsTable() {
   const [editOpen, setEditOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [createKind, setCreateKind] = useState<"single" | "sealed">("single");
+  const [lowStock, setLowStock] = useState<number | null>(null);
 
   const load = useCallback(
     async (pageToLoad: number) => {
@@ -109,6 +111,13 @@ export function ProductsTable() {
   useEffect(() => {
     void load(page);
   }, [page, search, typeFilter, setCodeFilter, rarityTierFilter, sort, load]);
+
+  useEffect(() => {
+    fetch("/api/admin/stats")
+      .then((response) => response.json())
+      .then((data: { lowStock?: number }) => setLowStock(data.lowStock ?? 0))
+      .catch(() => setLowStock(null));
+  }, []);
 
   const selectableIds = useMemo(
     () =>
@@ -180,9 +189,8 @@ export function ProductsTable() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">已上架商品</h2>
-        <Button type="button" onClick={() => setCreateOpen(true)}>
+      <div className="flex items-center justify-end gap-3">
+        <Button type="button" variant="primary" onClick={() => setCreateOpen(true)}>
           <Plus className="mr-1 h-4 w-4" />
           上架商品
         </Button>
@@ -263,8 +271,18 @@ export function ProductsTable() {
         </select>
       </div>
 
+      <div className="grid gap-6 sm:grid-cols-2">
+        <AdminMetric label="商品總數" value={String(total)} stack="value" tone="lavender" />
+        <AdminMetric
+          label="低庫存"
+          value={lowStock === null ? "—" : String(lowStock)}
+          stack="value"
+          tone="lime"
+        />
+      </div>
+
       {selectedCount > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-pink-500/30 bg-pink-500/10 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-3xl bg-trtcg-peach px-4 py-3">
           <span className="text-sm text-foreground">
             已選 <strong>{selectedCount}</strong> 項
           </span>
@@ -294,9 +312,9 @@ export function ProductsTable() {
         <p className="text-sm text-amber-400/90">{message}</p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-3xl bg-white">
         <table className="w-full text-sm">
-          <thead className="border-b border-border bg-card text-left text-muted-foreground">
+          <thead className="border-b border-trtcg-line bg-white text-left text-trtcg-muted">
             <tr>
               <th className="w-10 p-3">
                 <Checkbox
@@ -321,7 +339,7 @@ export function ProductsTable() {
                 <tr
                   key={p.id}
                   className={`border-b border-border ${
-                    isSelected ? "bg-pink-500/5" : ""
+                    isSelected ? "bg-trtcg-lavender/60" : ""
                   }`}
                 >
                   <td className="p-3">
@@ -445,9 +463,11 @@ export function ProductsTable() {
       )}
 
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[85vh] overflow-y-auto rounded-3xl bg-trtcg-paper text-trtcg-ink sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>上架商品</DialogTitle>
+            <DialogTitle>
+              {createKind === "single" ? "上架商品 · 單卡" : "上架商品 · 卡盒與週邊"}
+            </DialogTitle>
           </DialogHeader>
           <div className="flex gap-2">
             <button
@@ -456,8 +476,8 @@ export function ProductsTable() {
               className={cn(
                 "rounded-full px-4 py-1.5 text-sm font-medium",
                 createKind === "single"
-                  ? "bg-pink-500 text-white"
-                  : "bg-muted text-muted-foreground",
+                  ? "border border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header"
+                  : "bg-white text-trtcg-muted",
               )}
             >
               單卡
@@ -468,8 +488,8 @@ export function ProductsTable() {
               className={cn(
                 "rounded-full px-4 py-1.5 text-sm font-medium",
                 createKind === "sealed"
-                  ? "bg-pink-500 text-white"
-                  : "bg-muted text-muted-foreground",
+                  ? "border border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header"
+                  : "bg-white text-trtcg-muted",
               )}
             >
               卡盒 / 週邊

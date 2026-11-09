@@ -335,8 +335,8 @@ export function ManualSingleForm({ onCreated, embedded = false }: ManualSingleFo
 
       <Button
         type="submit"
+        variant="primary"
         disabled={loading}
-        className="bg-primary text-primary-foreground hover:bg-primary/90"
       >
         {loading ? (
           <>

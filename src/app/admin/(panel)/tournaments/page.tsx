@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatPrice } from "@/lib/format";
 import Link from "next/link";
+import { AdminMetric, AdminPageHeader, adminCardClass } from "@/components/admin/admin-page-header";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { StaffBoardLinks } from "@/components/tournaments/staff-board-links";
@@ -73,112 +75,134 @@ export default function AdminTournamentsPage() {
     }
   };
 
+  const summary = useMemo(() => {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    let upcoming = 0;
+    let monthRegistrations = 0;
+    let openSeats = 0;
+    for (const tournament of tournaments) {
+      if (new Date(tournament.startsAt).getTime() >= now.getTime()) upcoming += 1;
+      openSeats += Math.max(0, tournament.maxPlayers - tournament._count.registrations);
+      for (const registration of tournament.registrations) {
+        const created = new Date(registration.createdAt);
+        if (created.getFullYear() === year && created.getMonth() === month) {
+          monthRegistrations += 1;
+        }
+      }
+    }
+    return { upcoming, monthRegistrations, openSeats };
+  }, [tournaments]);
+
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">店賽報名</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            賽事管理同報名名單。現場計時同比分由「計分板 / 計時」寫入，電視打開公開計分板即可看到。試賽計分仍然只留喺這部電腦。
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <StaffBoardLinks />
-          <Link
-            href="/tournaments/live"
-            target="_blank"
-            className={buttonVariants({ variant: "outline" })}
-          >
-            公開計分板
-          </Link>
-          <Button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-          >
+    <div className="flex flex-col gap-6">
+      <AdminPageHeader
+        title="店賽報名"
+        description="建立賽事、管理名額與快速進入店內計分工具。現場計時同比分由「計分板 / 計時」寫入。"
+        action={
+          <Button type="button" variant="primary" onClick={() => setShowForm(!showForm)}>
             {showForm ? "取消" : "新增賽事"}
           </Button>
-        </div>
+        }
+      />
+
+      <div className="flex flex-wrap items-center gap-3">
+        <StaffBoardLinks />
+        <Link
+          href="/tournaments/live"
+          target="_blank"
+          className={buttonVariants({ variant: "quiet" })}
+        >
+          公開計分板
+        </Link>
+      </div>
+
+      <div className="grid gap-6 sm:grid-cols-3">
+        <AdminMetric label="即將舉行" value={String(summary.upcoming)} stack="value" tone="lavender" />
+        <AdminMetric label="本月報名" value={String(summary.monthRegistrations)} stack="value" />
+        <AdminMetric label="可用名額" value={String(summary.openSeats)} stack="value" tone="lime" />
       </div>
 
       {showForm && (
         <form
           onSubmit={createTournament}
-          className="mt-6 grid gap-4 rounded-xl border border-border bg-card p-6 sm:grid-cols-2"
+          className={cn(adminCardClass, "grid gap-4 sm:grid-cols-2")}
         >
           <div className="sm:col-span-2">
             <Label>賽事名稱</Label>
-            <Input
+            <Input variant="foundation"
               required
               value={form.title}
               onChange={(e) => setForm({ ...form, title: e.target.value })}
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
           <div>
             <Label>賽制</Label>
-            <Input
+            <Input variant="foundation"
               value={form.format}
               onChange={(e) => setForm({ ...form, format: e.target.value })}
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
           <div>
             <Label>名額</Label>
-            <Input
+            <Input variant="foundation"
               type="number"
               value={form.maxPlayers}
               onChange={(e) => setForm({ ...form, maxPlayers: e.target.value })}
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
           <div>
             <Label>報名費 (HKD)</Label>
-            <Input
+            <Input variant="foundation"
               type="number"
               value={form.entryFee}
               onChange={(e) => setForm({ ...form, entryFee: e.target.value })}
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
           <div>
             <Label>地點</Label>
-            <Input
+            <Input variant="foundation"
               value={form.location}
               onChange={(e) => setForm({ ...form, location: e.target.value })}
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
           <div>
             <Label>比賽時間</Label>
-            <Input
+            <Input variant="foundation"
               type="datetime-local"
               required
               value={form.startsAt}
               onChange={(e) => setForm({ ...form, startsAt: e.target.value })}
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
           <div>
             <Label>報名截止</Label>
-            <Input
+            <Input variant="foundation"
               type="datetime-local"
               required
               value={form.registrationDeadline}
               onChange={(e) =>
                 setForm({ ...form, registrationDeadline: e.target.value })
               }
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
           <div className="sm:col-span-2">
             <Label>獎品（選填）</Label>
-            <Input
+            <Input variant="foundation"
               value={form.prizePool}
               onChange={(e) => setForm({ ...form, prizePool: e.target.value })}
-              className="mt-1 border-border bg-black text-foreground"
+              className="mt-1"
             />
           </div>
-          <Button type="submit" className="sm:col-span-2 bg-primary text-primary-foreground">
+          <Button type="submit" variant="primary" className="sm:col-span-2 w-fit">
             建立賽事
           </Button>
         </form>
@@ -188,7 +212,7 @@ export default function AdminTournamentsPage() {
         {tournaments.map((t) => (
           <div
             key={t.id}
-            className="rounded-xl border border-border bg-card"
+            className={adminCardClass}
           >
             <div className="flex items-center justify-between gap-3 p-5">
               <button
@@ -203,7 +227,7 @@ export default function AdminTournamentsPage() {
               </button>
               <div className="flex items-center gap-4">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-pink-400">
+                  <p className="text-sm font-medium text-trtcg-secondary-border">
                     {t._count.registrations} / {t.maxPlayers} 人
                   </p>
                   <p className="text-xs text-muted-foreground/80">
@@ -253,9 +277,15 @@ export default function AdminTournamentsPage() {
           </div>
         ))}
         {tournaments.length === 0 && (
-          <p className="py-12 text-center text-muted-foreground/80">
-            尚無賽事，點擊「新增賽事」建立
-          </p>
+          <div className={cn(adminCardClass, "flex flex-col items-center gap-4 py-10 text-center")}>
+            <p className="text-[28px] font-bold leading-[1.4]">尚未建立賽事</p>
+            <p className="max-w-xl text-[16px] leading-[1.65] text-trtcg-muted">
+              建立第一場店賽後，報名名單、付款狀態與計分入口會在這裡顯示。
+            </p>
+            <Button type="button" variant="primary" onClick={() => setShowForm(true)}>
+              新增賽事
+            </Button>
+          </div>
         )}
       </div>
     </div>
