@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState } from "react";
+import { FoundationButton } from "@/components/foundations/button";
 import type { HomeBannerItem } from "@/lib/site-content";
 
 const FALLBACK_SLIDE: HomeBannerItem = {
@@ -13,6 +14,10 @@ const FALLBACK_SLIDE: HomeBannerItem = {
   gradient: "",
 };
 
+/** Soft frames 5:2 and 18:157 share this atmosphere. */
+const HERO_ATMOSPHERE =
+  "linear-gradient(139deg, rgb(8, 8, 12) 13%, rgb(61, 44, 120) 47%, rgb(224, 163, 40) 84%)";
+
 function isSetHero(title: string): boolean {
   return title.includes("Scarlet") && title.includes("151");
 }
@@ -21,72 +26,59 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
   const slides = banners.length > 0 ? banners : [FALLBACK_SLIDE];
   const [index, setIndex] = useState(0);
   const slide = slides[index % slides.length] ?? slides[0];
-  const tournamentSlide = slide.title.includes("店賽");
 
   const go = (delta: number) => {
     setIndex((current) => (current + delta + slides.length) % slides.length);
   };
 
   return (
-    <section className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-10 px-4 py-[56px] sm:px-6 xl:flex-row xl:items-center xl:gap-16 xl:px-0">
-      <div className="flex w-full max-w-[576px] shrink-0 flex-col items-start gap-7">
-        <div className="flex flex-col gap-7">
-          {isSetHero(slide.title) ? (
-            <h1
-              className="text-[84px] font-medium leading-none text-[#0a0a09]"
-              style={{ fontFamily: "var(--font-dm), var(--font-sans), sans-serif" }}
-              aria-live="polite"
-            >
-              <span className="block">Scarlet &</span>
-              <span className="block">
-                Violet{" "}
-                <span className="font-normal italic" style={{ fontFamily: "var(--font-playfair), serif" }}>
-                  151
-                </span>
+    <section className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-10 px-4 py-[56px] sm:px-6 xl:flex-row xl:items-center xl:gap-[64px] xl:px-0">
+      <div className="flex w-full max-w-[576px] shrink-0 flex-col items-start gap-[28px]">
+        {isSetHero(slide.title) ? (
+          <h1
+            className="text-[84px] font-medium leading-none text-trtcg-ink"
+            style={{ fontFamily: "var(--font-dm), var(--font-sans), sans-serif" }}
+            aria-live="polite"
+          >
+            <span className="block">Scarlet &</span>
+            <span className="block">
+              Violet{" "}
+              <span className="font-normal italic" style={{ fontFamily: "var(--font-playfair), serif" }}>
+                151
               </span>
-            </h1>
-          ) : (
-            <h1 className="text-[64px] font-medium leading-none text-[#0a0a09]" aria-live="polite">
-              {slide.title}
-            </h1>
-          )}
-          <p className="max-w-[540px] text-[16px] leading-[1.65] text-[#625f58]">{slide.subtitle}</p>
-        </div>
+            </span>
+          </h1>
+        ) : (
+          <h1 className="text-[64px] font-medium leading-none text-trtcg-ink" aria-live="polite">
+            {slide.title}
+          </h1>
+        )}
+        <p className="max-w-[540px] text-[16px] leading-[1.65] text-trtcg-muted">{slide.subtitle}</p>
         <div className="flex gap-[12px]">
-          <button
+          <FoundationButton
             type="button"
+            variant="secondary"
             aria-label="上一張 Banner"
             onClick={() => go(-1)}
-            className={
-              tournamentSlide
-                ? "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#6f59c7] bg-[#e6dfff] text-[14px] font-medium text-[#080808] transition hover:bg-[#ddd4fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
-                : "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
-            }
+            className="w-[50px] px-0"
           >
             ←
-          </button>
-          <button
+          </FoundationButton>
+          <FoundationButton
             type="button"
+            variant="secondary"
             aria-label="下一張 Banner"
             onClick={() => go(1)}
-            className={
-              tournamentSlide
-                ? "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#6f59c7] bg-[#e6dfff] text-[14px] font-medium text-[#080808] transition hover:bg-[#ddd4fb] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
-                : "inline-flex h-[48px] w-[50px] items-center justify-center rounded-[10px] border border-[#080808] bg-white text-[14px] font-medium text-[#080808] transition hover:bg-[#f7f5ef] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
-            }
+            className="w-[50px] px-0"
           >
             →
-          </button>
+          </FoundationButton>
         </div>
       </div>
 
       <div
-        className="relative w-full min-w-0 overflow-hidden rounded-[24px] border border-[#c8a24a] shadow-[0_18px_42px_rgba(0,0,0,0.18)] xl:max-w-[640px] xl:flex-1 [container-type:inline-size]"
-        style={{
-          backgroundImage: tournamentSlide
-            ? "linear-gradient(139deg, rgb(61, 44, 120) 13%, rgb(124, 92, 196) 48%, rgb(224, 163, 40) 86%)"
-            : "linear-gradient(139deg, rgb(5, 5, 5) 13%, rgb(36, 33, 26) 57%, rgb(200, 162, 74) 84%)",
-        }}
+        className="relative w-full min-w-0 overflow-hidden rounded-[24px] border border-trtcg-badge-border shadow-trtcg-float xl:max-w-[640px] xl:flex-1 [container-type:inline-size]"
+        style={{ backgroundImage: HERO_ATMOSPHERE }}
       >
         <div className="aspect-[640/530] w-full" />
         <div
@@ -105,26 +97,26 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
           <div className="absolute top-[63.93px] left-[99px] flex h-[371.856px] w-[299.454px] items-center justify-center">
             <div className="-rotate-12">
               <Image
-                src={tournamentSlide ? "/brand/home/mew-ex-151.png" : "/brand/home/charizard-ex.png"}
+                src="/brand/home/charizard-ex.png"
                 alt=""
                 width={236}
                 height={330}
                 unoptimized
                 preload
-                className="h-[330px] w-[236px] object-contain shadow-[0_18px_42px_rgba(0,0,0,0.18)]"
+                className="h-[330px] w-[236px] object-contain shadow-trtcg-float"
               />
             </div>
           </div>
           <div className="absolute top-[77px] left-[276.7px] flex h-[365.968px] w-[289.719px] items-center justify-center">
             <div className="rotate-[10deg]">
               <Image
-                src={tournamentSlide ? "/brand/home/pikachu-151.png" : "/brand/home/umbreon-vmax.png"}
+                src="/brand/home/umbreon-vmax.png"
                 alt=""
                 width={236}
                 height={330}
                 unoptimized
                 preload
-                className="h-[330px] w-[236px] object-contain shadow-[0_18px_42px_rgba(0,0,0,0.18)]"
+                className="h-[330px] w-[236px] object-contain shadow-trtcg-float"
               />
             </div>
           </div>

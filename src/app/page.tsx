@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { FoundationButton } from "@/components/foundations/button";
 import { HomeEventCard } from "@/components/home/home-event-card";
 import { HomeHero } from "@/components/home/home-hero";
-import { homeContainer, homeQuietLink } from "@/components/home/home-layout";
+import { homeContainer } from "@/components/home/home-layout";
 import { HomeProductCard } from "@/components/home/home-product-card";
 import { HomeServices } from "@/components/home/home-services";
 import { HOME_SHOWCASE_PRODUCTS, isGenericDemoFeatured } from "@/lib/home-showcase";
@@ -24,11 +25,11 @@ export default async function HomePage() {
       <HomeHero banners={homeContent.banners} />
 
       <section className={`${homeContainer} flex flex-col gap-8 pt-16 pb-8`}>
-        <div className="flex items-center justify-between gap-6">
-          <h2 className="text-[32px] font-medium leading-[1.3] text-[#0a0a09] xl:text-[40px]">熱門商品</h2>
-          <Link href="/products" className={homeQuietLink}>
+        <div className="flex items-center gap-[24px]">
+          <h2 className="text-[32px] font-medium leading-[1.3] text-trtcg-ink xl:text-[40px]">熱門商品</h2>
+          <FoundationButton variant="quiet" className="w-[160px]" render={<Link href="/products" />}>
             查看全部 →
-          </Link>
+          </FoundationButton>
         </div>
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
           {featured.map((product) => (
@@ -39,16 +40,16 @@ export default async function HomePage() {
 
       <section className={`${homeContainer} flex flex-col gap-8 pt-16 pb-8`}>
         <div className="flex items-center justify-between gap-6">
-          <h2 className="text-[32px] font-medium leading-[1.3] text-[#0a0a09] xl:text-[40px]">
+          <h2 className="text-[32px] font-medium leading-[1.3] text-trtcg-ink xl:text-[40px]">
             即將舉辦的店賽
           </h2>
-          <Link href="/tournaments" className={homeQuietLink}>
+          <FoundationButton variant="quiet" className="w-[164px]" render={<Link href="/tournaments" />}>
             全部賽事 →
-          </Link>
+          </FoundationButton>
         </div>
-        <p className="text-[16px] leading-[1.65] text-[#625f58]">每週舉辦 Pokémon 標準賽 · 現場報到</p>
+        <p className="text-[16px] leading-[1.65] text-trtcg-muted">每週舉辦 Pokémon 標準賽 · 現場報到</p>
         {tournaments.length === 0 ? (
-          <p className="text-[16px] text-[#625f58]">暫無即將舉行的店賽</p>
+          <p className="text-[16px] text-trtcg-muted">暫無即將舉行的店賽</p>
         ) : (
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {tournaments.map((tournament) => (
