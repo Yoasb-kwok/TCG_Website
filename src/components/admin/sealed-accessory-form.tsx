@@ -187,8 +187,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
           className={cn(
             "rounded-lg px-4 py-2 text-sm",
             tab === "sealed"
-              ? "bg-primary text-primary-foreground"
-              : "bg-white/10 text-muted-foreground",
+              ? "border border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header"
+              : "bg-white text-trtcg-muted",
           )}
         >
           卡盒 / 補充包
@@ -199,8 +199,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
           className={cn(
             "rounded-lg px-4 py-2 text-sm",
             tab === "accessory"
-              ? "bg-primary text-primary-foreground"
-              : "bg-white/10 text-muted-foreground",
+              ? "border border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header"
+              : "bg-white text-trtcg-muted",
           )}
         >
           週邊配件
@@ -295,7 +295,7 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
               ref={fileRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
-              className="mt-2 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-pink-500/20 file:px-3 file:py-2 file:text-sm file:text-foreground"
+              className="mt-2 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-trtcg-lavender file:px-3 file:py-2 file:text-sm file:text-trtcg-header"
               onChange={(e) => onPickImage(e.target.files?.[0] ?? null)}
             />
             {imagePreview && (
@@ -319,8 +319,8 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
 
           <Button
             type="submit"
+            variant="primary"
             disabled={loading}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "上架卡盒/補充包"}
           </Button>
@@ -375,14 +375,14 @@ export function SealedAccessoryForm({ onCreated, embedded = false }: SealedAcces
               ref={accFileRef}
               type="file"
               accept="image/jpeg,image/png,image/webp,image/gif"
-              className="mt-2 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-pink-500/20 file:px-3 file:py-2 file:text-sm file:text-foreground"
+              className="mt-2 block w-full text-sm text-muted-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-trtcg-lavender file:px-3 file:py-2 file:text-sm file:text-trtcg-header"
               onChange={(e) => setAccImageFile(e.target.files?.[0] ?? null)}
             />
           </div>
           <Button
             type="submit"
+            variant="primary"
             disabled={loading}
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : "上架週邊"}
           </Button>

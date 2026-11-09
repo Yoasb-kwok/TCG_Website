@@ -93,14 +93,14 @@ export function CatalogManager() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-border bg-card p-5">
+      <section className="rounded-3xl bg-white p-6 text-trtcg-ink">
         <h2 className="text-lg font-semibold">匯入官方卡表</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           用 Excel 另存「CSV UTF-8」再上傳。UTF-8 的 BOM 可有可無；Excel 若存成帶 BOM 的 UTF-16 也可以。其他編碼會被拒絕，不會把亂碼寫進卡表。收集編號請設成文字，避免 001/076 被 Excel 變成日期。
           沒有繁中名稱的列會標成「待補」。已有的譯名不會被空白列蓋掉。CSV 沒有的卡不會刪除。
         </p>
         <p className="mt-2 text-sm">
-          <a className="text-pink-400 underline" href="/api/catalog/template">
+          <a className="font-bold text-trtcg-secondary-border underline" href="/api/catalog/template">
             下載 CSV 範本
           </a>
           <span className="text-muted-foreground">
@@ -141,7 +141,7 @@ export function CatalogManager() {
         </div>
 
         <div className="mt-4 flex items-center gap-3">
-          <Button type="button" disabled={importing} onClick={onImport}>
+          <Button type="button" variant="primary" disabled={importing} onClick={onImport}>
             {importing ? "匯入中…" : "匯入"}
           </Button>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -166,7 +166,7 @@ export function CatalogManager() {
         {entries.length === 0 ? (
           <p className="mt-2 text-sm text-muted-foreground">還沒有卡表更新紀錄。</p>
         ) : (
-          <ul className="mt-3 divide-y divide-border rounded-xl border border-border">
+          <ul className="mt-3 divide-y divide-trtcg-line rounded-3xl bg-white">
             {entries.map((entry) => (
               <li key={entry.id} className="px-4 py-3 text-sm">
                 <p className="font-medium">
@@ -206,14 +206,14 @@ export function CatalogManager() {
             placeholder="名稱或卡號"
             className="min-w-48 flex-1"
           />
-          <Button type="submit" variant="outline">
+          <Button type="submit" variant="foundation-secondary">
             搜尋
           </Button>
         </form>
         <p className="mt-2 text-xs text-muted-foreground">{cardTotal} 張</p>
-        <div className="mt-2 overflow-x-auto rounded-xl border border-border">
+        <div className="mt-2 overflow-x-auto rounded-3xl bg-white">
           <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="border-b border-border text-muted-foreground">
+            <thead className="border-b border-trtcg-line text-trtcg-muted">
               <tr>
                 <th className="px-3 py-2 font-medium">系列</th>
                 <th className="px-3 py-2 font-medium">卡號</th>
@@ -237,7 +237,7 @@ export function CatalogManager() {
                   <td className="px-3 py-2">
                     {card.nameZhTw}
                     {card.pendingTranslation ? (
-                      <span className="ml-2 text-xs text-pink-400">待補</span>
+                      <span className="ml-2 text-xs text-trtcg-gold">待補</span>
                     ) : null}
                   </td>
                   <td className="px-3 py-2">{card.nameJa ?? "—"}</td>
