@@ -15,6 +15,19 @@ These Soft fields are intentional variance. This pass does not recolor them.
 
 Wallpaper URLs are also unchanged: storefront still uses `/brand/home/sparse-cloud-crane-wallpaper.png`, POS still uses `/brand/pos/sparse-cloud-crane-wallpaper.jpg`. New work should use `/brand/foundations/`.
 
+## Storefront Soft (page 4:2)
+
+The public storefront keeps `.storefront-canvas` `#F7F5EF`. Soft frames also paint a few fills that differ from the printed Foundations swatches. This pass uses the Foundations components and tokens, and records the difference:
+
+| Soft frame fill | Foundations token used |
+| --- | --- |
+| Secondary button `#E6DFFF` | `--trtcg-lavender` `#E8DFF8` |
+| WhatsApp FAB `#DDEB9F` | `--trtcg-lime` `#EAF1CA` |
+| Quiet wash `rgba(221, 235, 159, 0.42)` | `--trtcg-quiet` (same) |
+| Body ink variable `#101015` | `--trtcg-ink` `#191817` |
+
+Homepage hero slides `5:2` and `18:157` share the purple-to-gold atmosphere and the Charizard / Umbreon artwork. The second slide only changes the copy to 店賽報名. Homepage product cards follow interactive component `69:210` (lavender well, foil sweep on hover). The catalog grid on frame `9:16` stays the static card, with Foundations Button and the card shadow.
+
 ## Tokens
 
 Printed swatch labels on frame `21:2` are the hex source of truth.

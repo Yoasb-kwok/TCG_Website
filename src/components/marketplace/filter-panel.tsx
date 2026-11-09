@@ -34,7 +34,7 @@ interface FilterPanelProps {
 
 function FrameTrigger({ children }: { children: React.ReactNode }) {
   return (
-    <AccordionTrigger className="rounded-none py-0 text-[14px] font-medium leading-[1.45] text-[#0a0a09] hover:no-underline [&_[data-slot=accordion-trigger-icon]]:hidden">
+    <AccordionTrigger className="rounded-none py-0 text-[14px] font-medium leading-[1.45] text-trtcg-ink hover:no-underline [&_[data-slot=accordion-trigger-icon]]:hidden">
       {children}
       <Image
         src="/brand/home/icon-chevron.svg"
@@ -92,7 +92,7 @@ export function FilterPanel({
 
   return (
     <aside className="flex w-full flex-col gap-6 rounded-[16px] bg-white p-6 xl:w-[248px]">
-      <h2 className="text-[20px] font-medium leading-[1.45] text-[#0a0a09]">篩選</h2>
+      <h2 className="text-[20px] font-medium leading-[1.45] text-trtcg-ink">篩選</h2>
 
       {showSort ? <div className="space-y-2">
         <Label className="text-xs text-muted-foreground">排序</Label>
@@ -111,7 +111,7 @@ export function FilterPanel({
         </select>
       </div> : null}
 
-      <label className="flex items-center gap-2 text-[13px] leading-[1.6] text-[#0a0a09]">
+      <label className="flex items-center gap-2 text-[13px] leading-[1.6] text-trtcg-ink">
         <input
           id="in-stock"
           type="checkbox"
@@ -123,7 +123,7 @@ export function FilterPanel({
       </label>
 
       <Accordion className="gap-6">
-        <AccordionItem value="setCode" className="border-t border-[rgba(200,162,74,0.55)] pt-6">
+        <AccordionItem value="setCode" className="border-t border-trtcg-gold/55 pt-6">
           <FrameTrigger>系列編號</FrameTrigger>
           <AccordionContent className="max-h-48 space-y-2 overflow-y-auto">
             {setSeriesOptions.map(({ value, label, id }) => (
@@ -136,7 +136,7 @@ export function FilterPanel({
                 />
                 <Label
                   htmlFor={`setCode-${value}`}
-                  className={`text-sm ${hasSetCode(value) ? "text-[#0a0a09]" : "text-muted-foreground/50"}`}
+                  className={`text-sm ${hasSetCode(value) ? "text-trtcg-ink" : "text-muted-foreground/50"}`}
                 >
                   {label}
                 </Label>
@@ -145,7 +145,7 @@ export function FilterPanel({
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="rarityTier" className="border-t border-[rgba(200,162,74,0.55)] pt-6">
+        <AccordionItem value="rarityTier" className="border-t border-trtcg-gold/55 pt-6">
           <FrameTrigger>稀有度分類</FrameTrigger>
           <AccordionContent className="max-h-56 space-y-2 overflow-y-auto">
             {rarityTierOptions.map(({ value, label, id }) => (
@@ -158,7 +158,7 @@ export function FilterPanel({
                 />
                 <Label
                   htmlFor={`tier-${value}`}
-                  className={`text-sm ${hasRarityTier(value) ? "text-[#0a0a09]" : "text-muted-foreground/50"}`}
+                  className={`text-sm ${hasRarityTier(value) ? "text-trtcg-ink" : "text-muted-foreground/50"}`}
                 >
                   {label}
                 </Label>
@@ -167,7 +167,7 @@ export function FilterPanel({
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="price" className="border-t border-[rgba(200,162,74,0.55)] pt-6">
+        <AccordionItem value="price" className="border-t border-trtcg-gold/55 pt-6">
           <FrameTrigger>價格 (HKD)</FrameTrigger>
           <AccordionContent>
             <Slider
@@ -186,7 +186,7 @@ export function FilterPanel({
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="type" className="border-t border-[rgba(200,162,74,0.55)] pt-6">
+        <AccordionItem value="type" className="border-t border-trtcg-gold/55 pt-6">
           <FrameTrigger>類型</FrameTrigger>
           <AccordionContent className="space-y-2">
             {productTypeOptions.map((t) => (
@@ -200,7 +200,7 @@ export function FilterPanel({
                 />
                 <Label
                   htmlFor={`type-${t.value}`}
-                  className="text-sm text-[#0a0a09]"
+                  className="text-sm text-trtcg-ink"
                 >
                   {t.label}
                 </Label>
@@ -209,7 +209,7 @@ export function FilterPanel({
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="set" className="border-t border-[rgba(200,162,74,0.55)] pt-6">
+        <AccordionItem value="set" className="border-t border-trtcg-gold/55 pt-6">
           <FrameTrigger>系列名稱</FrameTrigger>
             <AccordionContent className="max-h-48 space-y-2 overflow-y-auto">
               {availableFilters.cardSets.map((set) => (
@@ -219,7 +219,7 @@ export function FilterPanel({
                     checked={filters.cardSets.includes(set)}
                     onCheckedChange={() => toggleArray("cardSets", set)}
                   />
-                  <Label htmlFor={`set-${set}`} className="text-sm text-[#0a0a09]">
+                  <Label htmlFor={`set-${set}`} className="text-sm text-trtcg-ink">
                     {set}
                   </Label>
                 </div>
@@ -227,7 +227,7 @@ export function FilterPanel({
           </AccordionContent>
         </AccordionItem>
 
-        <AccordionItem value="ptype" className="border-t border-[rgba(200,162,74,0.55)] pt-6">
+        <AccordionItem value="ptype" className="border-t border-trtcg-gold/55 pt-6">
           <FrameTrigger>屬性</FrameTrigger>
             <AccordionContent className="space-y-2">
               {availableFilters.pokemonTypes.map((pt) => (
@@ -237,7 +237,7 @@ export function FilterPanel({
                     checked={filters.pokemonTypes.includes(pt)}
                     onCheckedChange={() => toggleArray("pokemonTypes", pt)}
                   />
-                  <Label htmlFor={`pt-${pt}`} className="text-sm text-[#0a0a09]">
+                  <Label htmlFor={`pt-${pt}`} className="text-sm text-trtcg-ink">
                     {pt}
                   </Label>
                 </div>

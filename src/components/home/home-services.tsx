@@ -25,18 +25,18 @@ const SERVICES = [
 
 export function HomeServices() {
   return (
-    <section className={`${homeContainer} grid grid-cols-1 gap-6 pt-16 pb-8 lg:grid-cols-3`}>
+    <section className={`${homeContainer} grid grid-cols-1 gap-[24px] pt-16 pb-8 lg:grid-cols-3`}>
       {SERVICES.map((service) => (
         <Link
           key={service.href}
           href={service.href}
-          className={`flex flex-col items-start gap-6 rounded-[12px] border border-[rgba(200,162,74,0.9)] bg-[rgba(255,255,255,0.98)] p-8 ${homeCardShadow} transition hover:border-[#c8a24a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]`}
+          className={`flex flex-col items-start gap-6 rounded-[12px] border border-trtcg-gold/90 bg-white/98 p-8 ${homeCardShadow} transition hover:border-trtcg-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold`}
         >
           <span className="flex size-16 items-center justify-center rounded-[16px] bg-white">
             <Image src={service.icon} alt="" width={28} height={28} unoptimized />
           </span>
-          <span className="text-[28px] font-medium leading-[1.4] text-[#0a0a09]">{service.title}</span>
-          <span className="text-[16px] leading-[1.65] text-[#625f58]">{service.body}</span>
+          <span className="text-[28px] font-medium leading-[1.4] text-trtcg-ink">{service.title}</span>
+          <span className="text-[16px] leading-[1.65] text-trtcg-muted">{service.body}</span>
         </Link>
       ))}
     </section>

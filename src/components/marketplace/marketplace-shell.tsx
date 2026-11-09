@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Filter } from "lucide-react";
+import { FoundationButton } from "@/components/foundations/button";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -124,10 +125,10 @@ export function MarketplaceShell({
   };
 
   return (
-    <div className={`${homeContainer} flex flex-col gap-8 pt-16 pb-8 text-[#0a0a09]`}>
+    <div className={`${homeContainer} flex flex-col gap-8 pt-16 pb-8 text-trtcg-ink`}>
       {searchQuery ? (
         <form
-          className="flex flex-col items-stretch gap-4 rounded-[16px] bg-white p-6 shadow-[0_10px_24px_rgba(0,0,0,0.06)] sm:flex-row sm:items-end"
+          className="flex flex-col items-stretch gap-4 rounded-[16px] bg-trtcg-surface p-6 shadow-trtcg-card sm:flex-row sm:items-end"
           onSubmit={(event) => {
             event.preventDefault();
             const data = new FormData(event.currentTarget);
@@ -141,26 +142,23 @@ export function MarketplaceShell({
               defaultValue={searchQuery}
               key={searchQuery}
               placeholder="搜尋商品、卡名或卡號…"
-              className="h-12 rounded-[10px] border border-[#e6dfd2] bg-[#fbf6ea] px-4 text-[16px] font-normal outline-none focus:border-[#c8a24a]"
+              className="h-[48px] rounded-[12px] border border-trtcg-input-border bg-trtcg-surface px-4 text-[16px] font-normal text-trtcg-ink outline-none focus:border-trtcg-gold"
             />
           </label>
-          <button
-            type="submit"
-            className="inline-flex h-12 shrink-0 items-center justify-center rounded-[10px] border border-[#c8a24a] bg-[#080808] px-6 text-[14px] font-medium text-white"
-          >
+          <FoundationButton type="submit" variant="primary" className="shrink-0">
             搜尋
-          </button>
+          </FoundationButton>
         </form>
       ) : null}
       <div className="flex flex-col gap-3">
-        <h1 className="text-[40px] font-medium leading-[1.3] text-[#0a0a09]">
+        <h1 className="text-[40px] font-medium leading-[1.3] text-trtcg-ink">
           {searchQuery ? `搜尋「${searchQuery}」` : game ? game.label : "商品"}
         </h1>
         {categoryCaption && !preorderListing && (
-          <p className="text-[16px] leading-[1.65] text-[#625f58]">分類：{categoryCaption}</p>
+          <p className="text-[16px] leading-[1.65] text-trtcg-muted">分類：{categoryCaption}</p>
         )}
         {shown && (
-          <p className="text-[16px] leading-[1.65] text-[#625f58]">
+          <p className="text-[16px] leading-[1.65] text-trtcg-muted">
             {unsupportedGame
               ? "此遊戲尚未上架，暫時只提供 Pokémon TCG。"
               : searchQuery
@@ -209,7 +207,7 @@ export function MarketplaceShell({
                 )}
               </SheetContent>
             </Sheet>
-            <p className="hidden text-[14px] font-medium leading-[1.45] text-[#0a0a09] xl:block">篩選</p>
+            <p className="hidden text-[14px] font-medium leading-[1.45] text-trtcg-ink xl:block">篩選</p>
             <label className="relative">
               <span className="sr-only">排序</span>
               <select
@@ -217,7 +215,7 @@ export function MarketplaceShell({
                 onChange={(event) =>
                   changeFilters({ ...filters, sort: event.target.value as ProductSort })
                 }
-                className="h-[48px] w-[200px] appearance-none rounded-[10px] border border-[#080808] bg-white px-4 text-center text-[14px] font-medium text-[#080808]"
+                className="h-[48px] w-[200px] appearance-none rounded-[10px] border border-trtcg-header bg-trtcg-surface px-4 text-center text-[14px] font-bold text-trtcg-header"
               >
                 {(Object.keys(sortLabel) as ProductSort[]).map((value) => (
                   <option key={value} value={value}>

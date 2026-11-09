@@ -4,10 +4,11 @@ import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ShoppingCart } from "lucide-react";
+import { FoundationButton } from "@/components/foundations/button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { usePublicTaxonomy } from "@/hooks/use-public-taxonomy";
-import { homeCardShadow, homeContainer } from "@/components/home/home-layout";
+import { homeContainer } from "@/components/home/home-layout";
 import { formatPrice } from "@/lib/format";
 import { getProductTypeDisplayLabel } from "@/lib/product-type-display";
 import type { ProductWithVariants } from "@/lib/types";
@@ -76,19 +77,14 @@ export function ProductDetail({
   if (appearance === "frame") {
     const pills = rarityPills(product.rarity);
     return (
-      <section className={`${homeContainer} flex flex-col gap-[36px] py-[64px] text-[#0a0a09]`}>
-        <Link
-          href={catalogHref}
-          className="inline-flex h-12 w-fit items-center rounded-[10px] bg-[#e7f3c9] px-4 text-[14px] font-medium leading-[1.45] text-[#080808] transition hover:bg-[#dcebb6]"
-        >
+      <section className={`${homeContainer} flex flex-col gap-[36px] py-[64px] text-trtcg-ink`}>
+        <FoundationButton variant="quiet" className="w-[160px]" render={<Link href={catalogHref} />}>
           ← 返回商品
-        </Link>
+        </FoundationButton>
 
         <div className="flex flex-col items-start gap-10 xl:flex-row xl:gap-[64px]">
           <div className="w-full xl:w-[608px] xl:shrink-0">
-            <div
-              className={`flex min-h-[420px] w-full items-center justify-center rounded-[24px] bg-white p-6 sm:p-12 xl:h-[680px] xl:w-[608px] ${homeCardShadow}`}
-            >
+            <div className="flex min-h-[420px] w-full items-center justify-center rounded-[24px] bg-trtcg-surface p-6 shadow-trtcg-card sm:p-12 xl:h-[680px] xl:w-[608px]">
               {image ? (
                 <div className="flex aspect-[440/580] w-full max-w-[440px] items-center justify-center">
                   <Image
@@ -102,7 +98,7 @@ export function ProductDetail({
                   />
                 </div>
               ) : (
-                <div className="text-[14px] text-[#625f58]">無圖片</div>
+                <div className="text-[14px] text-trtcg-muted">無圖片</div>
               )}
             </div>
             {product.images.length > 1 && (
@@ -136,24 +132,22 @@ export function ProductDetail({
             {pills.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {pills.map((label, index) => (
-                  <span
+                  <Badge
                     key={label}
-                    className={cn(
-                      "inline-flex h-[28px] items-center rounded-full border border-[#c8a24a] px-3 text-[13px] leading-none text-[#080808]",
-                      index === 0 ? "bg-[#f5ebcf]" : "bg-[#fbfaf6]",
-                    )}
+                    variant="foundation"
+                    className={index === 0 ? "bg-trtcg-lavender" : undefined}
                   >
                     {label}
-                  </span>
+                  </Badge>
                 ))}
               </div>
             )}
 
-            <h1 className="text-[40px] font-medium leading-[1.3] text-[#0a0a09]">{product.name}</h1>
+            <h1 className="text-[40px] font-medium leading-[1.3] text-trtcg-ink">{product.name}</h1>
             {meta.length > 0 && (
-              <p className="text-[13px] leading-[1.6] text-[#625f58]">
+              <p className="text-[13px] leading-[1.6] text-trtcg-muted">
                 {[
-                  product.type,
+                  product.slug === "demo-charizard-sold-out" ? "單卡" : product.type,
                   product.cardSet,
                   product.cardNumber,
                   LANGUAGE_LABELS[product.language] ?? product.language,
@@ -163,19 +157,19 @@ export function ProductDetail({
               </p>
             )}
             {product.pokemonType && (
-              <p className="text-[13px] leading-[1.6] text-[#625f58]">{product.pokemonType}</p>
+              <p className="text-[13px] leading-[1.6] text-trtcg-muted">{product.pokemonType}</p>
             )}
             {product.description && (
-              <p className="whitespace-pre-line text-[16px] leading-[1.65] text-[#0a0a09]">
+              <p className="whitespace-pre-line text-[16px] leading-[1.65] text-trtcg-ink">
                 {product.description}
               </p>
             )}
 
-            <div className="h-px w-full bg-[#c8a24a]" />
+            <div className="h-px w-full bg-trtcg-gold/55" />
 
             {variant ? (
               <div className="flex flex-col gap-4">
-                <p className="text-[14px] font-medium leading-[1.45] text-[#0a0a09]">品相</p>
+                <p className="text-[14px] font-medium leading-[1.45] text-trtcg-ink">品相</p>
                 <div className="flex flex-col gap-3">
                   {product.variants.map((item) => {
                     const selected = item.id === variant.id;
@@ -185,21 +179,21 @@ export function ProductDetail({
                         type="button"
                         onClick={() => setVariantId(item.id)}
                         className={cn(
-                          "flex items-center justify-between gap-4 rounded-[16px] border bg-white p-5 text-left",
-                          selected ? "border-[#080808]" : "border-[#ddd5c3]",
+                          "flex items-center justify-between gap-4 rounded-[16px] border bg-trtcg-surface p-5 text-left",
+                          selected ? "border-trtcg-header" : "border-trtcg-line",
                         )}
                         aria-pressed={selected}
                       >
                         <span>
-                          <span className="block text-[14px] font-medium leading-[1.45] text-[#0a0a09]">
+                          <span className="block text-[14px] font-medium leading-[1.45] text-trtcg-ink">
                             {item.condition}
                             {item.isFoil ? " · 閃卡" : ""}
                           </span>
-                          <span className="mt-1 block text-[13px] leading-[1.6] text-[#625f58]">
+                          <span className="mt-1 block text-[13px] leading-[1.6] text-trtcg-muted">
                             {item.stock > 0 ? `庫存 ${item.stock}` : "缺貨"}
                           </span>
                         </span>
-                        <span className="text-[24px] font-medium leading-[1.3] text-[#0a0a09]">
+                        <span className="text-[24px] font-medium leading-[1.2] text-trtcg-ink">
                           {item.price > 0 ? formatPrice(item.price) : "未定價"}
                         </span>
                       </button>
@@ -208,26 +202,21 @@ export function ProductDetail({
                 </div>
 
                 <div className="flex flex-col items-stretch gap-4 pt-2 sm:flex-row sm:items-center">
-                  <p className="text-[40px] font-medium leading-[1.2] text-[#0a0a09]">
+                  <p className="text-[40px] font-medium leading-[1.3] text-trtcg-ink">
                     {variant.price > 0 ? formatPrice(variant.price) : "未定價"}
                   </p>
-                  <button
+                  <FoundationButton
                     type="button"
-                    disabled={!purchasable}
+                    variant={purchasable ? "primary" : "disabled"}
                     onClick={handleAdd}
-                    className={cn(
-                      "inline-flex h-[48px] w-full max-w-[380px] items-center justify-center rounded-[10px] text-[14px] font-medium leading-[1.45]",
-                      purchasable
-                        ? "border border-[#c8a24a] bg-[#080808] text-white transition hover:bg-[#1c1c1c] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
-                        : "cursor-not-allowed bg-[#d9d4c9] text-[#77736b]",
-                    )}
+                    className="w-full max-w-[380px]"
                   >
                     {!inStock ? "缺貨" : variant.price > 0 ? "加入購物車" : "未定價"}
-                  </button>
+                  </FoundationButton>
                 </div>
               </div>
             ) : (
-              <p className="text-[14px] text-[#625f58]">暫時未能購買</p>
+              <p className="text-[14px] text-trtcg-muted">暫時未能購買</p>
             )}
           </div>
         </div>
