@@ -20,6 +20,8 @@ import { SET_SERIES_CODES } from "@/lib/card-taxonomy";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
+import { commercialFacts, usableMemberPrice } from "@/lib/pos-commercial";
+import { matchPosScan } from "@/lib/pos-scan";
 import type { Receipt } from "@/lib/pos-shared";
 import type { CatalogSearchHit, ProductSort, ProductWithVariants } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -229,7 +231,7 @@ export function PosReceiving() {
       const data = (await res.json()) as {
         match?: { product: ProductWithVariants; variantId: string } | null;
       };
-      const match = data.match;
+      const match = data.match ?? matchPosScan(products, code);
       if (!match) {
         setError("沒有完全相符嘅條碼或 SKU。卡表如果有這張，請先在後台上架，再入貨。");
         return;
@@ -265,11 +267,17 @@ export function PosReceiving() {
 
   const exportRows = () => {
     downloadCsv("pos-inventory.csv", [
-      ["商品", "系列 / 類型", "售價", "庫存", "狀態"],
+      ["商品", "系列 / 類型", "條碼", "售價", "進貨價", "批發價", "會員價", "會員折扣", "積分商品", "庫存", "狀態"],
       ...rows.map(({ product, item }) => [
         product.name,
         [product.setCode ? labelFor("SET_CODE", product.setCode) : "", posKindLabel(product.type, product.type)].filter(Boolean).join(" · "),
+        item.barcode ?? "",
         item.price > 0 ? String(item.price) : "",
+        typeof item.cost === "number" && item.cost > 0 ? String(item.cost) : "",
+        typeof item.wholesalePrice === "number" ? String(item.wholesalePrice) : "",
+        usableMemberPrice(item) != null ? String(usableMemberPrice(item)) : "",
+        item.memberDiscount ? "是" : "否",
+        item.pointsProduct ? "是" : "否",
         String(item.stock),
         stockStatus(item.stock, item.price),
       ]),
@@ -399,6 +407,9 @@ export function PosReceiving() {
                         <td className="px-4 py-3 font-bold text-[#171514]">
                           {product.name}
                           {product.variants.length > 1 ? ` · ${item.condition}` : ""}
+                          <span className="mt-1 block text-[12px] font-normal leading-5 text-[#706c68]">
+                            {commercialFacts(item).join(" · ")}
+                          </span>
                         </td>
                         <td className="px-4 py-3 text-[#706c68]">
                           {[seriesLabel, posKindLabel(product.type, product.type)].filter(Boolean).join(" · ")}
@@ -436,6 +447,9 @@ export function PosReceiving() {
                     ? `目前庫存 ${variant.stock} · 最近更新今天`
                     : "從左邊表格揀已上架貨品，再填數量、成本同售價。"}
                 </p>
+                {variant && (
+                  <p className="text-[12px] leading-5 text-[#706c68]">{commercialFacts(variant).join(" · ")}</p>
+                )}
               </div>
               {selected && variant ? (
                 <>
