@@ -49,7 +49,7 @@ export function MegaMenu({ open, links, onClose, onPointerEnter, onPointerLeave 
 
   return (
     <div
-      className="absolute top-full right-0 left-0 z-40 border-t border-[rgba(200,162,74,0.55)] bg-[#f7f5ef] text-[#0a0a09] shadow-lg"
+      className="absolute top-full right-0 left-0 z-40 border-t border-trtcg-gold/55 bg-[#f7f5ef] text-trtcg-ink shadow-trtcg-card"
       style={{
         ["--foreground" as string]: "#0a0a09",
         ["--muted-foreground" as string]: "#625f58",

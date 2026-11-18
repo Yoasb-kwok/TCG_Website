@@ -142,13 +142,13 @@ function SiteHeaderView({
   }, [megaOpen]);
 
   const iconButton =
-    "inline-flex items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]";
+    "inline-flex items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold";
 
   return (
-    <header className="sticky top-0 z-50 bg-[#080808] text-white">
+    <header className="sticky top-0 z-50 bg-trtcg-header text-white">
       <div className="mx-auto flex h-[88px] w-full max-w-[1280px] items-center justify-between gap-6 px-4 sm:px-6 xl:px-0">
         <Link href="/" className="flex w-[190px] shrink-0 items-center gap-2.5">
-          <span className="flex size-10 items-center justify-center rounded-full bg-[#c8a24a] text-[13px] leading-[1.6] text-[#080808]">
+          <span className="flex size-10 items-center justify-center rounded-full bg-trtcg-gold text-[13px] leading-[1.6] text-trtcg-header">
             TCG
           </span>
           <span className="text-[20px] font-medium leading-[1.45] text-white">{SITE_BRAND}</span>
@@ -166,7 +166,7 @@ function SiteHeaderView({
                 <button
                   ref={productsButtonRef}
                   type="button"
-                  className="inline-flex items-center rounded-md text-[14px] font-medium leading-[1.45] text-white transition hover:text-[#c8a24a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+                  className="inline-flex items-center rounded-md text-[14px] font-medium leading-[1.45] text-white transition hover:text-trtcg-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold"
                   aria-expanded={megaOpen}
                   aria-controls="storefront-l2-menu"
                   aria-haspopup="true"
@@ -200,9 +200,9 @@ function SiteHeaderView({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "text-[14px] font-medium leading-[1.45] whitespace-nowrap transition hover:text-[#c8a24a]",
+                  "text-[14px] font-medium leading-[1.45] whitespace-nowrap transition hover:text-trtcg-gold",
                   preorderCurrent && item.href === "/products?type=SEALED_BOX"
-                    ? "text-[#c8a24a]"
+                    ? "text-trtcg-gold"
                     : "text-white",
                 )}
                 aria-current={
@@ -253,7 +253,7 @@ function SiteHeaderView({
             {itemCount > 0 && (
               <span
                 aria-hidden="true"
-                className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#c8a24a] px-1 text-[10px] font-medium text-[#080808]"
+                className="absolute -top-2 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-trtcg-gold px-1 text-[10px] font-medium text-trtcg-header"
               >
                 {itemCount}
               </span>
@@ -369,7 +369,7 @@ function SiteHeaderView({
                 className={cn(
                   "block py-2 text-sm hover:text-white",
                   preorderCurrent && item.href === "/products?type=SEALED_BOX"
-                    ? "text-[#c8a24a]"
+                    ? "text-trtcg-gold"
                     : "text-white/80",
                 )}
                 aria-current={
@@ -390,7 +390,9 @@ function SiteHeaderView({
         </div>
       )}
 
-      <div className="h-px bg-[rgba(200,162,74,0.55)]" />
+      <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 xl:px-0">
+        <div className="h-px bg-trtcg-gold/55" />
+      </div>
       <CartSheet />
     </header>
   );

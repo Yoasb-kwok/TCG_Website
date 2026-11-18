@@ -5,7 +5,7 @@ import { getStoreMapsUrl } from "@/lib/store-maps";
 import { cn } from "@/lib/utils";
 
 const columnTitle = "text-[14px] font-medium leading-[1.45] text-white";
-const columnLink = "text-[13px] leading-[1.6] text-white transition hover:text-[#c8a24a]";
+const columnLink = "text-[13px] leading-[1.6] text-white transition hover:text-trtcg-gold";
 
 export function SiteFooter({
   socialLinks,
@@ -16,7 +16,7 @@ export function SiteFooter({
   inset?: boolean;
 }) {
   return (
-    <footer className={cn("bg-[#080808] text-white", inset ? "rounded-[14px]" : "mt-auto")}>
+    <footer className={cn("bg-trtcg-header text-white", inset ? "rounded-[14px]" : "mt-auto")}>
       <div
         className={cn(
           "mx-auto flex w-full flex-col gap-9",
@@ -35,7 +35,7 @@ export function SiteFooter({
                   href={getStoreMapsUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:text-[#c8a24a]"
+                  className="hover:text-trtcg-gold"
                 >
                   {STORE.address.zh}
                 </a>
@@ -92,7 +92,7 @@ export function SiteFooter({
           <p>
             © {new Date().getFullYear()} {SITE_BRAND}. All rights reserved.
           </p>
-          <Link href="/demo" className="hover:text-[#c8a24a]">
+          <Link href="/demo" className="hover:text-trtcg-gold">
             公開示範店
           </Link>
         </div>

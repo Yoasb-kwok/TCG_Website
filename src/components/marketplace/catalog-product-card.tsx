@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { FoundationButton } from "@/components/foundations/button";
 import { homeCardShadow } from "@/components/home/home-layout";
 import { formatPrice } from "@/lib/format";
 import type { ProductWithVariants } from "@/lib/types";
@@ -56,8 +57,8 @@ export function CatalogProductCard({ product }: { product: ProductWithVariants }
   };
 
   return (
-    <article className={`flex flex-col overflow-hidden rounded-[16px] bg-white ${homeCardShadow}`}>
-      <div className="flex h-[300px] items-center justify-center rounded-[10px] bg-[#fbfaf6]">
+    <article className={`flex flex-col overflow-hidden rounded-[12px] border border-trtcg-line/80 bg-white ${homeCardShadow}`}>
+      <div className="flex h-[300px] items-center justify-center rounded-[10px] bg-trtcg-surface">
         {imageUrl ? (
           <Link href={href} className="block h-[252px] w-[222px]">
             <Image
@@ -70,38 +71,34 @@ export function CatalogProductCard({ product }: { product: ProductWithVariants }
             />
           </Link>
         ) : (
-          <div className="text-[13px] text-[#625f58]">無圖片</div>
+          <div className="text-[13px] text-trtcg-muted">無圖片</div>
         )}
       </div>
       <div className="flex min-h-[280px] flex-col justify-between gap-3 p-5">
         <div className="flex flex-col gap-3">
-          <p className="text-[13px] leading-[1.6] text-[#625f58]">{product.rarity || "OTHER"}</p>
-          <h3 className="line-clamp-2 min-h-[49px] text-[17px] font-medium leading-[1.45] text-[#0a0a09]">
+          <p className="text-[13px] leading-[1.6] text-trtcg-muted">{product.rarity || "OTHER"}</p>
+          <h3 className="line-clamp-2 min-h-[49px] text-[17px] font-medium leading-[1.45] text-trtcg-ink">
             <Link href={href}>{product.name}</Link>
           </h3>
-          <p className="text-[13px] leading-[1.6] text-[#625f58]">{typeLine(product)}</p>
-          <p className="flex min-h-[21px] gap-3 text-[13px] leading-[1.6] text-[#625f58]">
+          <p className="text-[13px] leading-[1.6] text-trtcg-muted">{typeLine(product)}</p>
+          <p className="flex min-h-[21px] gap-3 text-[13px] leading-[1.6] text-trtcg-muted">
             {details.map((detail) => (
               <span key={detail}>{detail}</span>
             ))}
           </p>
         </div>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[24px] font-medium leading-[1.2] text-[#0a0a09]">
+          <p className="text-[24px] font-medium leading-[1.2] text-trtcg-ink">
             {cheapest && cheapest.price > 0 ? formatPrice(cheapest.price) : "未定價"}
           </p>
-          <button
+          <FoundationButton
             type="button"
-            disabled={!sellable}
+            variant={sellable ? "primary" : "disabled"}
             onClick={handleAdd}
-            className={
-              sellable
-                ? "inline-flex h-[48px] w-[72px] items-center justify-center rounded-[10px] border border-[#c8a24a] bg-[#080808] text-[14px] font-medium leading-[1.45] text-white transition hover:bg-[#1c1c1c]"
-                : "inline-flex h-[48px] w-[72px] cursor-not-allowed items-center justify-center rounded-[10px] bg-[#d9d4c9] text-[14px] font-medium leading-[1.45] text-[#77736b]"
-            }
+            className="w-[72px] px-0"
           >
             加入
-          </button>
+          </FoundationButton>
         </div>
       </div>
     </article>

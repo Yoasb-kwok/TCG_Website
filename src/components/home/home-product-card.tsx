@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { FoundationButton } from "@/components/foundations/button";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { formatPrice } from "@/lib/format";
 import type { ProductWithVariants } from "@/lib/types";
 import { useCart } from "@/providers/cart-provider";
-import { homeCardShadow, homeDisabledButton, homePrimaryButton } from "@/components/home/home-layout";
 
 /** Type lines copied from the homepage frame for the showcase slugs. */
 const FRAME_TYPE_LINE: Record<string, string> = {
@@ -17,6 +17,9 @@ const FRAME_TYPE_LINE: Record<string, string> = {
   "demo-sv151-etb": "SEALED_BOX · Scarlet & Violet—151",
   "sv151-etb": "SEALED_BOX · Scarlet & Violet—151",
 };
+
+const HOLO_SWEEP =
+  "linear-gradient(90deg, rgba(255, 89, 97, 0) 0%, rgba(255, 89, 97, 0.9) 18%, rgba(255, 235, 64, 0.95) 36%, rgba(89, 255, 199, 0.95) 54%, rgba(89, 168, 255, 0.95) 72%, rgba(209, 97, 255, 0.9) 88%, rgba(255, 89, 97, 0) 100%)";
 
 function typeLine(product: ProductWithVariants): string {
   const framed = FRAME_TYPE_LINE[product.slug];
@@ -53,12 +56,13 @@ export function HomeProductCard({ product }: { product: ProductWithVariants }) {
   };
 
   return (
-    <article
-      className={`flex flex-col overflow-hidden rounded-[12px] border border-[rgba(221,213,195,0.9)] bg-[rgba(255,255,255,0.98)] ${homeCardShadow}`}
-    >
-      <div className="flex h-[300px] items-center justify-center bg-[#fbfaf6]">
+    <article className="group flex flex-col overflow-hidden rounded-[12px] border border-[rgba(111,89,199,0.66)] bg-[rgba(255,255,255,0.96)] shadow-trtcg-card transition duration-300 hover:-translate-y-1 hover:border-white/60 hover:shadow-[0_0_20px_rgba(255,194,64,0.26),0_0_34px_rgba(89,184,255,0.42),0_24px_40px_rgba(0,0,0,0.34)]">
+      <div className="relative flex h-[300px] items-center justify-center overflow-hidden rounded-[10px] border border-[rgba(111,89,199,0.28)] bg-[rgba(230,223,255,0.88)]">
         {imageUrl ? (
-          <Link href={href} className="block h-[252px] w-[222px]">
+          <Link
+            href={href}
+            className="relative z-[1] block h-[252px] w-[222px] transition duration-300 group-hover:-rotate-[1.4deg]"
+          >
             <Image
               src={imageUrl}
               alt={product.images[0]?.alt || product.name}
@@ -69,22 +73,43 @@ export function HomeProductCard({ product }: { product: ProductWithVariants }) {
             />
           </Link>
         ) : (
-          <div className="text-[13px] text-[#625f58]">無圖片</div>
+          <div className="text-[13px] text-trtcg-muted">無圖片</div>
         )}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute top-[-40px] left-[-140px] h-[430px] w-[96px] rotate-[18deg] opacity-0 mix-blend-color-dodge transition-all duration-500 group-hover:left-[150px] group-hover:opacity-80"
+          style={{ backgroundImage: HOLO_SWEEP }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-0 mix-blend-overlay transition-opacity duration-300 group-hover:opacity-60"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 54% 59%, rgba(255,255,255,0.88) 0%, rgba(255,255,255,0.18) 34%, rgba(0,0,0,0.28) 100%)",
+          }}
+        />
+        <Image
+          src="/brand/home/effect-sparkles.svg"
+          alt=""
+          width={302}
+          height={300}
+          unoptimized
+          className="pointer-events-none absolute top-[-1px] left-[-1px] opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+        />
       </div>
       <div className="flex min-h-[280px] flex-col justify-between gap-3 p-5">
         <div className="flex flex-col gap-3">
           {product.rarity ? (
-            <p className="text-[13px] leading-[1.6] text-[#625f58]">{product.rarity}</p>
+            <p className="text-[13px] leading-[1.6] text-trtcg-muted">{product.rarity}</p>
           ) : null}
-          <h3 className="line-clamp-2 min-h-[49px] text-[17px] font-medium leading-[1.45] text-[#0a0a09]">
+          <h3 className="line-clamp-2 min-h-[49px] text-[17px] font-medium leading-[1.45] text-trtcg-ink">
             <Link href={href} className="hover:underline">
               {product.name}
             </Link>
           </h3>
-          <p className="text-[13px] leading-[1.6] text-[#625f58]">{typeLine(product)}</p>
+          <p className="text-[13px] leading-[1.6] text-trtcg-muted">{typeLine(product)}</p>
           {details.length > 0 ? (
-            <p className="flex gap-3 text-[13px] leading-[1.6] text-[#625f58]">
+            <p className="flex gap-3 text-[13px] leading-[1.6] text-trtcg-muted">
               {details.map((detail) => (
                 <span key={detail}>{detail}</span>
               ))}
@@ -94,17 +119,17 @@ export function HomeProductCard({ product }: { product: ProductWithVariants }) {
           )}
         </div>
         <div className="flex items-center justify-between gap-3">
-          <p className="text-[24px] font-medium leading-[1.2] text-[#0a0a09]">
+          <p className="text-[24px] font-medium leading-[1.2] text-trtcg-ink">
             {cheapest && cheapest.price > 0 ? formatPrice(cheapest.price) : "未定價"}
           </p>
-          <button
+          <FoundationButton
             type="button"
-            disabled={!sellable}
+            variant={sellable ? "primary" : "disabled"}
             onClick={handleAdd}
-            className={`${sellable ? homePrimaryButton : homeDisabledButton} w-[72px] px-0`}
+            className="w-[72px] px-0"
           >
             加入
-          </button>
+          </FoundationButton>
         </div>
       </div>
     </article>

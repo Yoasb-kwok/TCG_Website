@@ -17,7 +17,7 @@ function WhatsAppButton({ href, canvas }: { href: string; canvas: boolean }) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "z-50 flex h-12 w-12 items-center justify-center rounded-full bg-[#ece7dc] shadow-[0_10px_24px_rgba(0,0,0,0.1)] transition hover:bg-white",
+        "z-50 flex size-12 items-center justify-center rounded-full bg-trtcg-lime shadow-trtcg-card transition hover:bg-trtcg-lime",
         canvas
           ? "fixed right-4 bottom-6 xl:absolute xl:right-[max(16px,calc((100%-1328px)/2))] xl:bottom-auto xl:top-[818px]"
           : "fixed right-6 bottom-6",
