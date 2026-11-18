@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { omitProductionDemoTournaments, type RuntimeEnv } from "@/lib/demo-tournament-guard";
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
 import { getPrisma } from "@/lib/prisma";
 import {
@@ -416,15 +417,25 @@ async function readOrEmpty<T>(access: TournamentAccess, read: (source: Tournamen
   }
 }
 
-export async function listPublicTournaments(access = defaultAccess()): Promise<TournamentItem[]> {
-  return readOrEmpty(access, (source) => source.listPublic(), []);
+/**
+ * Public storefront list (homepage 店賽 and /tournaments).
+ * Production omits the weekly demo seed slugs. Admin-created events stay.
+ * Local, dev, preview, and unit tests return whatever the access layer read.
+ */
+export async function listPublicTournaments(
+  access = defaultAccess(),
+  env: RuntimeEnv = process.env,
+): Promise<TournamentItem[]> {
+  const tournaments = await readOrEmpty(access, (source) => source.listPublic(), []);
+  return omitProductionDemoTournaments(tournaments, env);
 }
 
 export async function getPublicTournament(
   slug: string,
   access = defaultAccess(),
+  env: RuntimeEnv = process.env,
 ): Promise<TournamentItem | null> {
-  const tournaments = await listPublicTournaments(access);
+  const tournaments = await listPublicTournaments(access, env);
   return tournaments.find((tournament) => tournament.slug === slug) ?? null;
 }
 
@@ -464,8 +475,12 @@ export async function registerForTournament(
   }
 }
 
-export async function listRegistrationRosters(access = defaultAccess()): Promise<RegistrationRoster[]> {
-  return readOrEmpty(access, (source) => source.listRosters(), []);
+export async function listRegistrationRosters(
+  access = defaultAccess(),
+  env: RuntimeEnv = process.env,
+): Promise<RegistrationRoster[]> {
+  const rosters = await readOrEmpty(access, (source) => source.listRosters(), []);
+  return omitProductionDemoTournaments(rosters, env);
 }
 
 export async function cancelTournamentRegistration(

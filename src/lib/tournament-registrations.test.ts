@@ -9,6 +9,7 @@ import {
   cancelTournamentRegistration,
   fileTournamentAccess,
   listPublicTournaments,
+  listRegistrationRosters,
   parseSignupCookie,
   registrationListsForViewer,
   registerForTournament,
@@ -120,6 +121,101 @@ test("a database outage lists nothing instead of the demo schedule", async () =>
       },
     }),
   );
+  assert.deepEqual(listed, []);
+});
+
+test("production public listing hides demo seed slugs and keeps admin-created events", async () => {
+  const production = { VERCEL_ENV: "production", NODE_ENV: "production" };
+  const listed = await listPublicTournaments(
+    databaseAccess({
+      async listPublic() {
+        return [
+          tournament({ id: "demo-1", slug: "standard-sat-12", title: "週六標準賽 #12" }),
+          tournament({ id: "demo-2", slug: "beginner-friendly", title: "新手友善賽" }),
+          tournament({ id: "real-1", slug: "kbay-saturday", title: "九龍灣週六賽" }),
+          tournament({ id: "real-2", slug: "standard-sat-120", title: "店內加賽" }),
+        ];
+      },
+    }),
+    production,
+  );
+  assert.deepEqual(
+    listed.map((item) => item.slug),
+    ["kbay-saturday", "standard-sat-120"],
+  );
+
+  const rosters = await listRegistrationRosters(
+    databaseAccess({
+      async listRosters() {
+        return [
+          {
+            slug: "beginner-friendly",
+            title: "新手友善賽",
+            registrations: [
+              {
+                id: "qa",
+                playerName: "QA Beginner",
+                email: "qa@example.com",
+                phone: "90000000",
+                createdAt: "2026-10-01T00:00:00.000Z",
+              },
+            ],
+          },
+          {
+            slug: "kbay-saturday",
+            title: "九龍灣週六賽",
+            registrations: [
+              {
+                id: "member",
+                playerName: "陳大文",
+                email: "member@example.com",
+                phone: "91234567",
+                createdAt: "2026-10-02T00:00:00.000Z",
+              },
+            ],
+          },
+        ];
+      },
+    }),
+    { NEXT_PUBLIC_APP_URL: "https://tcg-website-xi.vercel.app" },
+  );
+  assert.deepEqual(
+    rosters.map((roster) => roster.slug),
+    ["kbay-saturday"],
+  );
+});
+
+test("local, preview, and test listings still include the demo seed slugs", async () => {
+  const rows = [
+    tournament({ slug: "standard-sat-12" }),
+    tournament({ id: "real-1", slug: "kbay-saturday", title: "九龍灣週六賽" }),
+  ];
+  const access = databaseAccess({
+    async listPublic() {
+      return rows;
+    },
+  });
+
+  for (const env of [
+    { NODE_ENV: "development", NEXT_PUBLIC_APP_URL: "http://localhost:3000" },
+    { NODE_ENV: "test" },
+    {
+      VERCEL_ENV: "preview",
+      NODE_ENV: "production",
+      NEXT_PUBLIC_APP_URL: "https://tcg-website-git-feature-team.vercel.app",
+    },
+    { NODE_ENV: "production", NEXT_PUBLIC_APP_URL: "http://127.0.0.1:3000" },
+  ]) {
+    const listed = await listPublicTournaments(access, env);
+    assert.deepEqual(
+      listed.map((item) => item.slug),
+      ["standard-sat-12", "kbay-saturday"],
+    );
+  }
+});
+
+test("an empty production database still lists no demo tournaments", async () => {
+  const listed = await listPublicTournaments(databaseAccess(), { VERCEL_ENV: "production" });
   assert.deepEqual(listed, []);
 });
 

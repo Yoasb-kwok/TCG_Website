@@ -50,7 +50,7 @@ npm run dev
 npm run db:migrate
 ```
 
-4. （可選）把固定示範店賽寫進資料庫。只需要 `DATABASE_URL`。已存在的 slug 不會被覆蓋：
+4. （可選）把固定示範店賽寫進本機或開發資料庫。正式環境（`VERCEL_ENV=production`、網站網址指向 `https://tcg-website-xi.vercel.app`，或 Stripe 正式金鑰）會直接拒絕，而且不會連上資料庫。已存在的 slug 不會被覆蓋：
 
 ```bash
 npm run db:seed-tournaments

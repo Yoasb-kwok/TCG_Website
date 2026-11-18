@@ -1,4 +1,8 @@
 import { DEMO_TOURNAMENTS } from "@/lib/demo-products";
+import {
+  assertDemoTournamentSeedAllowed,
+  type RuntimeEnv,
+} from "@/lib/demo-tournament-guard";
 
 /** Rows written by `npm run db:seed-tournaments`. Existing slugs are left alone. */
 export type TournamentSeedRow = {
@@ -31,10 +35,15 @@ export function demoTournamentSeedRows(): TournamentSeedRow[] {
   }));
 }
 
-export async function seedMissingTournaments(db: {
-  findBySlug(slug: string): Promise<{ slug: string } | null>;
-  create(row: TournamentSeedRow): Promise<void>;
-}) {
+export async function seedMissingTournaments(
+  db: {
+    findBySlug(slug: string): Promise<{ slug: string } | null>;
+    create(row: TournamentSeedRow): Promise<void>;
+  },
+  env: RuntimeEnv = process.env,
+) {
+  // The Next.js app does not call this. The seed script also checks before opening a connection.
+  assertDemoTournamentSeedAllowed(env);
   const created: string[] = [];
   const skipped: string[] = [];
   for (const row of demoTournamentSeedRows()) {
