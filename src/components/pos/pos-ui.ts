@@ -25,6 +25,8 @@ export const POS_KIND_LABEL: Record<string, string> = {
   BOOSTER_PACK: "補充包",
   ACCESSORY: "週邊",
   GIFT_BOX: "禮盒",
+  TIN: "罐裝",
+  BOTTLE: "支裝",
 };
 
 export function posKindLabel(value: string, fallback: string) {

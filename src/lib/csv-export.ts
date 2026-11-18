@@ -19,6 +19,13 @@ export const PRODUCT_CSV_COLUMNS = [
   "price",
   "stock",
   "description",
+  "barcode",
+  "extendedBarcode",
+  "cost",
+  "wholesalePrice",
+  "memberPrice",
+  "memberDiscount",
+  "pointsProduct",
 ] as const;
 
 function cellValue(value: unknown): string {
@@ -82,6 +89,13 @@ export async function exportProductCsv(): Promise<string> {
       price: variant ? String(variant.price) : "",
       stock: variant ? String(variant.stock) : "",
       description: product.description ?? "",
+      barcode: variant?.barcode ?? "",
+      extendedBarcode: variant?.extendedBarcode ?? "",
+      cost: variant?.cost ?? "",
+      wholesalePrice: variant?.wholesalePrice ?? "",
+      memberPrice: variant?.memberPrice ?? "",
+      memberDiscount: variant ? (variant.memberDiscount ? "true" : "false") : "",
+      pointsProduct: variant ? (variant.pointsProduct ? "true" : "false") : "",
     };
   });
 

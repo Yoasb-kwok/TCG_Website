@@ -79,6 +79,8 @@ export const DEFAULT_TAXONOMY_ROWS: DefaultTaxonomyRow[] = [
     ["BOOSTER_PACK", "補充包", 2],
     ["GIFT_BOX", "禮盒", 3],
     ["ACCESSORY", "配件", 4],
+    ["TIN", "罐裝", 5],
+    ["BOTTLE", "支裝", 6],
   ].map(([value, label, sortIndex]) => ({
     kind: "PRODUCT_TYPE" as const,
     value: String(value),

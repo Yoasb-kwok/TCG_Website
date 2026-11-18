@@ -36,6 +36,8 @@ export const PRODUCT_TYPES = [
   { value: "SEALED_BOX", label: "封盒" },
   { value: "BOOSTER_PACK", label: "補充包" },
   { value: "ACCESSORY", label: "配件" },
+  { value: "TIN", label: "罐裝" },
+  { value: "BOTTLE", label: "支裝" },
 ] as const;
 
 export const CONDITIONS = [

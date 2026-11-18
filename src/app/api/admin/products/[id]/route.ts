@@ -95,11 +95,8 @@ export async function PATCH(
 
   try {
     if (isSingleProductType(existing.type)) {
-      if (!body.name?.trim() || !body.setCode || !body.rarityTier || !body.cardCategory) {
-        return NextResponse.json(
-          { error: "請填寫卡牌名稱、系列、稀有度與類型" },
-          { status: 400 },
-        );
+      if (!body.name?.trim()) {
+        return NextResponse.json({ error: "請填寫卡牌名稱、售價與庫存" }, { status: 400 });
       }
       if (body.price == null || body.stock == null) {
         return NextResponse.json({ error: "請填寫售價與庫存" }, { status: 400 });

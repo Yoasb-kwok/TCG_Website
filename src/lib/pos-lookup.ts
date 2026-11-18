@@ -50,6 +50,12 @@ export async function lookupPosScan(raw: string): Promise<PosLookupMatch | null>
         targetBuybackQty: variant.targetBuybackQty,
         sku: variant.sku,
         barcode: variant.barcode,
+        extendedBarcode: variant.extendedBarcode,
+        cost: variant.cost,
+        wholesalePrice: variant.wholesalePrice,
+        memberPrice: variant.memberPrice,
+        memberDiscount: variant.memberDiscount,
+        pointsProduct: variant.pointsProduct,
       })),
       images: product.images.map((image) => ({
         id: image.id,
