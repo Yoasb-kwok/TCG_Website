@@ -55,10 +55,12 @@ function sharedStrings(xml: string): string[] {
 
 function worksheetRows(xml: string, strings: string[]): string[][] {
   const rows = new Map<number, Map<number, string>>();
-  const cells = xml.matchAll(/<c\b([^>]*)>([\s\S]*?)<\/c>|<c\b([^>]*)\/>/g);
+  // Self-closing cells (<c r="D2" s="1"/>) must be tried first. Otherwise the
+  // slash is treated as part of the attributes and the next <v> is stolen.
+  const cells = xml.matchAll(/<c\b([^>]*?)\/>|<c\b([^>]*)>([\s\S]*?)<\/c>/g);
   for (const match of cells) {
-    const attrs = match[1] ?? match[3] ?? "";
-    const inner = match[2] ?? "";
+    const attrs = match[1] ?? match[2] ?? "";
+    const inner = match[3] ?? "";
     const ref = /\br="([^"]+)"/.exec(attrs)?.[1] ?? "";
     const type = /\bt="([^"]+)"/.exec(attrs)?.[1] ?? "";
     const col = columnIndex(ref);

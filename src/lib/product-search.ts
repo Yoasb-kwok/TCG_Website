@@ -21,6 +21,7 @@ import {
 export interface SearchableVariant {
   sku?: string | null;
   barcode?: string | null;
+  extendedBarcode?: string | null;
 }
 
 export interface SearchableProduct {
@@ -117,7 +118,10 @@ export function productMatchesSearch(product: SearchableProduct, raw: string): b
 
   if (
     (product.variants ?? []).some(
-      (variant) => fieldContains(variant.sku, needles) || fieldContains(variant.barcode, needles),
+      (variant) =>
+        fieldContains(variant.sku, needles) ||
+        fieldContains(variant.barcode, needles) ||
+        fieldContains(variant.extendedBarcode, needles),
     )
   ) {
     return true;
@@ -153,6 +157,7 @@ export function productSearchOr(raw: string): Record<string, unknown>[] {
     }
     clauses.push({ variants: { some: { sku: contains } } });
     clauses.push({ variants: { some: { barcode: contains } } });
+    clauses.push({ variants: { some: { extendedBarcode: contains } } });
   }
 
   const parsed = parseSetCollectorCode(raw);

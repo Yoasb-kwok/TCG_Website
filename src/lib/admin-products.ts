@@ -8,6 +8,7 @@ import {
   getTaxonomySortMaps,
 } from "@/lib/taxonomy-db";
 import { slugifyProduct } from "@/lib/product-slug";
+import { singleProductFieldPatch } from "@/lib/single-product-fields";
 
 export interface ManualSingleInput {
   name: string;
@@ -95,7 +96,10 @@ async function ensureBarcodeAvailable(barcode: string | null, exceptVariantId?: 
   if (!barcode) return;
   const taken = await getPrisma().productVariant.findFirst({
     where: {
-      barcode: { equals: barcode, mode: "insensitive" },
+      OR: [
+        { barcode: { equals: barcode, mode: "insensitive" } },
+        { extendedBarcode: { equals: barcode, mode: "insensitive" } },
+      ],
       ...(exceptVariantId ? { id: { not: exceptVariantId } } : {}),
     },
     select: { id: true },
@@ -268,51 +272,23 @@ export async function createManualAccessory(input: ManualAccessoryInput) {
 export async function updateManualSingle(
   productId: string,
   variantId: string,
-  input: Omit<ManualSingleInput, "imageUrl"> & { imageUrl?: string },
+  input: Omit<ManualSingleInput, "imageUrl" | "setCode" | "rarityTier" | "cardCategory"> & {
+    imageUrl?: string;
+    setCode?: string;
+    rarityTier?: string;
+    cardCategory?: string;
+  },
 ) {
   const prisma = getPrisma();
   const barcodeUpdate = await barcodeUpdateData(input.barcode, variantId);
-  const taxonomy = taxonomyFromCard({
-    setCode: input.setCode,
-    rarityTier: input.rarityTier,
-    name: input.name,
-  });
   const sortMaps = await getTaxonomySortMaps();
-
-  const description =
-    input.description ??
-    [
-      input.setCode,
-      input.cardNumber ? `#${input.cardNumber}` : null,
-      input.cardCategory,
-      input.pokemonType,
-    ]
-      .filter(Boolean)
-      .join(" · ");
+  const fields = singleProductFieldPatch(input, sortMaps);
 
   await prisma.$transaction([
     prisma.product.update({
       where: { id: productId },
       data: {
-        name: input.name,
-        description,
-        cardSet: input.setCode,
-        cardNumber: input.cardNumber ?? null,
-        rarity: input.rarityTier,
-        setCode: taxonomy.setCode,
-        rarityTier: taxonomy.rarityTier,
-        cardCategory: input.cardCategory,
-        setSortIndex: getSortIndexFromMap(
-          sortMaps.setCode,
-          taxonomy.setCode,
-          999,
-        ),
-        raritySortIndex: getSortIndexFromMap(
-          sortMaps.rarityTier,
-          taxonomy.rarityTier,
-          99,
-        ),
-        pokemonType: input.pokemonType ?? null,
+        ...fields,
         images: input.imageUrl
           ? {
               deleteMany: {},

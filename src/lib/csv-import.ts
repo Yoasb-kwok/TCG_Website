@@ -57,6 +57,7 @@ export function generateTemplateCsv(): string {
         stock: "10",
         description: "特別插畫, 稀有",
         barcode: "4890000000045",
+        extendedBarcode: "",
         cost: "30",
         wholesalePrice: "40",
         memberPrice: "0",
@@ -112,6 +113,7 @@ async function createImportedProduct(data: ImportCreateData) {
           stock: data.stock,
           sku: data.sku,
           barcode: data.barcode,
+          extendedBarcode: data.extendedBarcode,
           cost: data.cost,
           wholesalePrice: data.wholesalePrice,
           memberPrice: data.memberPrice,
@@ -144,6 +146,7 @@ async function updateImportedProduct(data: ImportUpdateData) {
         ...(data.memberPrice !== undefined ? { memberPrice: data.memberPrice } : {}),
         ...(data.memberDiscount !== undefined ? { memberDiscount: data.memberDiscount } : {}),
         ...(data.pointsProduct !== undefined ? { pointsProduct: data.pointsProduct } : {}),
+        ...(data.extendedBarcode !== undefined ? { extendedBarcode: data.extendedBarcode } : {}),
       },
     }),
   ]);
@@ -161,7 +164,7 @@ export async function importProductTable(table: string[][]): Promise<CsvImportRe
   const [products, variants, sortMaps] = await Promise.all([
     prisma.product.findMany({ select: { slug: true } }),
     prisma.productVariant.findMany({
-      select: { id: true, productId: true, sku: true, barcode: true },
+      select: { id: true, productId: true, sku: true, barcode: true, extendedBarcode: true },
     }),
     getTaxonomySortMaps(),
   ]);
@@ -174,6 +177,7 @@ export async function importProductTable(table: string[][]): Promise<CsvImportRe
         variantId: variant.id,
         productId: variant.productId,
         barcode: variant.barcode,
+        extendedBarcode: variant.extendedBarcode,
         sku: variant.sku,
       })),
     },

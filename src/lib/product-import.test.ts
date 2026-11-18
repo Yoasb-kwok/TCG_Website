@@ -197,6 +197,62 @@ describe("barcode upsert and quarantine", () => {
   });
 });
 
+describe("extended barcode", () => {
+  it("stores three distinct second codes and updates them on barcode match", () => {
+    const header = `${POS_HEADER},扩展条码`;
+    const csv = [
+      header,
+      `${posRow("能量 MET", "PCS", "0400723832986", "2", "1", "2", "3")},04007238329863`,
+      `${posRow("慶祝包", "包", "2281611513426", "1", "20", "25", "30")},4711460102024`,
+      `${posRow("特典卡", "PCS", "2384460911020", "4", "5", "8", "12")},4521329420509`,
+    ].join("\n");
+    const rows = creates(csv);
+    assert.equal(rows.length, 3);
+    assert.deepEqual(
+      rows.map((row) => (row.action === "create" ? row.data.extendedBarcode : "")),
+      ["04007238329863", "4711460102024", "4521329420509"],
+    );
+    assert.equal(rows[0]?.action === "create" ? typeof rows[0].data.memberDiscount : "", "boolean");
+
+    const [updated] = plan(
+      [
+        header,
+        `${posRow("能量 MET", "PCS", "0400723832986", "3", "1", "2", "4")},9990000000001`,
+      ].join("\n"),
+      {
+        slugs: [],
+        skus: [],
+        variants: [
+          {
+            variantId: "var-met",
+            productId: "prod-met",
+            barcode: "0400723832986",
+            extendedBarcode: "04007238329863",
+            sku: "0400723832986",
+          },
+        ],
+      },
+    ).decisions;
+    assert.equal(updated?.action, "update");
+    if (updated?.action !== "update") return;
+    assert.equal(updated.data.extendedBarcode, "9990000000001");
+    assert.equal(updated.data.variantId, "var-met");
+  });
+
+  it("quarantines a second code that copies another row's primary barcode", () => {
+    const header = `${POS_HEADER},扩展条码`;
+    const csv = [
+      header,
+      `${posRow("主貨", "包", "1000000000101", "1", "10", "12", "15")},`,
+      `${posRow("第二貨", "包", "1000000000102", "1", "10", "12", "15")},1000000000101`,
+    ].join("\n");
+    const held = quarantines(csv);
+    assert.equal(held.length, 1);
+    assert.deepEqual(held[0]?.reasons, ["duplicate_barcode"]);
+    assert.equal(creates(csv).length, 1);
+  });
+});
+
 describe("xlsx product sheet", () => {
   it("reads shared strings and upserts by barcode", async () => {
     const shared = `<?xml version="1.0" encoding="UTF-8"?>
@@ -241,6 +297,7 @@ describe("xlsx product sheet", () => {
       <c r="H2"><v>0</v></c>
       <c r="I2" t="s"><v>12</v></c>
       <c r="J2" t="s"><v>12</v></c>
+      <c r="K2" s="1"/>
     </row>
   </sheetData>
 </worksheet>`;
@@ -261,5 +318,67 @@ describe("xlsx product sheet", () => {
     assert.equal(decision.data.barcode, "1000000000001");
     assert.equal(decision.data.stock, 2);
     assert.equal(decision.data.price, 95);
+    assert.equal(decision.data.extendedBarcode, null);
+  });
+
+  it("does not treat a styled empty cell as the next column's value", async () => {
+    const shared = `<?xml version="1.0" encoding="UTF-8"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <si><t>名称（必填）</t></si>
+  <si><t>分类（必填）</t></si>
+  <si><t>条码</t></si>
+  <si><t>扩展条码</t></si>
+  <si><t>库存量</t></si>
+  <si><t>进货价（必填）</t></si>
+  <si><t>批发价（必填）</t></si>
+  <si><t>销售价</t></si>
+  <si><t>会员价</t></si>
+  <si><t>会员折扣</t></si>
+  <si><t>积分商品</t></si>
+  <si><t>能量 MET</t></si>
+  <si><t>PCS</t></si>
+  <si><t>0400723832986</t></si>
+  <si><t>04007238329863</t></si>
+  <si><t>是</t></si>
+  <si><t>无</t></si>
+</sst>`;
+    const sheet = `<?xml version="1.0" encoding="UTF-8"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+  <sheetData>
+    <row r="1">
+      <c r="A1" t="s"><v>0</v></c><c r="B1" t="s"><v>1</v></c><c r="C1" t="s"><v>2</v></c>
+      <c r="D1" t="s"><v>3</v></c><c r="E1" t="s"><v>4</v></c><c r="F1" t="s"><v>5</v></c>
+      <c r="G1" t="s"><v>6</v></c><c r="H1" t="s"><v>7</v></c><c r="I1" t="s"><v>9</v></c>
+      <c r="J1" t="s"><v>10</v></c>
+    </row>
+    <row r="2">
+      <c r="A2" t="s"><v>11</v></c><c r="B2" t="s"><v>12</v></c><c r="C2" t="s"><v>13</v></c>
+      <c r="D2" s="1"/>
+      <c r="E2"><v>2</v></c><c r="F2"><v>1</v></c><c r="G2"><v>2</v></c><c r="H2"><v>3</v></c>
+      <c r="I2" t="s"><v>15</v></c><c r="J2" t="s"><v>15</v></c>
+    </row>
+    <row r="3">
+      <c r="A3" t="s"><v>11</v></c><c r="B3" t="s"><v>12</v></c><c r="C3"><v>2281611513426</v></c>
+      <c r="D3" t="s"><v>14</v></c>
+      <c r="E3"><v>1</v></c><c r="F3"><v>20</v></c><c r="G3"><v>25</v></c><c r="H3"><v>30</v></c>
+      <c r="I3" t="s"><v>15</v></c><c r="J3" t="s"><v>15</v></c>
+    </row>
+  </sheetData>
+</worksheet>`;
+    const zip = new JSZip();
+    zip.file(
+      "xl/_rels/workbook.xml.rels",
+      `<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/></Relationships>`,
+    );
+    zip.file("xl/sharedStrings.xml", shared);
+    zip.file("xl/worksheets/sheet1.xml", sheet);
+    const bytes = new Uint8Array(await zip.generateAsync({ type: "uint8array" }));
+    const decisions = classifyProductRows(await readXlsxTable(bytes), empty).decisions;
+    const created = decisions.filter((row) => row.action === "create");
+    assert.equal(created.length, 2);
+    assert.equal(created[0]?.action === "create" ? created[0].data.extendedBarcode : "x", null);
+    assert.equal(created[0]?.action === "create" ? created[0].data.stock : 0, 2);
+    assert.equal(created[1]?.action === "create" ? created[1].data.extendedBarcode : "", "04007238329863");
+    assert.equal(decisions.some((row) => row.action === "quarantine"), false);
   });
 });

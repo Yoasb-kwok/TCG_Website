@@ -159,7 +159,8 @@ export function CsvManager() {
                 <tr><td className="py-1 pr-4 font-mono">price</td><td className="py-1 pr-4">是</td><td className="py-1">價格 (HKD)</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">stock</td><td className="py-1 pr-4">是</td><td className="py-1">庫存數量</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">description</td><td className="py-1 pr-4">否</td><td className="py-1">商品描述（繁中）。空白時單卡會用系列／卡號自動產生。更新時空白不會清掉原描述。</td></tr>
-                <tr><td className="py-1 pr-4 font-mono">barcode</td><td className="py-1 pr-4">銀豹檔必填</td><td className="py-1">條碼。對到現有變體就更新，否則新增。同名不同條碼不會合併。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">barcode</td><td className="py-1 pr-4">銀豹檔必填</td><td className="py-1">主條碼。對到現有變體就更新，否則新增。同名不同條碼不會合併。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">extendedBarcode</td><td className="py-1 pr-4">否</td><td className="py-1">擴展條碼。掃這個碼會找到同一個變體。不可與其他主條碼或擴展條碼相同。</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">cost</td><td className="py-1 pr-4">否</td><td className="py-1">進貨價。0 會隔離。空白代表未設定，不會覆寫。</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">wholesalePrice</td><td className="py-1 pr-4">否</td><td className="py-1">批發價。低於進貨價會隔離。</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">memberPrice</td><td className="py-1 pr-4">否</td><td className="py-1">會員價。0 代表沒有另訂會員價。</td></tr>

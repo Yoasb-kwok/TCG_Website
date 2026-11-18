@@ -30,6 +30,30 @@ describe("matchPosScan", () => {
     assert.equal(matchPosScan([egg], "蛋蛋"), null);
     assert.equal(matchPosScan([egg], "M6a 002"), null);
   });
+
+  it("resolves an extended barcode to the same variant as the primary code", () => {
+    const withSecondCode = {
+      ...egg,
+      variants: [{ ...egg.variants[0], extendedBarcode: "4711460102024" }],
+    };
+    const byExtended = matchPosScan([withSecondCode], "4711460102024");
+    const byPrimary = matchPosScan([withSecondCode], "4891234567890");
+    assert.equal(byExtended?.matchedBy, "barcode");
+    assert.equal(byExtended?.variantId, "v1");
+    assert.equal(byPrimary?.variantId, byExtended?.variantId);
+    assert.equal(
+      posScanOr("4711460102024").some(
+        (clause) =>
+          clause.variants != null &&
+          typeof clause.variants === "object" &&
+          "some" in clause.variants &&
+          clause.variants.some != null &&
+          typeof clause.variants.some === "object" &&
+          "extendedBarcode" in clause.variants.some,
+      ),
+      true,
+    );
+  });
 });
 
 describe("posScanOr", () => {

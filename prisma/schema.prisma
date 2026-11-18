@@ -198,6 +198,11 @@ model ProductVariant {
   sku       String  @unique
   /** 收銀條碼。空值代表未設定；有值時全店唯一（多個 NULL 可並存）。 */
   barcode   String? @unique
+  /**
+   * 銀豹「擴展條碼」。空值代表沒有第二個碼。
+   * 有值時不可與任何主條碼或其他擴展條碼相同，掃這個碼會找到同一個變體。
+   */
+  extendedBarcode String? @unique
   /** 進貨價（HKD）。空值代表未設定。目錄匯入拒絕 0，不會把零成本寫成可售貨。 */
   cost            Float?
   /** 批發價（HKD）。空值代表未設定。 */

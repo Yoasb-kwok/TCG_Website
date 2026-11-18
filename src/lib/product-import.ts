@@ -62,6 +62,7 @@ type Field =
   | "type"
   | "category"
   | "barcode"
+  | "extendedBarcode"
   | "stock"
   | "cost"
   | "wholesale"
@@ -96,6 +97,9 @@ const HEADER_FIELDS: Record<string, Field> = {
   barcode: "barcode",
   条码: "barcode",
   條碼: "barcode",
+  extendedbarcode: "extendedBarcode",
+  扩展条码: "extendedBarcode",
+  擴展條碼: "extendedBarcode",
   stock: "stock",
   库存量: "stock",
   庫存量: "stock",
@@ -145,6 +149,7 @@ export interface ImportSnapshot {
     variantId: string;
     productId: string;
     barcode: string | null;
+    extendedBarcode?: string | null;
     sku: string;
   }>;
 }
@@ -173,6 +178,8 @@ export interface ImportCreateData extends ImportCommercial {
   stock: number;
   sku: string;
   barcode: string | null;
+  /** 第二個收銀碼。null 代表這列沒有擴展條碼。 */
+  extendedBarcode: string | null;
   cardSet?: string | null;
   cardNumber?: string | null;
   rarity?: string | null;
@@ -197,6 +204,8 @@ export interface ImportUpdateData extends ImportCommercial {
   price: number;
   stock: number;
   description?: string;
+  /** 檔案有這欄時才會出現；null 代表清掉第二個碼。 */
+  extendedBarcode?: string | null;
 }
 
 export interface ImportQuarantine {
@@ -236,7 +245,8 @@ const REASON_TEXT: Record<string, string> = {
   price_below_cost: "批發價或售價低於進貨價",
   service_sku: "服務類貨號（locker/），不是商品目錄",
   inactive: "商品狀態不是啟用",
-  duplicate_barcode: "同一檔案內條碼重複",
+  duplicate_barcode: "同一檔案內條碼重複，或與另一個主條碼／擴展條碼相同",
+  invalid_barcode: "擴展條碼格式不正確",
 };
 
 export function normalizeImportHeader(header: string): string {
@@ -372,9 +382,15 @@ export function classifyProductRows(
   const takenSlugs = new Set(existing.slugs);
   const takenSkus = new Set(existing.skus);
   const byBarcode = new Map<string, ImportSnapshot["variants"][number]>();
+  const codeOwners = new Map<string, string>();
   for (const variant of existing.variants) {
     const barcode = variant.barcode?.trim().toLowerCase();
-    if (barcode) byBarcode.set(barcode, variant);
+    const extended = variant.extendedBarcode?.trim().toLowerCase();
+    if (barcode) {
+      byBarcode.set(barcode, variant);
+      codeOwners.set(barcode, variant.variantId);
+    }
+    if (extended) codeOwners.set(extended, variant.variantId);
   }
   const acceptedBarcodes = new Set<string>();
   const decisions: ImportDecision[] = [];
@@ -402,7 +418,37 @@ export function classifyProductRows(
     const barcode = read("barcode");
     if (columns.pospal && !barcode) reasons.push("missing_barcode");
     const barcodeKey = barcode.toLowerCase();
-    if (barcode && acceptedBarcodes.has(barcodeKey)) reasons.push("duplicate_barcode");
+    if (barcode && (acceptedBarcodes.has(barcodeKey) || !usableCode(barcode))) {
+      reasons.push(usableCode(barcode) ? "duplicate_barcode" : "invalid_barcode");
+    }
+    const primaryOwner = barcode ? codeOwners.get(barcodeKey) : undefined;
+    const primaryMatch = barcode ? byBarcode.get(barcodeKey) : undefined;
+    if (primaryOwner && primaryOwner !== primaryMatch?.variantId) reasons.push("duplicate_barcode");
+
+    let extendedBarcode: string | null | undefined;
+    if (present("extendedBarcode")) {
+      const extendedRaw = read("extendedBarcode");
+      if (!extendedRaw) {
+        extendedBarcode = null;
+      } else if (!usableCode(extendedRaw)) {
+        reasons.push("invalid_barcode");
+        details.invalid_barcode = snippet(extendedRaw);
+      } else {
+        const extendedKey = extendedRaw.toLowerCase();
+        const extendedOwner = codeOwners.get(extendedKey);
+        if (extendedKey === barcodeKey) {
+          extendedBarcode = null;
+        } else if (
+          acceptedBarcodes.has(extendedKey) ||
+          (extendedOwner && extendedOwner !== primaryMatch?.variantId)
+        ) {
+          reasons.push("duplicate_barcode");
+          extendedBarcode = extendedRaw;
+        } else {
+          extendedBarcode = extendedRaw;
+        }
+      }
+    }
 
     const priceText = present("price") ? read("price") : "";
     let price: number | null = null;
@@ -530,6 +576,7 @@ export function classifyProductRows(
     }
 
     if (barcode) acceptedBarcodes.add(barcodeKey);
+    if (extendedBarcode) acceptedBarcodes.add(extendedBarcode.toLowerCase());
     const resolvedType = productType ?? "ACCESSORY";
     const matched = barcode ? byBarcode.get(barcodeKey) : undefined;
     const descriptionCell = present("description") ? read("description") : "";
@@ -549,6 +596,7 @@ export function classifyProductRows(
       if (memberPrice !== undefined) update.memberPrice = memberPrice;
       if (memberDiscount !== undefined) update.memberDiscount = memberDiscount;
       if (pointsProduct !== undefined) update.pointsProduct = pointsProduct;
+      if (extendedBarcode !== undefined) update.extendedBarcode = extendedBarcode;
       decisions.push({ action: "update", row: rowNumber, data: update });
       return;
     }
@@ -580,6 +628,7 @@ export function classifyProductRows(
       stock,
       sku,
       barcode: barcode || null,
+      extendedBarcode: extendedBarcode ?? null,
       cost: cost ?? null,
       wholesalePrice: wholesale ?? null,
       memberPrice: memberPrice ?? null,
@@ -626,6 +675,11 @@ export function classifyProductRows(
   });
 
   return { pospal: columns.pospal, decisions };
+}
+
+function usableCode(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.length > 0 && trimmed.length <= 64 && !/[\u0000-\u001f]/.test(trimmed);
 }
 
 function storedDescription(cell: string, generated: string | null): string | null {

@@ -13,6 +13,8 @@ export interface PosScanVariant {
   id: string;
   sku: string;
   barcode?: string | null;
+  /** 銀豹擴展條碼。掃到時與主條碼一樣以 barcode 回傳。 */
+  extendedBarcode?: string | null;
   stock: number;
 }
 
@@ -39,6 +41,7 @@ export function posScanOr(raw: string): Record<string, unknown>[] {
   if (!query) return [];
   const or: Record<string, unknown>[] = [
     { variants: { some: { barcode: { equals: query, mode: "insensitive" } } } },
+    { variants: { some: { extendedBarcode: { equals: query, mode: "insensitive" } } } },
     { variants: { some: { sku: { equals: query, mode: "insensitive" } } } },
     { cardNumber: { in: setCollectorCodeForms(query, { unpadded: true }), mode: "insensitive" } },
   ];
@@ -72,8 +75,9 @@ export function normalizeBarcode(value: unknown): string | null {
 }
 
 /**
- * Exact cashier lookup. Barcode wins, then SKU, then a card number that
- * matches exactly one product. Name search stays on the product list.
+ * Exact cashier lookup. Primary barcode wins, then the extended barcode
+ * (same matchedBy), then SKU, then a card number that matches exactly one
+ * product. Name search stays on the product list.
  */
 export function matchPosScan<T extends PosScanProduct>(
   products: T[],
@@ -85,6 +89,14 @@ export function matchPosScan<T extends PosScanProduct>(
   for (const product of products) {
     for (const variant of product.variants) {
       if (variant.barcode && sameCode(variant.barcode, query)) {
+        return { product, variantId: variant.id, matchedBy: "barcode" };
+      }
+    }
+  }
+
+  for (const product of products) {
+    for (const variant of product.variants) {
+      if (variant.extendedBarcode && sameCode(variant.extendedBarcode, query)) {
         return { product, variantId: variant.id, matchedBy: "barcode" };
       }
     }

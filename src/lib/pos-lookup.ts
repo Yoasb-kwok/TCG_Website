@@ -50,6 +50,7 @@ export async function lookupPosScan(raw: string): Promise<PosLookupMatch | null>
         targetBuybackQty: variant.targetBuybackQty,
         sku: variant.sku,
         barcode: variant.barcode,
+        extendedBarcode: variant.extendedBarcode,
         cost: variant.cost,
         wholesalePrice: variant.wholesalePrice,
         memberPrice: variant.memberPrice,

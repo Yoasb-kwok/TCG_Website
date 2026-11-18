@@ -20,6 +20,8 @@ export interface ProductVariant {
   sku: string;
   /** 未設定時為 null 或缺省 */
   barcode?: string | null;
+  /** 第二個收銀碼。未設定時為 null 或缺省。掃這個碼與掃主條碼找到同一個變體。 */
+  extendedBarcode?: string | null;
   /** 進貨價（HKD）。未設定時為 null 或缺省。 */
   cost?: number | null;
   /** 批發價（HKD）。未設定時為 null 或缺省。 */
