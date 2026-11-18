@@ -27,6 +27,7 @@ import {
   isSingleProductType,
 } from "@/lib/product-type-display";
 import { catalogBuybackPayload } from "@/lib/buyback-catalog";
+import { existingSingleResaveError, existingSingleTaxonomyPayload } from "@/lib/single-resave";
 import { cn } from "@/lib/utils";
 import { useTaxonomy } from "@/providers/taxonomy-provider";
 import type { AdminProduct } from "@/components/admin/products-table";
@@ -158,17 +159,15 @@ export function ProductEditDialog({
       let body: Record<string, unknown>;
 
       if (isSingleProductType(product.type)) {
-        if (!setCode || !rarityTier || !cardCategory) {
-          setError("請填寫系列、稀有度與類型");
+        const blocker = existingSingleResaveError({ name });
+        if (blocker) {
+          setError(blocker);
           setLoading(false);
           return;
         }
         body = {
           ...base,
-          setCode,
-          cardNumber: cardNumber.trim() || undefined,
-          rarityTier,
-          cardCategory,
+          ...existingSingleTaxonomyPayload({ setCode, rarityTier, cardNumber, cardCategory }),
           pokemonType: pokemonType || undefined,
           isFoil,
         };
@@ -241,7 +240,7 @@ export function ProductEditDialog({
             <>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label>系列編號 *</Label>
+                  <Label>系列編號（選填）</Label>
                   <select
                     value={setCode}
                     onChange={(e) => {
@@ -250,6 +249,7 @@ export function ProductEditDialog({
                     }}
                     className={cn("mt-1 w-full", SEARCH_BAR_SELECT_CLASS)}
                   >
+                    <option value="">未設定</option>
                     {setOptions.map((s) => (
                       <option key={s.id} value={s.value}>
                         {s.label}
@@ -281,12 +281,13 @@ export function ProductEditDialog({
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <Label>稀有度 *</Label>
+                  <Label>稀有度（選填）</Label>
                   <select
                     value={rarityTier}
                     onChange={(e) => setRarityTier(e.target.value)}
                     className={cn("mt-1 w-full", SEARCH_BAR_SELECT_CLASS)}
                   >
+                    <option value="">未設定</option>
                     {rarityOptions.map((r) => (
                       <option key={r.id} value={r.value}>
                         {r.label}
@@ -295,12 +296,13 @@ export function ProductEditDialog({
                   </select>
                 </div>
                 <div>
-                  <Label>類型 *</Label>
+                  <Label>類型（選填）</Label>
                   <select
                     value={cardCategory}
                     onChange={(e) => setCardCategory(e.target.value)}
                     className={cn("mt-1 w-full", SEARCH_BAR_SELECT_CLASS)}
                   >
+                    <option value="">未設定</option>
                     {categoryOptions.map((c) => (
                       <option key={c.id} value={c.value}>
                         {c.label}
@@ -309,6 +311,9 @@ export function ProductEditDialog({
                   </select>
                 </div>
               </div>
+              <p className="text-xs text-muted-foreground">
+                匯入的單件可以沒有系列、稀有度或類型。留空不會自動補上。
+              </p>
               {showAttribute && (
                 <div>
                   <Label>屬性</Label>

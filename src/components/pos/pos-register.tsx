@@ -13,6 +13,14 @@ import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { DEMO_WRITE_DISCLAIMER, filterDemoCatalog } from "@/lib/demo-shop";
 import { fetchCatalogProducts } from "@/lib/fetch-catalog-products";
 import { formatPrice } from "@/lib/format";
+import {
+  chargedUnitPrice,
+  commercialFacts,
+  readExtendedBarcode,
+  saleUnitCost,
+  scanAddedText,
+  usableMemberPrice,
+} from "@/lib/pos-commercial";
 import { matchPosScan } from "@/lib/pos-scan";
 import {
   playPosCue,
@@ -31,9 +39,14 @@ type TicketLine = {
   name: string;
   sku: string | null;
   barcode: string | null;
+  extendedBarcode: string | null;
   quantity: number;
   unitPrice: number;
   unitCost: number;
+  wholesalePrice: number | null;
+  memberPrice: number | null;
+  memberDiscount: boolean;
+  pointsProduct: boolean;
 };
 
 type ScanNote = { tone: "ok" | "warn"; text: string };
@@ -66,6 +79,30 @@ function tenderedAmount(raw: string, total: number) {
   if (raw.trim() === "") return total;
   const value = Number(raw);
   return Number.isFinite(value) ? value : Number.NaN;
+}
+
+function finiteMoney(value: number | null | undefined): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function lineFromVariant(product: ProductWithVariants, variant: ProductWithVariants["variants"][number]) {
+  return {
+    name: product.name,
+    sku: variant.sku,
+    barcode: variant.barcode ?? null,
+    extendedBarcode: readExtendedBarcode(variant),
+    unitPrice: chargedUnitPrice(variant),
+    unitCost: saleUnitCost(variant),
+    wholesalePrice: finiteMoney(variant.wholesalePrice),
+    memberPrice: usableMemberPrice(variant),
+    memberDiscount: variant.memberDiscount === true,
+    pointsProduct: variant.pointsProduct === true,
+  };
+}
+
+function addedNote(product: ProductWithVariants, variantId: string) {
+  const variant = product.variants.find((item) => item.id === variantId);
+  return variant ? scanAddedText(product.name, variant) : `已加入：${product.name}`;
 }
 
 function formatMoney(amount: number) {
@@ -228,12 +265,8 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
         ...current,
         {
           key: crypto.randomUUID(),
-          name: product.name,
-          sku: variant.sku,
-          barcode: variant.barcode ?? null,
           quantity: 1,
-          unitPrice: variant.price,
-          unitCost: typeof variant.cost === "number" && variant.cost > 0 ? variant.cost : 0,
+          ...lineFromVariant(product, variant),
         },
       ];
     });
@@ -271,13 +304,9 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
         setScanNote({ tone: "warn", text: "沒有完全相符嘅條碼、SKU 或卡號，請喺下面揀" });
         return;
       }
-      const variant = match.product.variants.find((item) => item.id === match.variantId);
       addVariant(match.product, match.variantId);
       setQuery("");
-      setScanNote({
-        tone: "ok",
-        text: variant && variant.stock <= 0 ? `已加入：${match.product.name}（而家無庫存）` : `已加入：${match.product.name}`,
-      });
+      setScanNote({ tone: "ok", text: addedNote(match.product, match.variantId) });
       scanRef.current?.focus();
       return;
     }
@@ -290,7 +319,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
         setScanNote({ tone: "warn", text: data.error ?? "搜尋失敗，請再試一次" });
         return;
       }
-      const match = data.match;
+      const match = data.match ?? matchPosScan(shelf, q);
       if (!match) {
         playPosCue("err");
         const cards = data.catalog ?? [];
@@ -312,13 +341,9 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
         });
         return;
       }
-      const variant = match.product.variants.find((item) => item.id === match.variantId);
       addVariant(match.product, match.variantId);
       setQuery("");
-      setScanNote({
-        tone: "ok",
-        text: variant && variant.stock <= 0 ? `已加入：${match.product.name}（而家無庫存）` : `已加入：${match.product.name}`,
-      });
+      setScanNote({ tone: "ok", text: addedNote(match.product, match.variantId) });
       scanRef.current?.focus();
     } catch {
       if (seq !== scanSeq.current) return;
@@ -339,9 +364,14 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
         name,
         sku: null,
         barcode: null,
+        extendedBarcode: null,
         quantity: 1,
         unitPrice,
         unitCost: 0,
+        wholesalePrice: null,
+        memberPrice: null,
+        memberDiscount: false,
+        pointsProduct: false,
       },
     ]);
     setManual({ name: "", unitPrice: "" });
@@ -614,6 +644,9 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                       </span>
                       <span className="line-clamp-2 text-[15px] font-bold text-[#171514]">{product.name}</span>
                       <span className="text-[13px] text-[#706c68]">{meta}</span>
+                      {variant && (
+                        <span className="text-[12px] leading-5 text-[#706c68]">{commercialFacts(variant).join(" · ")}</span>
+                      )}
                       <span className="text-[18px] font-bold text-[#171514]">
                         {variant && variant.price > 0 ? formatPrice(variant.price) : "未定價"}
                       </span>
@@ -690,6 +723,19 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                       </p>
                       <p className="shrink-0 tabular-nums">{formatPrice(lineTotal(line))}</p>
                     </div>
+                    {line.sku && (
+                      <p className="mt-1 text-[12px] leading-5 text-[#706c68]">
+                        {commercialFacts({
+                          barcode: line.barcode,
+                          extendedBarcode: line.extendedBarcode,
+                          cost: line.unitCost,
+                          wholesalePrice: line.wholesalePrice,
+                          memberPrice: line.memberPrice,
+                          memberDiscount: line.memberDiscount,
+                          pointsProduct: line.pointsProduct,
+                        }).join(" · ")}
+                      </p>
+                    )}
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
@@ -721,6 +767,15 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                           className={cn(styles.search, "mt-1 h-8 w-20 rounded-[10px] border border-[#ded6cb] bg-white px-2 text-right text-[14px] font-bold text-[#171514] outline-none")}
                         />
                       </label>
+                      {line.memberPrice != null && (
+                        <button
+                          type="button"
+                          className="text-[12px] font-bold text-[#171514]"
+                          onClick={() => patchLine(line.key, { unitPrice: line.memberPrice ?? line.unitPrice })}
+                        >
+                          用會員價
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="ml-auto text-[12px] font-bold text-[#9a3412]"

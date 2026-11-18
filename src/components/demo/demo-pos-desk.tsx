@@ -7,6 +7,7 @@ import { DEMO_PRODUCTS, DEMO_TOURNAMENTS } from "@/lib/demo-products";
 import type { DemoPosDeskId } from "@/lib/demo-paths";
 import { DEMO_ORDERS, DEMO_SHOP, DEMO_WRITE_DISCLAIMER } from "@/lib/demo-shop";
 import { formatDate, formatPrice } from "@/lib/format";
+import { commercialFacts } from "@/lib/pos-commercial";
 
 const COPY: Record<DemoPosDeskId, { title: string; body: string }> = {
   receiving: {
@@ -70,6 +71,7 @@ function Receiving() {
                   <td className="px-3 py-2">
                     {product.name}
                     <span className="ml-2 text-xs text-muted-foreground">{variant.condition}</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">{commercialFacts(variant).join(" · ")}</span>
                   </td>
                   <td className="px-3 py-2 font-mono text-xs">{variant.sku}</td>
                   <td className="px-3 py-2 tabular-nums">{variant.stock}</td>
