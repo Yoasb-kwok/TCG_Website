@@ -233,7 +233,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
           barcode: variant.barcode ?? null,
           quantity: 1,
           unitPrice: variant.price,
-          unitCost: 0,
+          unitCost: typeof variant.cost === "number" && variant.cost > 0 ? variant.cost : 0,
         },
       ];
     });

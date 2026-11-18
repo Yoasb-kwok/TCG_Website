@@ -4,8 +4,11 @@ export function isSingleProductType(type: string): boolean {
   return type === "SINGLE";
 }
 
+/** 配件、罐裝、支裝沒有系列／稀有度，編輯走同一套簡易表單。 */
+const SIMPLE_GOODS_TYPES = new Set(["ACCESSORY", "TIN", "BOTTLE"]);
+
 export function isAccessoryProductType(type: string): boolean {
-  return type === "ACCESSORY";
+  return SIMPLE_GOODS_TYPES.has(type);
 }
 
 /** 卡盒／補充包／禮盒等（非單卡、非配件） */
@@ -21,7 +24,7 @@ export function filterSealedProductTypeOptions<
     (o) =>
       (o.active !== false) &&
       o.value !== "SINGLE" &&
-      o.value !== "ACCESSORY",
+      !isAccessoryProductType(o.value),
   );
 }
 

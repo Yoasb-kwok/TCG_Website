@@ -198,6 +198,16 @@ model ProductVariant {
   sku       String  @unique
   /** 收銀條碼。空值代表未設定；有值時全店唯一（多個 NULL 可並存）。 */
   barcode   String? @unique
+  /** 進貨價（HKD）。空值代表未設定。目錄匯入拒絕 0，不會把零成本寫成可售貨。 */
+  cost            Float?
+  /** 批發價（HKD）。空值代表未設定。 */
+  wholesalePrice  Float?
+  /** 會員價（HKD）。空值代表未設定；0 代表檔案寫明沒有另訂會員價。 */
+  memberPrice     Float?
+  /** 銀豹「會員折扣」：此貨可套用會員折扣。折扣率不在這欄。 */
+  memberDiscount  Boolean @default(false)
+  /** 銀豹「積分商品」：購買可計積分。兌換與清零不在這欄。 */
+  pointsProduct   Boolean @default(false)
   orderItems OrderItem[]
 
   @@index([productId])

@@ -20,6 +20,16 @@ export interface ProductVariant {
   sku: string;
   /** 未設定時為 null 或缺省 */
   barcode?: string | null;
+  /** 進貨價（HKD）。未設定時為 null 或缺省。 */
+  cost?: number | null;
+  /** 批發價（HKD）。未設定時為 null 或缺省。 */
+  wholesalePrice?: number | null;
+  /** 會員價（HKD）。未設定時為 null 或缺省；0 代表沒有另訂會員價。 */
+  memberPrice?: number | null;
+  /** 可套用會員折扣。折扣率不在這欄。 */
+  memberDiscount?: boolean;
+  /** 購買可計積分。 */
+  pointsProduct?: boolean;
 }
 
 export interface ProductWithVariants {

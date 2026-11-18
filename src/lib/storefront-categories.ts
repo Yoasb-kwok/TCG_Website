@@ -51,6 +51,8 @@ const TYPE_LABELS: Record<string, string> = {
   BOOSTER_PACK: "補充包",
   GIFT_BOX: "禮盒",
   ACCESSORY: "配件",
+  TIN: "罐裝",
+  BOTTLE: "支裝",
 };
 
 const LANGUAGE_ORDER = ["zh-HK", "zh-TW", "zh", "en", "ja"] as const;

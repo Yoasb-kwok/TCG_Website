@@ -90,7 +90,7 @@ npm run db:seed
 - `page`, `pageSize`
 - `minPrice`, `maxPrice`
 - `cardSet`, `rarity`, `pokemonType`
-- `type` — `SINGLE` | `SEALED_BOX` | `BOOSTER_PACK` | `ACCESSORY`
+- `type` — `SINGLE` | `SEALED_BOX` | `BOOSTER_PACK` | `ACCESSORY` | `TIN` | `BOTTLE`
 - `inStock=true`
 - `search`, `language`（`search` 對名稱、卡號、系列、SKU、條碼做包含比對；有字時一併對照卡表）
 - `game` — 目前只支援 `pokemon`。`one-piece`、`lorcana` 會回傳空清單（選單暫不顯示這兩個遊戲）

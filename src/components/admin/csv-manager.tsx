@@ -9,9 +9,18 @@ interface ImportError {
   message: string;
 }
 
+interface ImportQuarantine {
+  row: number;
+  name: string;
+  barcode: string | null;
+  message: string;
+}
+
 interface ImportResult {
   created: number;
+  updated?: number;
   skipped: number;
+  quarantined?: ImportQuarantine[];
   errors: ImportError[];
 }
 
@@ -50,7 +59,7 @@ export function CsvManager() {
   const handleImport = async () => {
     const file = fileRef.current?.files?.[0];
     if (!file) {
-      setError("請先選擇 CSV 檔案");
+      setError("請先選擇 CSV 或 Excel 檔案");
       return;
     }
 
@@ -94,21 +103,21 @@ export function CsvManager() {
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="flex items-center gap-3">
           <Upload className="h-5 w-5 text-pink-500" />
-          <h2 className="text-lg font-semibold">匯入商品 (CSV)</h2>
+          <h2 className="text-lg font-semibold">匯入商品</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
-          上傳 UTF-8 CSV 建立新商品（BOM 可有可無；Excel 若存成帶 BOM 的 UTF-16 也可以）。不是這兩種編碼會拒絕，不會把亂碼存進去。Excel 請另存為「CSV UTF-8」。每行一筆商品（含一個變體）。已存在的 slug 會跳過，不會覆寫描述。有填 description 時照原文儲存，空白的單卡才用系列與卡號產生描述。
+          上傳 UTF-8 CSV（BOM 可有可無；Excel 的 UTF-16 也可以）或 .xlsx。有條碼時按條碼新增或更新名稱、售價、庫存、進貨價、批發價、會員價與會員折扣／積分標記。沒有條碼的舊範本仍只新增，已存在的 slug 會跳過。售價或進貨價為 0、庫存不是非負整數、批發價或售價低於進貨價，以及 locker/ 服務貨號會隔離，不會寫進目錄。銀豹分類會對應商品類型：盒裝→封盒、包→補充包、PCS→單卡、罐→罐裝、支→支裝。同名不同條碼會分成不同商品。
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <label htmlFor="csv-file-input" className="text-sm font-medium">
-            CSV 檔
+            檔案
           </label>
           <input
             ref={fileRef}
             id="csv-file-input"
             type="file"
-            accept=".csv,text/csv"
+            accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="block max-w-full text-sm"
           />
           <a
@@ -137,7 +146,7 @@ export function CsvManager() {
               </thead>
               <tbody>
                 <tr><td className="py-1 pr-4 font-mono">name</td><td className="py-1 pr-4">是</td><td className="py-1">商品名稱</td></tr>
-                <tr><td className="py-1 pr-4 font-mono">type</td><td className="py-1 pr-4">是</td><td className="py-1">SINGLE / BOOSTER_PACK / SEALED_BOX / ACCESSORY</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">type</td><td className="py-1 pr-4">英文檔必填</td><td className="py-1">SINGLE / BOOSTER_PACK / SEALED_BOX / GIFT_BOX / ACCESSORY / TIN / BOTTLE。銀豹檔用「分類」而不是 type。</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">setCode</td><td className="py-1 pr-4">單卡必填</td><td className="py-1">系列編號 (M3, SV3 等)</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">rarityTier</td><td className="py-1 pr-4">單卡必填</td><td className="py-1">稀有度分類 (RR, SR, AR 等)</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">cardNumber</td><td className="py-1 pr-4">否</td><td className="py-1">卡號 (如 045)</td></tr>
@@ -149,7 +158,13 @@ export function CsvManager() {
                 <tr><td className="py-1 pr-4 font-mono">isFoil</td><td className="py-1 pr-4">否</td><td className="py-1">true / false</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">price</td><td className="py-1 pr-4">是</td><td className="py-1">價格 (HKD)</td></tr>
                 <tr><td className="py-1 pr-4 font-mono">stock</td><td className="py-1 pr-4">是</td><td className="py-1">庫存數量</td></tr>
-                <tr><td className="py-1 pr-4 font-mono">description</td><td className="py-1 pr-4">否</td><td className="py-1">商品描述（繁中）。空白時單卡會用系列／卡號自動產生</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">description</td><td className="py-1 pr-4">否</td><td className="py-1">商品描述（繁中）。空白時單卡會用系列／卡號自動產生。更新時空白不會清掉原描述。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">barcode</td><td className="py-1 pr-4">銀豹檔必填</td><td className="py-1">條碼。對到現有變體就更新，否則新增。同名不同條碼不會合併。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">cost</td><td className="py-1 pr-4">否</td><td className="py-1">進貨價。0 會隔離。空白代表未設定，不會覆寫。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">wholesalePrice</td><td className="py-1 pr-4">否</td><td className="py-1">批發價。低於進貨價會隔離。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">memberPrice</td><td className="py-1 pr-4">否</td><td className="py-1">會員價。0 代表沒有另訂會員價。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">memberDiscount</td><td className="py-1 pr-4">否</td><td className="py-1">會員折扣標記：是 / 否。不是折扣率。</td></tr>
+                <tr><td className="py-1 pr-4 font-mono">pointsProduct</td><td className="py-1 pr-4">否</td><td className="py-1">積分商品標記：是 / 否。</td></tr>
               </tbody>
             </table>
           </div>
@@ -169,13 +184,44 @@ export function CsvManager() {
             <div className="text-green-600 dark:text-green-400">
               <span className="text-2xl font-bold">{result.created}</span> 新增
             </div>
+            <div className="text-green-600 dark:text-green-400">
+              <span className="text-2xl font-bold">{result.updated ?? 0}</span> 更新
+            </div>
             <div className="text-yellow-600 dark:text-yellow-400">
               <span className="text-2xl font-bold">{result.skipped}</span> 跳過
+            </div>
+            <div className="text-amber-700 dark:text-amber-300">
+              <span className="text-2xl font-bold">{result.quarantined?.length ?? 0}</span> 隔離
             </div>
             <div className="text-red-600 dark:text-red-400">
               <span className="text-2xl font-bold">{result.errors.length}</span> 失敗
             </div>
           </div>
+          {(result.quarantined?.length ?? 0) > 0 ? (
+            <div className="mt-4">
+              <h3 className="mb-2 text-sm font-medium text-muted-foreground">隔離明細（未寫入目錄）</h3>
+              <div className="max-h-60 overflow-y-auto rounded-lg border border-border">
+                <table className="w-full text-left text-sm">
+                  <thead className="sticky top-0 bg-muted">
+                    <tr>
+                      <th className="px-4 py-2">行號</th>
+                      <th className="px-4 py-2">條碼</th>
+                      <th className="px-4 py-2">原因</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {result.quarantined?.map((item) => (
+                      <tr key={`${item.row}-${item.barcode ?? ""}-${item.message}`} className="border-t border-border">
+                        <td className="px-4 py-2 font-mono text-muted-foreground">{item.row}</td>
+                        <td className="px-4 py-2 font-mono text-muted-foreground">{item.barcode || "—"}</td>
+                        <td className="px-4 py-2 text-amber-800 dark:text-amber-200">{item.name ? `${item.name}：` : ""}{item.message}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : null}
           {result.errors.length > 0 ? (
             <div className="mt-4">
               <h3 className="mb-2 text-sm font-medium text-muted-foreground">錯誤明細</h3>

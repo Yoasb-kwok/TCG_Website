@@ -45,6 +45,8 @@ const DEFAULT_PRODUCT_TYPE_ROWS = [
   { value: "BOOSTER_PACK", label: "補充包", sortIndex: 2 },
   { value: "GIFT_BOX", label: "禮盒", sortIndex: 3 },
   { value: "ACCESSORY", label: "配件", sortIndex: 4 },
+  { value: "TIN", label: "罐裝", sortIndex: 5 },
+  { value: "BOTTLE", label: "支裝", sortIndex: 6 },
 ] as const;
 
 /** 確保商品類型標籤存在（新環境或舊庫升級） */
