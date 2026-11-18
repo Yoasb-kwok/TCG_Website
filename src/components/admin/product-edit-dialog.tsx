@@ -212,7 +212,7 @@ export function ProductEditDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto rounded-3xl bg-trtcg-paper text-trtcg-ink sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>編輯商品</DialogTitle>
           <DialogDescription>

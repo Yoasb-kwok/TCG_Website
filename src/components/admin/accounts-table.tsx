@@ -87,9 +87,9 @@ export function AccountsTable() {
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="overflow-x-auto rounded-3xl bg-white">
         <table className="w-full text-sm">
-          <thead className="border-b border-border bg-card text-left text-muted-foreground">
+          <thead className="border-b border-trtcg-line bg-white text-left text-trtcg-muted">
             <tr>
               <th className="p-3">姓名</th>
               <th className="p-3">電郵</th>
@@ -114,7 +114,7 @@ export function AccountsTable() {
                 <td className="p-3">
                   <Link
                     href={`/admin/accounts/${account.id}`}
-                    className="font-medium text-pink-400 hover:text-pink-300"
+                    className="font-bold text-trtcg-secondary-border"
                   >
                     帳戶詳細
                   </Link>

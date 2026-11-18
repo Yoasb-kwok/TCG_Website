@@ -77,23 +77,23 @@ export function CsvManager() {
 
   return (
     <div className="space-y-8">
-      <section className="rounded-xl border border-border bg-card p-5">
+      <section className="rounded-3xl bg-white p-6 text-trtcg-ink">
         <div className="flex items-center gap-3">
-          <Download className="h-5 w-5 text-pink-500" />
+          <Download className="h-5 w-5 text-trtcg-secondary-border" />
           <h2 className="text-lg font-semibold">匯出商品</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
           下載 ZIP，解開後的 product.csv 是 UTF-8（含 BOM）。Excel 與 Google 試算表可正確顯示中文商品名稱與描述。不含圖片、帳戶、訂單或店賽資料。每個商品只匯出價格最低的一個變體。
         </p>
-        <Button type="button" className="mt-4" onClick={handleExport} disabled={exporting}>
+        <Button type="button" variant="primary" className="mt-4" onClick={handleExport} disabled={exporting}>
           {exporting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
           {exporting ? "匯出中..." : "下載 ZIP"}
         </Button>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-5">
+      <section className="rounded-3xl bg-white p-6 text-trtcg-ink">
         <div className="flex items-center gap-3">
-          <Upload className="h-5 w-5 text-pink-500" />
+          <Upload className="h-5 w-5 text-trtcg-secondary-border" />
           <h2 className="text-lg font-semibold">匯入商品 (CSV)</h2>
         </div>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -118,7 +118,7 @@ export function CsvManager() {
             <Download className="h-4 w-4" />
             下載範本
           </a>
-          <Button type="button" onClick={handleImport} disabled={importing}>
+          <Button type="button" variant="primary" onClick={handleImport} disabled={importing}>
             {importing ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
             {importing ? "匯入中..." : "開始匯入"}
           </Button>
@@ -163,7 +163,7 @@ export function CsvManager() {
       ) : null}
 
       {result ? (
-        <section className="rounded-xl border border-border bg-card p-5">
+        <section className="rounded-3xl bg-white p-6 text-trtcg-ink">
           <h2 className="text-lg font-semibold">匯入結果</h2>
           <div className="mt-3 flex gap-6 text-sm">
             <div className="text-green-600 dark:text-green-400">

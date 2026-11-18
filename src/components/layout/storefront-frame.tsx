@@ -43,11 +43,11 @@ export function StorefrontFrame({
   const pathname = usePathname();
   const locked = pathname === "/tournaments/live" || pathname.startsWith("/pos");
   const demoShell = isDemoShellPath(pathname);
-  const merchant = pathname.startsWith("/admin");
+  const merchant = pathname.startsWith("/admin") && !pathname.startsWith("/admin/demo");
   const catalogPath = pathname === "/products" || pathname.startsWith("/products/");
   const surface = !locked && !demoShell && !merchant;
 
-  if (locked || demoShell) {
+  if (locked || demoShell || merchant) {
     return (
       <div className={locked ? "min-h-dvh flex-1 lg:h-dvh lg:overflow-hidden" : "flex min-h-full flex-1 flex-col"}>
         {children}

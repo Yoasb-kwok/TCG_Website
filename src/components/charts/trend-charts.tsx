@@ -65,11 +65,11 @@ export function TrendChartCard({
     .join(" ");
 
   return (
-    <section className={cn("rounded-xl border border-border bg-card p-4 sm:p-5", className)}>
+    <section className={cn("rounded-3xl bg-white p-6 text-trtcg-ink", className)}>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 className="font-bold">{title}</h2>
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+          <h2 className="text-[20px] font-bold leading-[1.45]">{title}</h2>
+          <p className="mt-2 text-[13px] leading-[1.6] text-trtcg-muted">{description}</p>
         </div>
         {points.length > 0 && (
           <p className="text-sm font-bold tabular-nums">
@@ -82,11 +82,11 @@ export function TrendChartCard({
 
       <div className="mt-4 flex flex-wrap gap-4 text-xs font-bold text-muted-foreground">
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-sm bg-pink-500" />
+          <span className="h-2.5 w-2.5 rounded-sm bg-trtcg-gold" />
           {volumeLabel}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="h-0.5 w-4 rounded bg-violet-600 dark:bg-violet-300" />
+          <span className="h-0.5 w-4 rounded bg-trtcg-secondary-border" />
           {amountLabel}
         </span>
       </div>
@@ -128,8 +128,8 @@ export function TrendChartCard({
                   <div key={`${point.label}-bar`} className="flex h-full flex-1 items-end px-0.5 sm:px-1">
                     <div
                       className={cn(
-                        "w-full rounded-t-sm bg-pink-500",
-                        index === selected ? "bg-pink-400" : "opacity-80",
+                        "w-full rounded-t-sm bg-trtcg-gold",
+                        index === selected ? "bg-trtcg-gold" : "opacity-80",
                       )}
                       style={{
                         height:
@@ -154,14 +154,14 @@ export function TrendChartCard({
                   strokeLinejoin="round"
                   strokeLinecap="round"
                   vectorEffect="non-scaling-stroke"
-                  className="stroke-violet-600 dark:stroke-violet-300"
+                  className="stroke-trtcg-secondary-border"
                 />
               </svg>
               {points.map((point, index) => (
                 <span
                   key={`${point.label}-dot`}
                   className={cn(
-                    "pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-violet-600 ring-2 ring-card dark:bg-violet-300",
+                    "pointer-events-none absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-trtcg-secondary-border ring-2 ring-white",
                     index === selected && "h-2.5 w-2.5",
                   )}
                   style={{
