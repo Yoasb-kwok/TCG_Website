@@ -1,22 +1,26 @@
 import { cn } from "@/lib/utils";
 
-export const posTitle = "text-[32px] font-bold leading-none tracking-tight text-[#171514]";
-export const posSub = "mt-1 text-[15px] leading-6 text-[#706c68]";
+/** Page title on frame 102:2 is 38px. Subtitle is 16px. */
+export const posTitle = "text-[38px] font-bold leading-none tracking-tight text-trtcg-ink";
+export const posSub = "mt-1 text-[16px] leading-6 text-trtcg-muted";
+/** 40px under the 96px header, 64px side inset, 24px between blocks. */
+export const posPage = "flex h-full min-h-0 flex-col gap-6 overflow-auto px-4 pt-10 pb-10 lg:px-16";
 export const posCard =
-  "rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white shadow-[0_10px_14px_rgba(74,44,22,0.1)]";
+  "rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface shadow-[0_10px_14px_rgba(74,44,22,0.1)]";
 export const posInput =
-  "h-12 w-full rounded-[12px] border border-[#ded6cb] bg-white px-3.5 text-[15px] text-[#171514] outline-none placeholder:text-[#706c68] focus:border-[#171514]";
-export const posBlackBtn =
-  "inline-flex h-12 items-center justify-center rounded-[14px] bg-[#090909] px-[18px] text-[15px] font-bold text-white shadow-[0_5px_8px_rgba(74,44,22,0.08)] disabled:cursor-not-allowed disabled:opacity-40";
-export const posPinkBtn =
-  "inline-flex h-12 items-center justify-center rounded-[14px] bg-[#e84e9e] px-[18px] text-[15px] font-bold text-white shadow-[0_5px_8px_rgba(74,44,22,0.08)] hover:bg-[#d63d8e] disabled:cursor-not-allowed disabled:bg-[#ded6cb] disabled:text-[#706c68] disabled:shadow-none";
-export const posLavenderBtn =
-  "inline-flex h-12 items-center justify-center rounded-[14px] bg-[#e8dfff] px-[18px] text-[15px] font-bold text-[#171514] shadow-[0_5px_8px_rgba(74,44,22,0.08)] disabled:opacity-40";
-export const posGhostBtn =
-  "inline-flex h-12 items-center justify-center rounded-[14px] border border-[#ded6cb] bg-white px-[18px] text-[15px] font-bold text-[#171514] shadow-[0_5px_8px_rgba(74,44,22,0.08)] disabled:cursor-not-allowed disabled:opacity-40";
-export const posLabel = "text-[13px] font-bold text-[#171514]";
+  "h-12 w-full rounded-[12px] border border-trtcg-input-border bg-trtcg-surface px-3.5 text-[15px] text-trtcg-ink outline-none placeholder:text-trtcg-muted focus:border-trtcg-ink";
+const posBtn =
+  "inline-flex h-12 items-center justify-center rounded-[14px] px-[18px] text-[15px] font-bold shadow-[0_5px_8px_rgba(74,44,22,0.08)] disabled:cursor-not-allowed";
+export const posBlackBtn = `${posBtn} bg-trtcg-header text-white disabled:opacity-40`;
+export const posPinkBtn = `${posBtn} bg-[var(--pos-accent,#e84e9e)] text-white hover:brightness-95 disabled:bg-trtcg-disabled disabled:text-trtcg-disabled-fg disabled:shadow-none`;
+export const posLavenderBtn = `${posBtn} bg-trtcg-lavender text-trtcg-ink disabled:opacity-40`;
+export const posGhostBtn = `${posBtn} border border-trtcg-input-border bg-trtcg-surface text-trtcg-ink disabled:opacity-40`;
+/** Page-level black action on the title row (Figma width 190). */
+export const posAction = `${posBlackBtn} w-[190px] shrink-0 border-0`;
+export const posLabel = "text-[13px] font-bold text-trtcg-ink";
+export const posMetric = "rounded-[20px] p-5";
 
-export const POS_PASTELS = ["#e8dfff", "#ffd0a3", "#ddeb9f"] as const;
+export const POS_PASTELS = ["var(--trtcg-lavender)", "var(--trtcg-peach)", "var(--trtcg-lime)"] as const;
 
 /** Figma chip names for the product types the cashier already filters on. */
 export const POS_KIND_LABEL: Record<string, string> = {
@@ -34,7 +38,7 @@ export function posKindLabel(value: string, fallback: string) {
 export function posChip(active: boolean) {
   return cn(
     "inline-flex h-9 items-center rounded-full px-3.5 text-[14px]",
-    active ? "bg-[#090909] font-bold text-white" : "border border-[#ded6cb] bg-white text-[#171514]",
+    active ? "bg-trtcg-header font-bold text-white" : "border border-trtcg-input-border bg-trtcg-surface text-trtcg-ink",
   );
 }
 

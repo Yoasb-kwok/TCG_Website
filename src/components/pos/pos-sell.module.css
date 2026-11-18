@@ -22,7 +22,7 @@
 .root .tile:hover:not(:disabled):not(.oos) {
   transform: translateY(-2px);
   border-color: var(--pos-sky-border);
-  box-shadow: 0 10px 18px rgb(14 165 233 / 0.22);
+  box-shadow: 0 12px 18px rgb(74 44 22 / 0.16);
 }
 
 .root .tile:hover:active:not(:disabled):not(.oos),
@@ -96,8 +96,8 @@
 
 .root .search:hover,
 .root .search:focus {
-  border-color: #c89c45;
-  box-shadow: 0 0 0 3px rgb(200 156 69 / 0.22);
+  border-color: var(--trtcg-gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--trtcg-gold) 22%, transparent);
 }
 
 .pop {
@@ -188,7 +188,7 @@
 .root :global([aria-label="卡表對照"]) button:hover {
   transform: translateY(-2px);
   border-color: var(--pos-sky-border);
-  box-shadow: 0 8px 16px rgb(14 165 233 / 0.18);
+  box-shadow: 0 8px 16px rgb(74 44 22 / 0.12);
 }
 
 .root :global([aria-label="卡表對照"]) button:active {
