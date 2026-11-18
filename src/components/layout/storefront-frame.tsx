@@ -7,7 +7,6 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
 import { isDemoShellPath } from "@/lib/demo-paths";
 import type { ResolvedSocialLink } from "@/lib/social";
-import type { StorefrontCategoryLink } from "@/lib/storefront-categories";
 import { cn } from "@/lib/utils";
 
 function WhatsAppButton({ href, canvas }: { href: string; canvas: boolean }) {
@@ -17,7 +16,7 @@ function WhatsAppButton({ href, canvas }: { href: string; canvas: boolean }) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "z-50 flex size-12 items-center justify-center rounded-full bg-trtcg-lime shadow-trtcg-card transition hover:bg-trtcg-lime",
+        "z-50 flex size-12 items-center justify-center rounded-full bg-trtcg-lime shadow-trtcg-card transition hover:bg-trtcg-lime/80",
         canvas
           ? "fixed right-4 bottom-6 xl:absolute xl:right-[max(16px,calc((100%-1328px)/2))] xl:bottom-auto xl:top-[818px]"
           : "fixed right-6 bottom-6",
@@ -33,12 +32,10 @@ export function StorefrontFrame({
   children,
   whatsappHref,
   socialLinks,
-  pokemonCategories,
 }: {
   children: React.ReactNode;
   whatsappHref: string | null;
   socialLinks: ResolvedSocialLink[];
-  pokemonCategories: StorefrontCategoryLink[];
 }) {
   const pathname = usePathname();
   const locked = pathname === "/tournaments/live" || pathname.startsWith("/pos");
@@ -63,7 +60,7 @@ export function StorefrontFrame({
       )}
     >
       {surface ? <StorefrontWallpaper /> : null}
-      <SiteHeader socialLinks={socialLinks} pokemonCategories={pokemonCategories} />
+      <SiteHeader socialLinks={socialLinks} />
       <main className={cn("relative z-[1]", pathname === "/cart" ? "shrink-0" : "flex-1")}>{children}</main>
       <div
         className={cn(

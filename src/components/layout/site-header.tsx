@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { signOut, useSession } from "next-auth/react";
 import {
@@ -16,48 +16,29 @@ import {
 import { SiteSearchBar, SiteSearchToggle } from "@/components/layout/site-search";
 import { LocaleCurrencyMenu } from "@/components/layout/locale-currency-menu";
 import { MegaMenu } from "@/components/layout/mega-menu";
-import { PokemonCategoryLinks } from "@/components/layout/pokemon-category-links";
 import { UserMenu } from "@/components/layout/user-menu";
 import { CartSheet } from "@/components/cart/cart-sheet";
 import { SocialLinks } from "@/components/layout/social-links";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { storefrontIconButton } from "@/components/home/home-layout";
 import { useCart } from "@/providers/cart-provider";
-import { NAV_ITEMS, SITE_BRAND, STORE } from "@/lib/constants";
+import { NAV_ITEMS, SITE_BRAND } from "@/lib/constants";
 import type { ResolvedSocialLink } from "@/lib/social";
-import { POKEMON_TCG_CATEGORY, type StorefrontCategoryLink } from "@/lib/storefront-categories";
-import { getStoreMapsUrl } from "@/lib/store-maps";
+import { POKEMON_TCG_CATEGORY } from "@/lib/storefront-categories";
 import { cn } from "@/lib/utils";
 
-export function SiteHeader({
-  socialLinks,
-  pokemonCategories,
-}: {
-  socialLinks: ResolvedSocialLink[];
-  pokemonCategories: StorefrontCategoryLink[];
-}) {
+export function SiteHeader({ socialLinks }: { socialLinks: ResolvedSocialLink[] }) {
   return (
-    <Suspense
-      fallback={
-        <SiteHeaderView socialLinks={socialLinks} pokemonCategories={pokemonCategories} preorder={false} />
-      }
-    >
-      <SiteHeaderQuery socialLinks={socialLinks} pokemonCategories={pokemonCategories} />
+    <Suspense fallback={<SiteHeaderView socialLinks={socialLinks} preorder={false} />}>
+      <SiteHeaderQuery socialLinks={socialLinks} />
     </Suspense>
   );
 }
 
-function SiteHeaderQuery({
-  socialLinks,
-  pokemonCategories,
-}: {
-  socialLinks: ResolvedSocialLink[];
-  pokemonCategories: StorefrontCategoryLink[];
-}) {
+function SiteHeaderQuery({ socialLinks }: { socialLinks: ResolvedSocialLink[] }) {
   const searchParams = useSearchParams();
   return (
     <SiteHeaderView
       socialLinks={socialLinks}
-      pokemonCategories={pokemonCategories}
       preorder={searchParams.get("type") === "SEALED_BOX"}
     />
   );
@@ -65,19 +46,18 @@ function SiteHeaderQuery({
 
 function SiteHeaderView({
   socialLinks,
-  pokemonCategories,
   preorder,
 }: {
   socialLinks: ResolvedSocialLink[];
-  pokemonCategories: StorefrontCategoryLink[];
   preorder: boolean;
 }) {
   const { data: session } = useSession();
   const pathname = usePathname();
   const preorderCurrent = preorder && pathname === "/products";
   const { itemCount } = useCart();
-  const storeMapsUrl = getStoreMapsUrl();
   const cartLabel = itemCount > 0 ? `購物車，${itemCount} 件商品` : "購物車";
+  const instagram = socialLinks.find((link) => link.id === "instagram") ?? null;
+  const whatsapp = socialLinks.find((link) => link.id === "whatsapp") ?? null;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [productsOpen, setProductsOpen] = useState(false);
   const [megaOpen, setMegaOpen] = useState(false);
@@ -116,7 +96,7 @@ function SiteHeaderView({
   useEffect(() => {
     if (!megaOpen || !focusCategoryMenu.current) return;
     focusCategoryMenu.current = false;
-    document.querySelector<HTMLAnchorElement>("#storefront-l2-menu a")?.focus();
+    document.querySelector<HTMLAnchorElement>("#storefront-game-link")?.focus();
   }, [megaOpen]);
 
   useEffect(() => () => cancelClose(), []);
@@ -141,8 +121,7 @@ function SiteHeaderView({
     };
   }, [megaOpen]);
 
-  const iconButton =
-    "inline-flex items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold";
+  const iconButton = storefrontIconButton;
 
   return (
     <header className="sticky top-0 z-50 bg-trtcg-header text-white">
@@ -168,7 +147,7 @@ function SiteHeaderView({
                   type="button"
                   className="inline-flex items-center rounded-md text-[14px] font-medium leading-[1.45] text-white transition hover:text-trtcg-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold"
                   aria-expanded={megaOpen}
-                  aria-controls="storefront-l2-menu"
+                  aria-controls="storefront-mega"
                   aria-haspopup="true"
                   onMouseEnter={() => {
                     cancelClose();
@@ -189,7 +168,6 @@ function SiteHeaderView({
                 </button>
                 <MegaMenu
                   open={megaOpen}
-                  links={pokemonCategories}
                   onClose={() => setMegaOpen(false)}
                   onPointerEnter={cancelClose}
                   onPointerLeave={scheduleClose}
@@ -220,17 +198,20 @@ function SiteHeaderView({
         <div className="flex shrink-0 items-center gap-3 text-white sm:gap-[22px]">
           <UserMenu tone="onDark" />
           <LocaleCurrencyMenu tone="onDark" />
-          <a
-            href={storeMapsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={cn(iconButton, "hidden md:inline-flex")}
-            aria-label={`開啟門市地圖：${STORE.address.zh}`}
-            title={STORE.address.zh}
+          <HeaderSocialIcon
+            href={instagram?.href ?? null}
+            label={instagram?.accessibleName ?? "Instagram"}
+            className={iconButton}
           >
-            <Image src="/brand/home/icon-pin.svg" alt="" width={22} height={22} unoptimized />
-          </a>
-          <ThemeToggle appearance="ink" />
+            <InstagramGlyph />
+          </HeaderSocialIcon>
+          <HeaderSocialIcon
+            href={whatsapp?.href ?? null}
+            label={whatsapp?.accessibleName ?? "WhatsApp 聯絡"}
+            className={iconButton}
+          >
+            <WhatsAppGlyph />
+          </HeaderSocialIcon>
           <SiteSearchToggle
             appearance="ink"
             expanded={searchOpen}
@@ -325,9 +306,9 @@ function SiteHeaderView({
               <div key={item.href}>
                 <button
                   type="button"
-                  className="flex w-full items-center justify-between py-2 text-sm text-white/80 hover:text-white"
+                  className="flex w-full items-center justify-between py-2 text-sm text-white/80 transition hover:text-trtcg-gold"
                   aria-expanded={productsOpen}
-                  aria-controls="storefront-l2-menu-mobile"
+                  aria-controls="storefront-game-link-mobile"
                   onClick={() => setProductsOpen((open) => !open)}
                 >
                   {item.label}
@@ -347,18 +328,13 @@ function SiteHeaderView({
                     }}
                   >
                     <Link
+                      id="storefront-game-link-mobile"
                       href={POKEMON_TCG_CATEGORY.href}
-                      className="block rounded bg-[#f7f5ef] px-2 py-2 text-sm font-medium text-[#0a0a09] hover:bg-[#ece7dc]"
+                      className="block rounded bg-[#f7f5ef] px-2 py-2 text-sm font-medium text-[#0a0a09] transition hover:bg-trtcg-paper"
                       onClick={closeMenus}
                     >
                       {POKEMON_TCG_CATEGORY.label}
                     </Link>
-                    <PokemonCategoryLinks
-                      id="storefront-l2-menu-mobile"
-                      links={pokemonCategories}
-                      onNavigate={closeMenus}
-                      variant="mobile"
-                    />
                   </div>
                 )}
               </div>
@@ -367,7 +343,7 @@ function SiteHeaderView({
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "block py-2 text-sm hover:text-white",
+                  "block py-2 text-sm transition hover:text-trtcg-gold",
                   preorderCurrent && item.href === "/products?type=SEALED_BOX"
                     ? "text-trtcg-gold"
                     : "text-white/80",
@@ -395,5 +371,60 @@ function SiteHeaderView({
       </div>
       <CartSheet />
     </header>
+  );
+}
+
+function HeaderSocialIcon({
+  href,
+  label,
+  className,
+  children,
+}: {
+  href: string | null;
+  label: string;
+  className: string;
+  children: ReactNode;
+}) {
+  if (!href) {
+    return (
+      <a href="#" aria-label={label} className={className} onClick={(event) => event.preventDefault()}>
+        {children}
+      </a>
+    );
+  }
+
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} className={className}>
+      {children}
+    </a>
+  );
+}
+
+function InstagramGlyph() {
+  return (
+    <svg viewBox="0 0 22 22" width="22" height="22" aria-hidden="true" fill="none">
+      <rect x="3.2" y="3.2" width="15.6" height="15.6" rx="4.4" stroke="currentColor" strokeWidth="1.375" />
+      <circle cx="11" cy="11" r="3.6" stroke="currentColor" strokeWidth="1.375" />
+      <circle cx="16.1" cy="5.9" r="0.8" fill="currentColor" />
+    </svg>
+  );
+}
+
+function WhatsAppGlyph() {
+  return (
+    <svg viewBox="0 0 25 25" width="22" height="22" aria-hidden="true" fill="none">
+      <path
+        d="M21.3542 12.2917C21.356 13.8417 20.9509 15.3651 20.1794 16.7094C19.4078 18.0538 18.2969 19.1721 16.9576 19.9525C15.6183 20.7328 14.0977 21.1479 12.5477 21.1563C10.9976 21.1646 9.4726 20.7659 8.125 20L3.125 21.3542L4.47917 16.4583C3.92941 15.2734 3.64864 13.9816 3.65696 12.6754C3.66529 11.3692 3.96251 10.081 4.52733 8.90326C5.09214 7.72547 5.91055 6.68724 6.92388 5.86301C7.9372 5.03877 9.12035 4.44895 10.3885 4.13583C11.6566 3.82271 12.9783 3.79405 14.2588 4.05191C15.5393 4.30976 16.7469 4.84775 17.795 5.62728C18.8431 6.40682 19.7058 7.4086 20.3211 8.5608C20.9364 9.71299 21.2892 10.9871 21.3542 12.2917Z"
+        stroke="currentColor"
+        strokeWidth="1.5625"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.4375 7.70833L10 7.29167L11.1458 9.6875L10.2083 10.8333C10.9339 11.9612 11.893 12.9203 13.0208 13.6458L14.1667 12.7083L16.5625 13.8542L16.1458 15.4167C15.8333 16.7708 14.0625 16.7708 12.2917 15.8333C10.4981 14.7887 9.02192 13.2766 8.02083 11.4583C7.08333 9.6875 7.08333 8.02083 8.4375 7.70833Z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

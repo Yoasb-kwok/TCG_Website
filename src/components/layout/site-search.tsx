@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Search, X } from "lucide-react";
+import { storefrontIconButton } from "@/components/home/home-layout";
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ export function SiteSearchToggle({
       type="button"
       className={cn(
         appearance === "ink"
-          ? "inline-flex items-center justify-center rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a]"
+          ? storefrontIconButton
           : "p-2 hover:text-foreground",
         expanded && appearance !== "ink" && "text-foreground",
         className,
