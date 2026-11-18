@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
+import { LEGAL_PAGES } from "@/lib/legal-pages";
 import type { ResolvedSocialLink } from "@/lib/social";
 import { getStoreMapsUrl } from "@/lib/store-maps";
 import { cn } from "@/lib/utils";
 
 const columnTitle = "text-[14px] font-medium leading-[1.45] text-white";
-const columnLink = "text-[13px] leading-[1.6] text-white transition hover:text-trtcg-gold";
+const columnLink =
+  "rounded-sm text-[13px] leading-[1.6] text-white transition hover:text-trtcg-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold";
 
 export function SiteFooter({
   socialLinks,
@@ -60,7 +62,7 @@ export function SiteFooter({
               關於我們
             </Link>
             <Link href="/shipping" className={columnLink}>
-              送貨方式
+              退換貨／送貨
             </Link>
             <Link href="/payment" className={columnLink}>
               付款方式
@@ -88,6 +90,18 @@ export function SiteFooter({
             ))}
           </div>
         </div>
+        <nav aria-label="條款與政策" className="flex flex-col gap-3 border-t border-white/15 pt-6">
+          <p className={columnTitle}>條款與政策</p>
+          <ul className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-x-6 sm:gap-y-2">
+            {LEGAL_PAGES.map((page) => (
+              <li key={page.href}>
+                <Link href={page.href} className={columnLink}>
+                  {page.navLabel}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
         <div className="flex flex-col gap-3 text-[13px] leading-[1.6] sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {new Date().getFullYear()} {SITE_BRAND}. All rights reserved.
