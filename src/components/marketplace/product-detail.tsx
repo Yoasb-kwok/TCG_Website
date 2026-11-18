@@ -109,8 +109,8 @@ export function ProductDetail({
                     type="button"
                     onClick={() => setImageIndex(index)}
                     className={cn(
-                      "relative h-16 w-12 overflow-hidden rounded-[10px] border bg-white",
-                      index === imageIndex ? "border-[#080808]" : "border-[#ddd5c3]",
+                      "relative h-16 w-12 overflow-hidden rounded-[10px] border bg-white transition",
+                      index === imageIndex ? "border-trtcg-header" : "border-trtcg-line hover:border-trtcg-gold",
                     )}
                     aria-label={`查看圖片 ${index + 1}`}
                   >
@@ -179,8 +179,8 @@ export function ProductDetail({
                         type="button"
                         onClick={() => setVariantId(item.id)}
                         className={cn(
-                          "flex items-center justify-between gap-4 rounded-[16px] border bg-trtcg-surface p-5 text-left",
-                          selected ? "border-trtcg-header" : "border-trtcg-line",
+                          "flex items-center justify-between gap-4 rounded-[16px] border bg-trtcg-surface p-5 text-left transition",
+                          selected ? "border-trtcg-header" : "border-trtcg-line hover:border-trtcg-gold",
                         )}
                         aria-pressed={selected}
                       >

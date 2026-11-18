@@ -145,7 +145,7 @@ export function AuthForm() {
       "inline-flex h-12 flex-1 items-center justify-center rounded-[10px] text-[14px] font-medium transition",
       active
         ? "border border-[#c8a24a] bg-[#080808] text-white"
-        : "bg-[#e7f3c9] text-[#080808] hover:bg-[#dcebb6]",
+        : "bg-trtcg-quiet text-trtcg-header hover:bg-trtcg-lime",
     );
 
   return (
@@ -305,7 +305,7 @@ export function AuthForm() {
 
         <Button
           type="submit"
-          className="h-12 w-full rounded-[10px] border border-[#c8a24a] bg-[#080808] text-white hover:bg-[#1c1c1c]"
+          className="h-12 w-full rounded-[10px] border border-trtcg-gold bg-trtcg-header text-white transition hover:bg-trtcg-header/80"
           disabled={loading}
         >
           {loading ? (
@@ -323,7 +323,7 @@ export function AuthForm() {
 
       <Link
         href="/"
-        className="inline-flex h-12 w-fit items-center rounded-[10px] bg-[#e7f3c9] px-5 text-[14px] font-medium text-[#080808] transition hover:bg-[#dcebb6]"
+        className="inline-flex h-12 w-fit items-center rounded-[10px] bg-trtcg-quiet px-5 text-[14px] font-medium text-trtcg-header transition hover:bg-trtcg-lime"
       >
         ← 返回首頁
       </Link>

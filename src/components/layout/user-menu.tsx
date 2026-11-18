@@ -27,7 +27,7 @@ export function UserMenu({ tone = "default" }: { tone?: "default" | "onDark" }) 
         href="/login"
         className={
           onDark
-            ? "hidden text-[13px] leading-[1.6] whitespace-nowrap text-white transition hover:text-[#c8a24a] xl:inline"
+            ? "hidden text-[13px] leading-[1.6] whitespace-nowrap text-white transition hover:text-trtcg-gold xl:inline"
             : "hidden items-center gap-1 hover:text-foreground md:flex"
         }
       >
@@ -61,7 +61,7 @@ export function UserMenu({ tone = "default" }: { tone?: "default" | "onDark" }) 
         type="button"
         variant="ghost"
         size="sm"
-        className={onDark ? "h-8 px-2 text-white hover:bg-white/10 hover:text-white" : "h-8 px-2 text-muted-foreground hover:text-foreground"}
+        className={onDark ? "h-8 px-2 text-white transition hover:bg-trtcg-gold/20 hover:text-trtcg-gold" : "h-8 px-2 text-muted-foreground hover:text-foreground"}
         onClick={() => signOut({ callbackUrl: "/login" })}
       >
         <LogOut className="h-4 w-4" />

@@ -18,13 +18,15 @@ const buttonVariants = cva(
         destructive:
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
-        /* Foundations (Figma 4:62). `secondary` stays the shadcn muted surface. */
+        /* Foundations (Figma 4:62). `secondary` stays the shadcn muted surface.
+           Hover reuses the /80 wash already used by default and shadcn secondary.
+           Quiet steps up to solid lime, the same green family as --trtcg-quiet. */
         primary:
-          "border-trtcg-gold bg-trtcg-header text-white hover:bg-trtcg-header",
+          "border-trtcg-gold bg-trtcg-header text-white hover:bg-trtcg-header/80",
         "foundation-secondary":
-          "border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header hover:bg-trtcg-lavender",
+          "border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header hover:bg-trtcg-lavender/80",
         quiet:
-          "border-transparent bg-trtcg-quiet text-trtcg-header hover:bg-trtcg-quiet",
+          "border-transparent bg-trtcg-quiet text-trtcg-header hover:bg-trtcg-lime",
         disabled:
           "border-transparent bg-trtcg-disabled text-trtcg-disabled-fg hover:bg-trtcg-disabled disabled:opacity-100",
       },
