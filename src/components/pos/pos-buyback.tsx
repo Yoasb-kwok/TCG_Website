@@ -6,11 +6,12 @@ import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import {
-  posBlackBtn,
+  posAction,
   posChip,
   posGhostBtn,
   posInput,
   posLavenderBtn,
+  posPage,
   posPastel,
   posPinkBtn,
   posSub,
@@ -267,7 +268,7 @@ export function PosBuyback() {
 
   return (
     <PosShell current="buyback" storefrontNav>
-      <div className="flex h-full min-h-0 flex-col gap-6 overflow-auto px-4 py-6 lg:px-16 lg:py-8">
+      <div className={posPage}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className={posTitle}>收卡</h1>
@@ -275,12 +276,12 @@ export function PosBuyback() {
           </div>
           <BarcodeScanButton
             label="開啟掃描器"
-            className={cn(posBlackBtn, "w-[160px] border-0")}
+            className={posAction}
             onDetect={(code) => void scanIntoBuyback(code)}
           />
         </div>
 
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_454px]">
           <section className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <input
@@ -293,7 +294,7 @@ export function PosBuyback() {
                 aria-label="搜尋收卡"
                 className={cn(fieldClass, "min-w-[240px] max-w-[520px] flex-1")}
               />
-              <BarcodeScanButton label="掃描卡牌" className={cn(posLavenderBtn, "w-[140px] border-0")} onDetect={(code) => void scanIntoBuyback(code)} />
+              <BarcodeScanButton label="掃描卡牌" className={cn(posLavenderBtn, "w-[180px] border-0")} onDetect={(code) => void scanIntoBuyback(code)} />
             </div>
             <div className="flex flex-wrap gap-2">
               <button type="button" onClick={() => { setSetCode(""); setPage(1); }} className={posChip(setCode === "")}>
@@ -327,7 +328,7 @@ export function PosBuyback() {
                 日文
               </button>
             </div>
-            <p className="text-[13px] text-[#706c68]">
+            <p className="text-[13px] text-trtcg-muted">
               {searching ? `找到 ${rows.length} 件已上架` : `顯示 ${products.length} / ${total}`}
               {searching && !complete ? "（結果太多，請再縮小關鍵字）" : ""}
             </p>
@@ -350,20 +351,20 @@ export function PosBuyback() {
                       type="button"
                       onClick={() => chooseVariant(product, item.id)}
                       className={cn(
-                        "flex h-full w-full flex-col gap-2 rounded-[20px] border p-4 text-left shadow-[0_10px_14px_rgba(74,44,22,0.1)]",
-                        active ? "border-[#171514]" : "border-[rgba(222,214,203,0.7)]",
+                        "flex h-full w-full flex-col gap-2 rounded-[20px] border p-4 text-left text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]",
+                        active ? "border-trtcg-ink" : "border-[rgba(222,214,203,0.7)]",
                       )}
                       style={{ backgroundColor: posPastel(index) }}
                     >
-                      <span className="relative flex h-[118px] items-center justify-center overflow-hidden rounded-[14px] bg-[#faf8f3]">
+                      <span className="relative flex h-[118px] items-center justify-center overflow-hidden rounded-[14px] bg-[var(--pos-field)]">
                         {image ? (
                           <Image src={image.url} alt="" fill className="object-contain p-2" sizes="236px" unoptimized />
                         ) : (
-                          <span className="text-[26px] font-bold text-[#706c68]">TCG</span>
+                          <span className="text-[26px] font-bold text-trtcg-muted">TCG</span>
                         )}
                       </span>
                       <span className="line-clamp-2 text-[15px] font-bold">{product.name}</span>
-                      <span className="text-[13px] text-[#706c68]">
+                      <span className="text-[13px] text-trtcg-muted">
                         {[product.setCode, product.cardNumber, item.condition].filter(Boolean).join(" · ")}
                       </span>
                       <span className="text-[15px] font-bold">{offer}</span>
@@ -372,7 +373,7 @@ export function PosBuyback() {
                 );
               })}
               {rows.length === 0 && (
-                <li className="text-[14px] text-[#706c68] sm:col-span-2 xl:col-span-3">
+                <li className="text-[14px] text-trtcg-muted sm:col-span-2 xl:col-span-3">
                   {searching ? "沒有已上架貨品。可以揀上面的卡表。" : "未有上架貨品。搜尋卡名或卡號就可以從卡表收卡。"}
                 </li>
               )}
@@ -383,15 +384,15 @@ export function PosBuyback() {
               </button>
             )}
 
-            <div className="overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
-              <div className="flex items-baseline justify-between px-4 py-3">
-                <h2 className="text-[18px] font-bold">今日收卡紀錄</h2>
+            <div className="overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+              <div className="flex items-baseline justify-between px-5 py-4">
+                <h2 className="text-[20px] font-bold">今日收卡紀錄</h2>
                 <p className="text-[14px] font-bold text-[#3f6b16]">
                   {activeBuys.reduce((sum, row) => sum + row.quantity, 0)} 張 · {formatStaffMoney(buybackDayTotal(buybacks))}
                 </p>
               </div>
               <table className="w-full text-left text-[14px]">
-                <thead className="bg-[#faf8f3] text-[13px] text-[#706c68]">
+                <thead className="bg-[var(--pos-field)] text-[13px] text-trtcg-muted">
                   <tr>
                     <th className="px-4 py-2 font-bold">時間</th>
                     <th className="px-4 py-2 font-bold">卡牌</th>
@@ -403,14 +404,14 @@ export function PosBuyback() {
                 <tbody>
                   {buybacks.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-6 text-[#706c68]">今日未有收卡</td>
+                      <td colSpan={5} className="px-4 py-6 text-trtcg-muted">今日未有收卡</td>
                     </tr>
                   )}
                   {buybacks.map((row) => (
-                    <tr key={row.id} className="border-t border-[#ded6cb]">
-                      <td className="px-4 py-3 text-[#706c68]">{posWhen(row.createdAt)}</td>
-                      <td className={cn("px-4 py-3 font-bold", row.voided && "text-[#706c68] line-through")}>{row.name}</td>
-                      <td className="px-4 py-3 text-[#706c68]">{row.note || "—"}</td>
+                    <tr key={row.id} className="border-t border-trtcg-input-border">
+                      <td className="px-4 py-3 text-trtcg-muted">{posWhen(row.createdAt)}</td>
+                      <td className={cn("px-4 py-3 font-bold", row.voided && "text-trtcg-muted line-through")}>{row.name}</td>
+                      <td className="px-4 py-3 text-trtcg-muted">{row.note || "—"}</td>
                       <td className="px-4 py-3 font-bold">{buybackPriceCopy(row)}</td>
                       <td className="px-4 py-3 text-right">
                         {!row.voided && (
@@ -426,11 +427,11 @@ export function PosBuyback() {
             </div>
           </section>
 
-          <aside className="rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
-            <h2 className="text-[22px] font-bold">收卡明細</h2>
+          <aside className="rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface p-[22px] text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+            <h2 className="text-[25px] font-bold">收卡明細</h2>
             {selection ? (
               <div className="mt-4 flex flex-col gap-3">
-                <div className="flex h-[140px] items-center justify-center rounded-[16px] bg-[#e8dfff] text-[18px] font-bold text-[#706c68]">
+                <div className="flex h-[220px] items-center justify-center rounded-[16px] bg-trtcg-lavender text-[18px] font-bold text-trtcg-muted">
                   {selectedProduct?.images[0] ? (
                     <span className="relative block h-full w-full">
                       <Image src={selectedProduct.images[0].url} alt="" fill className="object-contain p-4" sizes="320px" unoptimized />
@@ -441,7 +442,7 @@ export function PosBuyback() {
                 </div>
                 <div>
                   <p className="text-[18px] font-bold">{selectionName}</p>
-                  <p className="text-[13px] text-[#706c68]">
+                  <p className="text-[13px] text-trtcg-muted">
                     {selectedProduct
                       ? [selectedProduct.setCode, selectedProduct.cardNumber].filter(Boolean).join(" · ")
                       : catalogCard
@@ -474,7 +475,7 @@ export function PosBuyback() {
                   />
                 )}
                 {catalogCard && (
-                  <p className="text-[13px] text-[#706c68]">
+                  <p className="text-[13px] text-trtcg-muted">
                     如果店內已有這張卡，庫存會加到 Near Mint。要指定品相，請直接揀已上架的貨。
                   </p>
                 )}
@@ -522,7 +523,7 @@ export function PosBuyback() {
                   <input value={note} onChange={(event) => setNote(event.target.value)} className={cn(fieldClass, "mt-1.5")} />
                 </label>
                 <div className="flex items-center justify-between text-[14px]">
-                  <span className="text-[#706c68]">收取合計</span>
+                  <span className="text-trtcg-muted">收取合計</span>
                   <span className="text-[18px] font-bold tabular-nums">{formatStaffMoney(lineTotal)}</span>
                 </div>
                 {error && <p className="text-[14px] font-bold text-[#9a3412]">{error}</p>}
@@ -538,10 +539,10 @@ export function PosBuyback() {
               </div>
             ) : (
               <div className="mt-4 space-y-3">
-                <div className="flex h-[140px] items-center justify-center rounded-[16px] bg-[#e8dfff] text-[18px] font-bold text-[#706c68]">
+                <div className="flex h-[220px] items-center justify-center rounded-[16px] bg-trtcg-lavender text-[18px] font-bold text-trtcg-muted">
                   CARD PREVIEW
                 </div>
-                <p className="text-[14px] text-[#706c68]">搜尋後撳一件已上架的貨，或者撳卡表的卡。再填數量同收購價。</p>
+                <p className="text-[14px] text-trtcg-muted">搜尋後撳一件已上架的貨，或者撳卡表的卡。再填數量同收購價。</p>
                 {error && <p className="text-[14px] font-bold text-[#9a3412]">{error}</p>}
                 {message && <p className="text-[14px] font-bold">{message}</p>}
                 <button type="button" disabled className={cn(posPinkBtn, "w-full")}>

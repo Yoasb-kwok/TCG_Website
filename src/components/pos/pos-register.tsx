@@ -7,7 +7,7 @@ import { BarcodeScanButton } from "@/components/barcode-scan-button";
 import { CatalogHitStrip, catalogHitManualName, catalogHitName } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import styles from "@/components/pos/pos-sell.module.css";
-import { posBlackBtn, posChip, posGhostBtn, posInput, posKindLabel, posLavenderBtn, posPastel, posPinkBtn, posSub, posTitle } from "@/components/pos/pos-ui";
+import { posAction, posBlackBtn, posChip, posGhostBtn, posInput, posKindLabel, posLavenderBtn, posPage, posPastel, posPinkBtn, posSub, posTitle } from "@/components/pos/pos-ui";
 import { PRODUCT_TYPES } from "@/lib/constants";
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { DEMO_WRITE_DISCLAIMER, filterDemoCatalog } from "@/lib/demo-shop";
@@ -463,7 +463,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
   return (
     <PosShell current="register" demo={demo} sell>
       <div className="contents" onPointerDown={() => primePosAudio()} onKeyDown={() => primePosAudio()}>
-      <div className="flex h-full min-h-0 flex-col gap-6 overflow-auto px-4 py-6 lg:px-16 lg:py-8">
+      <div className={posPage}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className={posTitle}>收銀</h1>
@@ -471,7 +471,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
           </div>
           <BarcodeScanButton
             label="開啟掃描器"
-            className={cn(posBlackBtn, "w-[190px] border-0")}
+            className={posAction}
             disabled={confirmOpen}
             onDetect={openCamera}
           />
@@ -536,7 +536,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                 掃碼有聲
               </button>
             </div>
-            <p className="text-[13px] text-[#706c68]">掃碼槍按 Enter。搜尋時會一併列出缺貨商品。撳商品卡加入購物車。</p>
+            <p className="text-[13px] text-trtcg-muted">掃碼槍按 Enter。搜尋時會一併列出缺貨商品。撳商品卡加入購物車。</p>
             {scanNote && (
               <p className={cn("text-[14px] font-bold", scanNote.tone === "ok" ? "text-[#3f6b16]" : "text-[#9a5b12]")} role="status">
                 {scanNote.text}
@@ -557,7 +557,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                 </button>
               ))}
             </div>
-            <p className="text-[13px] text-[#706c68]">
+            <p className="text-[13px] text-trtcg-muted">
               {searching ? `找到 ${shelfCount} 件` : `顯示 ${shelf.length} / ${shelfCount}`}
               {searching && shelfCatalogTotal > 0 ? `，卡表 ${shelfCatalogTotal} 張` : ""}
               {!shelfComplete && needsFullList ? "（結果太多，請再縮小關鍵字）" : ""}
@@ -599,22 +599,22 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                       data-oos={stock <= 0 ? "true" : undefined}
                       className={cn(
                         styles.tile,
-                        "flex h-full w-full flex-col gap-2 rounded-[20px] border border-[rgba(222,214,203,0.7)] p-4 text-left shadow-[0_10px_14px_rgba(74,44,22,0.1)]",
+                        "flex h-full w-full flex-col gap-2 rounded-[20px] border border-[rgba(222,214,203,0.7)] p-4 text-left text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]",
                         stock <= 0 && styles.oos,
                         addedId === product.id && styles.added,
                       )}
                       style={{ backgroundColor: posPastel(index) }}
                     >
-                      <span className="relative flex h-[118px] items-center justify-center overflow-hidden rounded-[14px] bg-[#faf8f3]">
+                      <span className="relative flex h-[118px] items-center justify-center overflow-hidden rounded-[14px] bg-[var(--pos-field)]">
                         {image ? (
                           <Image src={image.url} alt="" fill className="object-contain p-2" sizes="236px" unoptimized />
                         ) : (
-                          <span className="text-[26px] font-bold text-[#706c68]">TCG</span>
+                          <span className="text-[26px] font-bold text-trtcg-muted">TCG</span>
                         )}
                       </span>
-                      <span className="line-clamp-2 text-[15px] font-bold text-[#171514]">{product.name}</span>
-                      <span className="text-[13px] text-[#706c68]">{meta}</span>
-                      <span className="text-[18px] font-bold text-[#171514]">
+                      <span className="line-clamp-2 text-[15px] font-bold text-trtcg-ink">{product.name}</span>
+                      <span className="text-[13px] text-trtcg-muted">{meta}</span>
+                      <span className="text-[18px] font-bold text-trtcg-ink">
                         {variant && variant.price > 0 ? formatPrice(variant.price) : "未定價"}
                       </span>
                     </button>
@@ -622,7 +622,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                 );
               })}
               {shelf.length === 0 && (
-                <li className="px-2 py-8 text-[14px] text-[#706c68] sm:col-span-2 xl:col-span-3">
+                <li className="px-2 py-8 text-[14px] text-trtcg-muted sm:col-span-2 xl:col-span-3">
                   找不到貨品，可以用下面手動加一項。
                 </li>
               )}
@@ -633,13 +633,13 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               </button>
             )}
             <form
-              className="flex flex-col gap-3 rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 shadow-[0_10px_14px_rgba(74,44,22,0.1)]"
+              className="flex flex-col gap-3 rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface p-5 text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]"
               onSubmit={(event) => {
                 event.preventDefault();
                 addManual();
               }}
             >
-              <p className="text-[20px] font-bold text-[#171514]">手動項目</p>
+              <p className="text-[20px] font-bold text-trtcg-ink">手動項目</p>
               <div className="flex flex-wrap items-end gap-3">
                 <label className="min-w-[220px] flex-1">
                   <span className="mb-1.5 block text-[13px] font-bold">項目名稱</span>
@@ -668,22 +668,22 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
             </form>
           </section>
 
-          <aside className="flex flex-col gap-3.5 rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-[22px] shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+          <aside className="flex flex-col gap-3.5 rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface p-[22px] text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
             <div className="flex items-start justify-between">
-              <h2 className="text-[25px] font-bold text-[#171514]">購物車</h2>
-              <span className="inline-flex items-center rounded-full bg-[#090909] px-3.5 py-2 text-[14px] font-bold text-white">
+              <h2 className="text-[25px] font-bold text-trtcg-ink">購物車</h2>
+              <span className="inline-flex items-center rounded-full bg-trtcg-header px-3.5 py-2 text-[14px] font-bold text-white">
                 {itemCount} 件
               </span>
             </div>
             {lines.length === 0 ? (
-              <p className="rounded-[12px] bg-[#faf8f3] px-3 py-6 text-center text-[14px] text-[#706c68]">
+              <p className="rounded-[12px] bg-[var(--pos-field)] px-3 py-6 text-center text-[14px] text-trtcg-muted">
                 撳左邊商品加入購物車。沒有貨品資料可以手動加。
               </p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {lines.map((line) => (
-                  <li key={line.key} className="rounded-[12px] bg-[#faf8f3] p-3">
-                    <div className="flex items-start justify-between gap-3 text-[15px] font-bold text-[#171514]">
+                  <li key={line.key} className="rounded-[12px] bg-[var(--pos-field)] p-3">
+                    <div className="flex items-start justify-between gap-3 text-[15px] font-bold text-trtcg-ink">
                       <p className="min-w-0">
                         {line.name}
                         {line.quantity > 1 ? ` × ${line.quantity}` : ""}
@@ -695,7 +695,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                         type="button"
                         aria-label={`減少 ${line.name}`}
                         onClick={() => patchLine(line.key, { quantity: Math.max(1, line.quantity - 1) })}
-                        className={cn(styles.pop, "flex size-8 items-center justify-center rounded-full border border-[#ded6cb] text-[16px] font-bold")}
+                        className={cn(styles.pop, "flex size-8 items-center justify-center rounded-full border border-trtcg-input-border text-[16px] font-bold")}
                       >
                         −
                       </button>
@@ -704,11 +704,11 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                         type="button"
                         aria-label={`增加 ${line.name}`}
                         onClick={() => patchLine(line.key, { quantity: line.quantity + 1 })}
-                        className={cn(styles.pop, "flex size-8 items-center justify-center rounded-full border border-[#ded6cb] text-[16px] font-bold")}
+                        className={cn(styles.pop, "flex size-8 items-center justify-center rounded-full border border-trtcg-input-border text-[16px] font-bold")}
                       >
                         +
                       </button>
-                      <label className="ml-1 text-[12px] font-bold text-[#706c68]">
+                      <label className="ml-1 text-[12px] font-bold text-trtcg-muted">
                         售價
                         <input
                           type="number"
@@ -718,7 +718,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
                           onChange={(event) =>
                             patchLine(line.key, { unitPrice: Math.max(0, Number(event.target.value) || 0) })
                           }
-                          className={cn(styles.search, "mt-1 h-8 w-20 rounded-[10px] border border-[#ded6cb] bg-white px-2 text-right text-[14px] font-bold text-[#171514] outline-none")}
+                          className={cn(styles.search, "mt-1 h-8 w-20 rounded-[10px] border border-trtcg-input-border bg-trtcg-surface px-2 text-right text-[14px] font-bold text-trtcg-ink outline-none")}
                         />
                       </label>
                       <button
@@ -751,13 +751,13 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               aria-label="備註"
               className={fieldClass}
             />
-            <div className="h-px bg-[#ded6cb]" />
+            <div className="h-px bg-trtcg-input-border" />
             <div className="flex items-center justify-between text-[14px]">
-              <span className="text-[#706c68]">小計</span>
+              <span className="text-trtcg-muted">小計</span>
               <span className="font-bold tabular-nums">{formatPrice(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between text-[14px]">
-              <span className="text-[#706c68]">折扣</span>
+              <span className="text-trtcg-muted">折扣</span>
               <span className="font-bold tabular-nums">{formatPrice(discount)}</span>
             </div>
             <div className="flex items-center justify-between font-bold">
@@ -772,7 +772,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
             >
               {pending ? "入帳中…" : "收款"}
             </button>
-            <p className="text-center text-[12px] text-[#706c68]">
+            <p className="text-center text-[12px] text-trtcg-muted">
               {demo ? DEMO_WRITE_DISCLAIMER : "按收款後先揀付款方式同確認金額"}
             </p>
             <button
@@ -783,7 +783,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
             >
               清空購物車
             </button>
-            <div className="rounded-[14px] bg-[#ddeb9f] p-3.5 text-[#171514]">
+            <div className="rounded-[14px] bg-trtcg-lime p-3.5 text-trtcg-ink">
               <p className="text-[14px] font-bold">今日收據</p>
               <p className="mt-1 text-[20px] font-bold">
                 {activeSales.length} 張 · {formatPrice(todayTotal)}
@@ -793,11 +793,11 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
               <ul className="space-y-2">
                 {recent.map((sale) => (
                   <li key={sale.id} className="flex items-start justify-between gap-2 text-[13px]">
-                    <div className={sale.voided ? "text-[#706c68] line-through" : "text-[#171514]"}>
+                    <div className={sale.voided ? "text-trtcg-muted line-through" : "text-trtcg-ink"}>
                       <p className="font-bold">
                         {PAYMENT_LABELS[sale.paymentMethod]} · {formatPrice(saleAmount(sale))}
                       </p>
-                      <p className="text-[#706c68]">{sale.items.map((item) => item.name).join("、")}</p>
+                      <p className="text-trtcg-muted">{sale.items.map((item) => item.name).join("、")}</p>
                     </div>
                     {!sale.voided && (
                       <button type="button" className="shrink-0 font-bold text-[#9a3412]" onClick={() => voidTicket(sale.id)}>
@@ -817,19 +817,19 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="pos-pay-title"
-            className="w-full max-w-xl rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 text-[#171514] shadow-[0_10px_14px_rgba(74,44,22,0.1)]"
+            className="w-full max-w-xl rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface p-5 text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]"
             onSubmit={(event) => {
               event.preventDefault();
               void checkout();
             }}
           >
-            <p className="text-[14px] font-bold text-[#e84e9e]">確認收款</p>
+            <p className="text-[14px] font-bold text-[var(--pos-accent)]">確認收款</p>
             <h2 id="pos-pay-title" className="mt-1 text-[20px] font-bold">
               揀付款方式，核對金額後先入帳
             </h2>
-            <p className="mt-4 text-[14px] text-[#706c68]">應收</p>
+            <p className="mt-4 text-[14px] text-trtcg-muted">應收</p>
             <p className="text-[40px] font-bold tabular-nums">{formatPrice(total)}</p>
-            <p className="mt-4 text-[14px] text-[#706c68]">付款方式</p>
+            <p className="mt-4 text-[14px] text-trtcg-muted">付款方式</p>
             <div className="mt-2 grid grid-cols-2 gap-2">
               {METHODS.map(([value, label]) => (
                 <button
@@ -866,7 +866,7 @@ export function PosRegister({ demo = false }: { demo?: boolean }) {
             >
               {pending ? "入帳中…" : `確認收款 ${formatPrice(total)}`}
             </button>
-            <p className="mt-2 text-center text-[12px] text-[#706c68]">空格鍵確認 · Esc 返回</p>
+            <p className="mt-2 text-center text-[12px] text-trtcg-muted">空格鍵確認 · Esc 返回</p>
             <button type="button" onClick={closeConfirm} disabled={pending} className={cn(styles.pop, posGhostBtn, "mt-2 w-full")}>
               返回
             </button>

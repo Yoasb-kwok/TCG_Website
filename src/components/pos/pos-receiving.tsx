@@ -6,11 +6,13 @@ import { CatalogHitStrip } from "@/components/catalog/catalog-hit-strip";
 import { PosShell } from "@/components/pos/pos-nav";
 import {
   downloadCsv,
+  posAction,
   posBlackBtn,
   posChip,
   posGhostBtn,
   posInput,
   posKindLabel,
+  posPage,
   posSelectClass,
   posSub,
   posTitle,
@@ -278,16 +280,16 @@ export function PosReceiving() {
 
   return (
     <PosShell current="receiving">
-      <div className="flex h-full min-h-0 flex-col gap-6 overflow-auto px-4 py-6 lg:px-16 lg:py-8">
+      <div className={posPage}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className={posTitle}>倉存</h1>
             <p className={posSub}>搜尋商品、收貨入庫並查看最近收貨紀錄。</p>
           </div>
-          <BarcodeScanButton label="開始掃描" className={cn(posBlackBtn, "w-[160px] border-0")} onDetect={(code) => void scanIntoReceiving(code)} />
+          <BarcodeScanButton label="開始掃描" className={posAction} onDetect={(code) => void scanIntoReceiving(code)} />
         </div>
 
-        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_452px]">
           <section className="flex min-w-0 flex-col gap-4">
             <div className="flex flex-wrap items-center gap-3">
               <input
@@ -366,7 +368,7 @@ export function PosReceiving() {
                 </button>
               ))}
             </div>
-            <p className="text-[13px] text-[#706c68]">
+            <p className="text-[13px] text-trtcg-muted">
               {searching || setCodes.length > 0 || kind || stockFilter !== "all"
                 ? `找到 ${rows.length} 件`
                 : `顯示 ${products.length} / ${total}`}
@@ -375,9 +377,9 @@ export function PosReceiving() {
             {searching && (
               <CatalogHitStrip cards={catalogCards} total={catalogTotal} hint="只供對名。入貨要揀已上架的 SKU 或條碼。" />
             )}
-            <div className="overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+            <div className="overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
               <table className="w-full text-left text-[14px]">
-                <thead className="bg-[#faf8f3] text-[13px] text-[#706c68]">
+                <thead className="bg-[var(--pos-field)] text-[13px] text-trtcg-muted">
                   <tr>
                     <th className="px-4 py-3 font-bold">商品</th>
                     <th className="px-4 py-3 font-bold">系列 / 類型</th>
@@ -393,14 +395,14 @@ export function PosReceiving() {
                     return (
                       <tr
                         key={item.id}
-                        className={cn("cursor-pointer border-t border-[#ded6cb]", active ? "bg-[#e8dfff]" : "hover:bg-[#faf8f3]")}
+                        className={cn("cursor-pointer border-t border-trtcg-input-border", active ? "bg-trtcg-lavender" : "hover:bg-[var(--pos-field)]")}
                         onClick={() => choose(product, item.id)}
                       >
-                        <td className="px-4 py-3 font-bold text-[#171514]">
+                        <td className="px-4 py-3 font-bold text-trtcg-ink">
                           {product.name}
                           {product.variants.length > 1 ? ` · ${item.condition}` : ""}
                         </td>
-                        <td className="px-4 py-3 text-[#706c68]">
+                        <td className="px-4 py-3 text-trtcg-muted">
                           {[seriesLabel, posKindLabel(product.type, product.type)].filter(Boolean).join(" · ")}
                         </td>
                         <td className="px-4 py-3 font-bold">{item.price > 0 ? formatPrice(item.price) : "未定價"}</td>
@@ -411,7 +413,7 @@ export function PosReceiving() {
                   })}
                   {rows.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-[#706c68]">
+                      <td colSpan={5} className="px-4 py-10 text-center text-trtcg-muted">
                         {products.length === 0 ? "未有上架貨品。請先在後台商品名單加入。" : "沒有符合條件的貨品"}
                       </td>
                     </tr>
@@ -427,11 +429,11 @@ export function PosReceiving() {
           </section>
 
           <aside className="flex flex-col gap-4">
-            <div id="stock-inbound" data-open={inboundOpen ? "true" : "false"} className="flex flex-col gap-3 rounded-[20px] bg-[#e8dfff] p-5 text-[#171514]">
+            <div id="stock-inbound" data-open={inboundOpen ? "true" : "false"} className="flex flex-col gap-3 rounded-[20px] bg-trtcg-lavender p-5 text-trtcg-ink">
               <div>
                 <p className="text-[20px] font-bold">收貨明細</p>
                 <p className="mt-1 text-[15px] font-bold">{selected ? selected.name : "揀一件商品"}</p>
-                <p className="text-[13px] text-[#706c68]">
+                <p className="text-[13px] text-trtcg-muted">
                   {variant
                     ? `目前庫存 ${variant.stock} · 最近更新今天`
                     : "從左邊表格揀已上架貨品，再填數量、成本同售價。"}
@@ -510,13 +512,13 @@ export function PosReceiving() {
               )}
             </div>
 
-            <div className="rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white p-5 shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
-              <h3 className="text-[18px] font-bold">最近收貨紀錄</h3>
-              <ul className="mt-3 divide-y divide-[#ded6cb]">
-                {receipts.length === 0 && <li className="py-3 text-[14px] text-[#706c68]">未有進貨</li>}
+            <div className="rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface p-5 text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+              <h3 className="text-[20px] font-bold">最近收貨紀錄</h3>
+              <ul className="mt-3 flex flex-col gap-2">
+                {receipts.length === 0 && <li className="py-3 text-[14px] text-trtcg-muted">未有進貨</li>}
                 {receipts.map((receipt) => (
-                  <li key={receipt.id} className="flex items-center justify-between gap-3 py-3 text-[14px]">
-                    <span className="text-[#706c68]">{posWhen(receipt.createdAt)}</span>
+                  <li key={receipt.id} className="flex items-center justify-between gap-3 rounded-[12px] bg-[var(--pos-field)] px-3 py-2.5 text-[14px]">
+                    <span className="text-trtcg-muted">{posWhen(receipt.createdAt)}</span>
                     <span className="min-w-0 flex-1 text-right font-bold">
                       {receipt.name} +{receipt.quantity}
                     </span>
