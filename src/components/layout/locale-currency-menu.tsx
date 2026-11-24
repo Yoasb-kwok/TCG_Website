@@ -35,7 +35,7 @@ export function LocaleCurrencyMenu({ tone = "default" }: { tone?: "default" | "o
       <DropdownMenuTrigger
         className={
           onDark
-            ? "hidden items-center rounded-md text-[13px] leading-[1.6] whitespace-nowrap text-white hover:text-[#c8a24a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#c8a24a] xl:flex"
+            ? "hidden items-center rounded-md text-[13px] leading-[1.6] whitespace-nowrap text-white transition hover:text-trtcg-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold xl:flex"
             : "hidden items-center gap-1 rounded-md px-2 py-1 hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring md:flex"
         }
         aria-label={`貨幣與語言，目前為${CURRENCY}及${menuLocale}`}

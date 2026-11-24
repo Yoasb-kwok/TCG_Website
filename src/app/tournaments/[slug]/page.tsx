@@ -32,7 +32,7 @@ export default async function TournamentDetailPage({ params }: PageProps) {
     <div className={`${homeContainer} flex flex-col gap-8 py-16 text-[#0a0a09]`}>
       <Link
         href="/tournaments"
-        className="inline-flex h-12 w-fit items-center rounded-[10px] bg-[#e7f3c9] px-4 text-[14px] font-medium text-[#080808] transition hover:bg-[#dcebb6]"
+        className="inline-flex h-12 w-fit items-center rounded-[10px] bg-trtcg-quiet px-6 text-[14px] font-bold text-trtcg-header transition hover:bg-trtcg-lime"
       >
         ← 返回賽事
       </Link>

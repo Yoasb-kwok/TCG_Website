@@ -61,7 +61,7 @@ Existing shadcn `Button`, `Input`, and `Badge` keep their current variants, incl
 
 | Control | API |
 | --- | --- |
-| Button Primary / Secondary / Quiet / Disabled | `FoundationButton` `variant`, or `Button` `variant="primary" \| "foundation-secondary" \| "quiet" \| "disabled"`. 48px, radius 10px, padding 24px. Disabled is non-interactive. |
+| Button Primary / Secondary / Quiet / Disabled | `FoundationButton` `variant`, or `Button` `variant="primary" \| "foundation-secondary" \| "quiet" \| "disabled"`. 48px, radius 10px, padding 24px. Disabled is non-interactive. Hover washes Primary and Secondary to 80% of their fill (the same step as shadcn `hover:bg-primary/80`). Quiet hover fills with `--trtcg-lime`. |
 | Input | `Input variant="foundation"` is the 48px white field. `FoundationField` adds the label and the `#FFF9F0` well (Figma `4:63`). |
 | Badge | `Badge variant="foundation"` (Figma `4:67`). |
 

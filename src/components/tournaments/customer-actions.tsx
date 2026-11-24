@@ -33,10 +33,10 @@ export function TournamentCustomerActions({
 
   const frame = appearance === "frame";
   const primaryClass = frame
-    ? "inline-flex h-12 w-full items-center justify-center rounded-[10px] border border-[#c8a24a] bg-[#080808] px-6 text-[14px] font-medium text-white hover:bg-[#1c1c1c]"
+    ? "inline-flex h-12 w-full items-center justify-center rounded-[10px] border border-trtcg-gold bg-trtcg-header px-6 text-[14px] font-bold text-white transition hover:bg-trtcg-header/80"
     : signupClass;
   const quietFrame = frame
-    ? "inline-flex h-12 w-fit items-center justify-center rounded-[10px] bg-[#e7f3c9] px-5 text-[14px] font-medium text-[#080808] hover:bg-[#dcebb6]"
+    ? "inline-flex h-12 w-fit items-center justify-center rounded-[10px] bg-trtcg-quiet px-5 text-[14px] font-bold text-trtcg-header transition hover:bg-trtcg-lime"
     : scoreboardClass;
 
   return (
