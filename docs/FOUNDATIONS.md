@@ -28,6 +28,25 @@ The public storefront keeps `.storefront-canvas` `#F7F5EF`. Soft frames also pai
 
 Homepage hero slides `5:2` and `18:157` share the purple-to-gold atmosphere and the Charizard / Umbreon artwork. The second slide only changes the copy to 店賽報名. Homepage product cards follow interactive component `69:210` (lavender well, foil sweep on hover). The catalog grid on frame `9:16` stays the static card, with Foundations Button and the card shadow.
 
+## POS Soft (page 101:2671)
+
+The six cashier desks keep `.pos-soft` `#FAF8F3`. Frame fills that match the Foundations variable set are drawn with the printed tokens:
+
+| Soft frame fill | Foundations token used |
+| --- | --- |
+| Lavender cards `#E8DFFF` | `--trtcg-lavender` `#E8DFF8` |
+| Peach cards `#FFD0A3` | `--trtcg-peach` `#F9DBBD` |
+| Lime receipt / profit `#DDEB9F` | `--trtcg-lime` `#EAF1CA` |
+| Ink `#171514` | `--trtcg-ink` `#191817` |
+| Muted `#706C68` | `--trtcg-muted` `#5E5963` |
+| Header `#090909` | `--trtcg-header` `#080808` |
+| Logo gold `#C89C45` | `--trtcg-gold` `#C8A24A` |
+| Field border `#DED6CB` | `--trtcg-input-border` `#DEDAD4` |
+
+POS-only values stay on the desk: accent `#E84E9E` (`--pos-accent`), the cream field, the warm card shadow `0 10px 14px rgba(74,44,22,0.1)`, and 14px-radius desk buttons. Foundation Button (10px, gold border), `FoundationField` (paper well), and the gold Badge stay on the storefront and `/demo/foundations`. Desk inputs follow the Foundation Input size (48px, 12px radius, `--trtcg-input-border`) as native fields so scan-Enter and selects keep working.
+
+Wallpaper URL is unchanged: `/brand/pos/sparse-cloud-crane-wallpaper.jpg` at 32% opacity. A literal 160×160 tile would squash the 470×835 artwork.
+
 ## Tokens
 
 Printed swatch labels on frame `21:2` are the hex source of truth.

@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 import { PosShell } from "@/components/pos/pos-nav";
-import { downloadCsv, posBlackBtn, posChip, posInput, posIsToday, posSub, posTitle, posWhen } from "@/components/pos/pos-ui";
+import { downloadCsv, posAction, posChip, posInput, posIsToday, posMetric, posPage, posSub, posTitle, posWhen } from "@/components/pos/pos-ui";
 import { shippingMethodLabel } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -73,10 +73,10 @@ export function PosOrders() {
   });
   const today = orders.filter((order) => posIsToday(order.createdAt) && order.status !== "CANCELLED");
   const stats = [
-    { label: "今日交易", value: String(today.length), className: "bg-[#e8dfff]" },
-    { label: "已付款", value: String(today.filter((order) => order.status === "PAID" || order.status === "COMPLETED" || order.status === "SHIPPED").length), className: "bg-[#ddeb9f]" },
-    { label: "待處理", value: String(today.filter((order) => order.status === "PENDING").length), className: "bg-[#ffd0a3]" },
-    { label: "今日營業額", value: formatPrice(today.reduce((sum, order) => sum + order.totalAmount, 0)), className: "bg-white" },
+    { label: "今日交易", value: String(today.length), className: "bg-trtcg-lavender" },
+    { label: "已付款", value: String(today.filter((order) => order.status === "PAID" || order.status === "COMPLETED" || order.status === "SHIPPED").length), className: "bg-trtcg-lime" },
+    { label: "待處理", value: String(today.filter((order) => order.status === "PENDING").length), className: "bg-trtcg-peach" },
+    { label: "今日營業額", value: formatPrice(today.reduce((sum, order) => sum + order.totalAmount, 0)), className: "bg-trtcg-surface" },
   ];
 
   const exportOrders = () => {
@@ -96,18 +96,18 @@ export function PosOrders() {
 
   return (
     <PosShell current="orders">
-      <div className="h-full overflow-y-auto px-4 py-6 lg:px-16 lg:py-8">
+      <div className={posPage}>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <h1 className={posTitle}>交易紀錄</h1>
             <p className={posSub}>檢視網上及店內訂單，依狀態追蹤與處理。</p>
           </div>
-          <button type="button" onClick={exportOrders} className={posBlackBtn}>
+          <button type="button" onClick={exportOrders} className={posAction}>
             匯出交易
           </button>
         </div>
 
-        <div className="mt-5 flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={() => setStatusFilter("")} className={posChip(statusFilter === "")}>
             全部
           </button>
@@ -130,24 +130,18 @@ export function PosOrders() {
           />
         </div>
 
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className={cn(
-                "rounded-[20px] border border-[rgba(222,214,203,0.7)] p-5 shadow-[0_10px_14px_rgba(74,44,22,0.1)]",
-                stat.className,
-              )}
-            >
+            <div key={stat.label} className={cn(posMetric, "text-trtcg-ink", stat.className)}>
               <p className="text-[28px] font-bold tabular-nums">{stat.value}</p>
-              <p className="mt-1 text-[14px] text-[#706c68]">{stat.label}</p>
+              <p className="mt-1 text-[14px] text-trtcg-muted">{stat.label}</p>
             </div>
           ))}
         </div>
 
-        <div className="mt-5 overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-white shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
+        <div className="overflow-hidden rounded-[20px] border border-[rgba(222,214,203,0.7)] bg-trtcg-surface text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]">
           <table className="w-full text-left text-[14px]">
-            <thead className="bg-[#faf8f3] text-[13px] text-[#706c68]">
+            <thead className="bg-[var(--pos-field)] text-[13px] text-trtcg-muted">
               <tr>
                 <th className="px-4 py-3 font-bold">訂單編號</th>
                 <th className="px-4 py-3 font-bold">來源</th>
@@ -164,7 +158,7 @@ export function PosOrders() {
                 const shipping = shippingMethodLabel(order.shippingMethod);
                 return (
                   <Fragment key={order.id}>
-                    <tr className="border-t border-[#ded6cb]">
+                    <tr className="border-t border-trtcg-input-border">
                       <td className="px-4 py-3 font-bold">{order.id.slice(0, 8).toUpperCase()}</td>
                       <td className="px-4 py-3">網上</td>
                       <td className="px-4 py-3">{order.email}</td>
@@ -173,7 +167,7 @@ export function PosOrders() {
                           value={order.status}
                           aria-label={`${order.id} 狀態`}
                           onChange={(event) => void updateStatus(order.id, event.target.value)}
-                          className="rounded-full border border-[#ded6cb] bg-white px-2 py-1 text-[13px]"
+                          className="rounded-full border border-trtcg-input-border bg-trtcg-surface px-2 py-1 text-[13px]"
                         >
                           {STATUS_OPTIONS.map((option) => (
                             <option key={option.value} value={option.value}>
@@ -184,16 +178,16 @@ export function PosOrders() {
                       </td>
                       <td className="px-4 py-3">{order.stripeSessionId ? "Stripe" : "—"}</td>
                       <td className="px-4 py-3 font-bold">{formatPrice(order.totalAmount)}</td>
-                      <td className="px-4 py-3 text-[#706c68]">{posWhen(order.createdAt)}</td>
+                      <td className="px-4 py-3 text-trtcg-muted">{posWhen(order.createdAt)}</td>
                       <td className="px-4 py-3">
-                        <button type="button" className="font-bold text-[#171514]" onClick={() => setOpenId((current) => (current === order.id ? null : order.id))}>
+                        <button type="button" className="font-bold text-trtcg-ink" onClick={() => setOpenId((current) => (current === order.id ? null : order.id))}>
                           查看
                         </button>
                       </td>
                     </tr>
                     {openId === order.id && (
-                      <tr key={`${order.id}-detail`} className="border-t border-[#f3efe6] bg-[#faf8f3]">
-                        <td colSpan={8} className="px-4 py-3 text-[13px] text-[#706c68]">
+                      <tr key={`${order.id}-detail`} className="border-t border-trtcg-input-border bg-[var(--pos-field)]">
+                        <td colSpan={8} className="px-4 py-3 text-[13px] text-trtcg-muted">
                           {shipping ? <p className="mb-1">{shipping}</p> : null}
                           <ul>
                             {order.items.map((item, index) => (
@@ -213,7 +207,7 @@ export function PosOrders() {
         </div>
 
         {visible.length === 0 && (
-          <div className="mt-4 rounded-[16px] bg-[#e8dfff] px-5 py-4 text-[14px] text-[#171514]">
+          <div className="rounded-[16px] bg-trtcg-lavender px-5 py-4 text-[14px] text-trtcg-ink">
             <p>篩選後沒有結果時，顯示清楚的空狀態及重設篩選按鈕。</p>
             <button
               type="button"

@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Maximize, Pause, Play, RotateCcw, Settings, Users } from "lucide-react";
+import { posBlackBtn, posGhostBtn, posInput } from "@/components/pos/pos-ui";
 import { StaffBoardLinks } from "@/components/tournaments/staff-board-links";
 import {
   Dialog,
@@ -647,10 +648,62 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
   };
 
   return (
-    <div className={embedded ? "pos-scoreboard grid items-start gap-5 lg:grid-cols-2" : "flex min-h-dvh flex-col bg-zinc-950 text-zinc-50 lg:h-dvh"}>
+    <div className={embedded ? "pos-scoreboard grid items-start gap-5 lg:grid-cols-[minmax(0,1.75fr)_minmax(300px,1fr)]" : "flex min-h-dvh flex-col bg-zinc-950 text-zinc-50 lg:h-dvh"}>
       <header className={embedded ? "contents" : "grid shrink-0 gap-4 border-b border-white/10 px-4 py-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:px-6"}>
-        <div className={embedded ? "order-1 flex min-w-0 flex-col gap-3 rounded-[20px] bg-[#e8dfff] p-4 text-[#171514] lg:col-span-2" : "min-w-0"}>
-          <div className={cn("flex flex-wrap items-center gap-3", embedded && "hidden")}>
+        {embedded ? (
+          <div className="order-1 flex min-w-0 flex-col gap-3 rounded-[20px] bg-trtcg-lavender p-5 text-trtcg-ink lg:col-span-2">
+            <div className="flex flex-wrap items-end gap-3">
+              <label className="min-w-[220px] flex-[1_1_280px]">
+                <span className="mb-1.5 block text-[13px] font-bold">主題</span>
+                <input
+                  value={board.title}
+                  aria-label="主題"
+                  maxLength={120}
+                  onChange={(event) => update({ ...board, title: event.target.value })}
+                  className={posInput}
+                  placeholder="週末標準賽"
+                />
+              </label>
+              <label className="w-[180px]">
+                <span className="mb-1.5 block text-[13px] font-bold">選手</span>
+                <button type="button" onClick={() => setPlayersOpen(true)} className={cn(posInput, "text-left")}>
+                  {board.players.length}
+                </button>
+              </label>
+              <button type="button" onClick={() => setSettingsOpen(true)} className={cn(posBlackBtn, "w-[120px] border-0")}>
+                設定
+              </button>
+              <button
+                type="button"
+                disabled={!pairReady}
+                onClick={pairNext}
+                className={cn(posGhostBtn, "w-[180px]")}
+              >
+                {maxRound === 0 ? "配對第 1 輪" : `配對第 ${maxRound + 1} 輪`}
+              </button>
+              {maxRound > 0 && (
+                <button type="button" onClick={undoLatest} className={cn(posGhostBtn, "w-[180px]")}>
+                  撤回第 {maxRound} 輪
+                </button>
+              )}
+              <button type="button" onClick={toggleFullscreen} className={cn(posGhostBtn, "w-[140px]")}>
+                {fullscreen ? "離開全螢幕" : "全螢幕"}
+              </button>
+              {canLoadTest && (
+                <button type="button" onClick={loadTestPlayers} className={posGhostBtn}>
+                  載入 8 人試賽
+                </button>
+              )}
+            </div>
+            {sessionSummary(board) ? <p className="text-[13px] text-trtcg-muted">{sessionSummary(board)}</p> : null}
+            {!pairReady && activeCount >= 2 && maxRound > 0 && (
+              <p className="text-[13px] font-bold text-trtcg-muted">請先填完本輪比分</p>
+            )}
+            {activeCount < 2 && <p className="text-[13px] text-trtcg-muted">至少兩位未退賽選手先可以配對</p>}
+          </div>
+        ) : (
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
             {remote ? (
               <Link href="/pos" className="text-xs font-medium text-pink-300 hover:text-pink-200">
                 ← 收銀
@@ -747,13 +800,14 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
             )}
           </div>
         </div>
+        )}
 
         <section
           aria-label="回合計時"
-          className={embedded ? "order-2 flex flex-col items-center gap-3 rounded-[20px] bg-[#090909] px-6 py-8 text-white" : "flex flex-col items-start gap-2 lg:items-end"}
+          className={embedded ? "order-2 flex flex-col items-center gap-4 rounded-[20px] bg-trtcg-header px-7 py-7 text-white" : "flex flex-col items-start gap-2 lg:items-end"}
         >
           {embedded && (
-            <p className="text-[14px] font-bold text-[#c89c45]">第 {Math.max(shownRound, 1)} 輪</p>
+            <p className="text-[18px] font-bold text-trtcg-gold">第 {Math.max(shownRound, 1)} 輪</p>
           )}
           <p className={cn("text-sm font-semibold", timeUp ? "text-red-400" : embedded ? "text-white/70" : "text-zinc-400")}>
             {timeUp ? "時間到" : board.timerRunning ? "計時中" : "計時暫停 · 點擊時間可修改"}
@@ -776,6 +830,7 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
             <p
               className={cn(
                 "font-mono text-7xl leading-none font-bold tabular-nums tracking-tight sm:text-8xl",
+                embedded && "text-center text-[96px]",
                 timeUp ? "text-red-400" : urgent ? "text-red-400" : warning ? "text-amber-300" : "text-white",
               )}
             >
@@ -809,12 +864,15 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
               }}
               className={cn(
                 "w-[6.5ch] border-0 border-b border-white/30 bg-transparent p-0 text-right font-mono text-7xl leading-none font-bold tabular-nums tracking-tight outline-none sm:text-8xl",
+                embedded && "w-full border-b-0 text-center text-[96px]",
                 timeUp ? "text-red-400" : urgent ? "text-red-400" : warning ? "text-amber-300" : "text-white",
               )}
             />
           )}
-          <div className="flex flex-wrap gap-2">
-            {TIMER_PRESETS_MINUTES.map((minutes) => (
+          <div className={cn("flex flex-wrap gap-2", embedded && "w-full justify-center")}>
+            {TIMER_PRESETS_MINUTES.map((minutes) => {
+              const selected = !board.timerRunning && board.timerRemainingMs === minutes * 60_000;
+              return (
               <button
                 key={minutes}
                 type="button"
@@ -826,50 +884,60 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
                     : `${minutes} 分鐘`
                 }
                 className={cn(
-                  "h-8 rounded-md px-2.5 text-sm",
-                  !board.timerRunning && board.timerRemainingMs === minutes * 60_000
-                    ? "bg-white text-zinc-950"
-                    : "bg-white/10 text-zinc-200 hover:bg-white/15",
+                  "order-1 h-8 rounded-md px-2.5 text-sm",
+                  selected ? "bg-white text-zinc-950" : "bg-white/10 text-zinc-200 hover:bg-white/15",
+                  embedded && "h-12 min-w-[110px] rounded-[14px] bg-white px-3 text-[15px] font-bold text-trtcg-ink",
+                  embedded && selected && "bg-[var(--pos-accent)] text-white",
                 )}
               >
                 {embedded ? `${minutes} 分鐘` : `${minutes} 分`}
               </button>
-            ))}
+              );
+            })}
             <button
               type="button"
               onMouseDown={keepClockFocus}
               onClick={board.timerRunning ? pauseTimer : startTimer}
               className={cn(
                 "inline-flex h-8 items-center gap-1 rounded-md bg-white px-3 text-sm font-semibold text-zinc-950",
-                embedded && "h-12 w-full justify-center rounded-[14px] bg-[#e84e9e] text-white hover:bg-[#d63d8e]",
+                embedded && "order-2 h-12 w-full justify-center rounded-[14px] bg-[var(--pos-accent)] text-white hover:brightness-95",
               )}
             >
-              {board.timerRunning ? <Pause className="size-3.5" /> : <Play className="size-3.5" />}
+              {board.timerRunning ? <Pause className="size-3.5" /> : embedded ? null : <Play className="size-3.5" />}
               {board.timerRunning ? "暫停" : embedded ? "開始計時" : "開始"}
             </button>
             <button
               type="button"
               onMouseDown={keepClockFocus}
               onClick={() => addMinutes(1)}
-              className="h-8 rounded-md bg-white/10 px-2.5 text-sm hover:bg-white/15"
+              className={cn(
+                "order-1 h-8 rounded-md bg-white/10 px-2.5 text-sm hover:bg-white/15",
+                embedded && "h-12 min-w-[110px] rounded-[14px] bg-white text-[15px] font-bold text-trtcg-ink",
+              )}
             >
-              +1 分
+              {embedded ? "+1" : "+1 分"}
             </button>
             <button
               type="button"
               onMouseDown={keepClockFocus}
               onClick={() => addMinutes(5)}
-              className="h-8 rounded-md bg-white/10 px-2.5 text-sm hover:bg-white/15"
+              className={cn(
+                "order-1 h-8 rounded-md bg-white/10 px-2.5 text-sm hover:bg-white/15",
+                embedded && "h-12 min-w-[110px] rounded-[14px] bg-white text-[15px] font-bold text-trtcg-ink",
+              )}
             >
-              +5 分
+              {embedded ? "+5" : "+5 分"}
             </button>
             <button
               type="button"
               onMouseDown={keepClockFocus}
               onClick={() => setMinutes(board.roundMinutes)}
-              className="inline-flex h-8 items-center gap-1 rounded-md px-2 text-sm text-zinc-300 hover:bg-white/10"
+              className={cn(
+                "order-1 inline-flex h-8 items-center gap-1 rounded-md px-2 text-sm text-zinc-300 hover:bg-white/10",
+                embedded && "h-12 min-w-[110px] justify-center rounded-[14px] bg-white text-[15px] font-bold text-trtcg-ink",
+              )}
             >
-              <RotateCcw className="size-3.5" />
+              {embedded ? null : <RotateCcw className="size-3.5" />}
               {embedded ? "重設" : "重置"}
             </button>
             {alarmOn && (
@@ -901,7 +969,7 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
       )}
 
       <div className={embedded ? "contents" : "grid gap-4 p-4 lg:min-h-0 lg:flex-1 lg:grid-cols-2 lg:grid-rows-[auto_minmax(0,1fr)] lg:overflow-hidden lg:p-6"}>
-        <section className={cn("flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:overflow-hidden", embedded && "order-4 rounded-[20px] border-[#ded6cb] bg-white text-[#171514] lg:col-span-2 lg:row-span-1")}>
+        <section className={cn(embedded ? "order-4 flex flex-col rounded-[20px] border border-trtcg-input-border bg-trtcg-surface text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)]" : "flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:overflow-hidden")}>
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3">
             <h2 className="text-lg font-semibold">{embedded ? "目前配對" : "本輪配對"}</h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -952,10 +1020,10 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
               <table className="w-full text-left">
                 <thead className="sticky top-0 bg-zinc-950/95 text-xs tracking-wide text-zinc-400">
                   <tr>
-                    <th className="px-4 py-2 font-medium">桌</th>
-                    <th className="px-2 py-2 font-medium">選手</th>
-                    <th className="px-2 py-2 text-center font-medium">比分</th>
-                    <th className="px-4 py-2 text-right font-medium">選手</th>
+                    <th className="px-4 py-2 font-medium">{embedded ? "桌號" : "桌"}</th>
+                    <th className="px-2 py-2 font-medium">{embedded ? "選手 A" : "選手"}</th>
+                    <th className="px-2 py-2 text-center font-medium">{embedded ? "對戰結果" : "比分"}</th>
+                    <th className={cn("px-4 py-2 font-medium", embedded ? "text-left" : "text-right")}>{embedded ? "選手 B" : "選手"}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -991,7 +1059,8 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
                         </td>
                         <td
                           className={cn(
-                            "px-4 py-3 text-right text-xl font-semibold",
+                            "px-4 py-3 text-xl font-semibold",
+                            embedded ? "text-left" : "text-right",
                             bWins && "text-pink-300",
                           )}
                         >
@@ -1006,7 +1075,7 @@ export function LiveBoard({ remote = false, embedded = false }: { remote?: boole
           </div>
         </section>
 
-        <section className={cn("flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:overflow-hidden", embedded && "order-3 rounded-[20px] border-[#ded6cb] bg-white text-[#171514] lg:row-span-1")}>
+        <section className={cn(embedded ? "order-3 flex flex-col self-start rounded-[20px] border border-trtcg-input-border bg-trtcg-surface text-trtcg-ink shadow-[0_10px_14px_rgba(74,44,22,0.1)] lg:col-start-2 lg:row-start-2" : "flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] lg:row-span-2 lg:grid lg:grid-rows-subgrid lg:overflow-hidden")}>
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <div>
               <h2 className="text-lg font-semibold">{embedded ? "即時排名" : "積分榜"}</h2>
