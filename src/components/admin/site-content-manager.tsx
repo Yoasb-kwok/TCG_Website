@@ -64,6 +64,7 @@ async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Pr
 
 export function SiteContentManager() {
   const [activeTab, setActiveTab] = useState<"home" | "menu" | "featured" | "about">("home");
+  const [editing, setEditing] = useState(false);
   const [banners, setBanners] = useState<BannerFormItem[]>([]);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
   const [featuredProducts, setFeaturedProducts] = useState<FeaturedProductOption[]>([]);
@@ -297,11 +298,85 @@ export function SiteContentManager() {
     }
   };
 
-  if (loading) return <div className="text-sm text-muted-foreground">載入中...</div>;
+  if (loading) return <div className="text-sm text-trtcg-muted">載入中...</div>;
+
+  const openEditor = (tab: "home" | "menu" | "featured" | "about") => {
+    setActiveTab(tab);
+    setEditing(true);
+  };
+
+  if (!editing) {
+    const homePreview = banners.find((banner) => banner.image)?.image;
+    const cards: {
+      key: "home" | "menu" | "featured" | "about";
+      title: string;
+      body: string;
+      chip: string;
+      image?: string;
+    }[] = [
+      {
+        key: "home",
+        title: "首頁 Banner",
+        body: "主視覺、桌面及手機圖片、標題與連結。",
+        chip: bannersUsingDefaults ? "預設" : "已發布",
+        image: homePreview,
+      },
+      {
+        key: "menu",
+        title: "商品選單 Banner",
+        body: "商品分類頁的宣傳視覺與連結。",
+        chip: "編輯",
+      },
+      {
+        key: "featured",
+        title: "熱門商品",
+        body: "選擇首頁顯示的商品及排序。",
+        chip: `${featuredProductIds.length} 件商品`,
+        image:
+          featuredProducts.find((product) => product.images[0])?.images[0]?.url ??
+          featuredPreview.find((product) => product.images[0])?.images[0]?.url,
+      },
+      {
+        key: "about",
+        title: "關於我們與門市路線",
+        body: "門市介紹、交通方式與路線影片。",
+        chip: aboutFallback ? "預設" : "已更新",
+      },
+    ];
+
+    return (
+      <div className="grid gap-6 lg:grid-cols-2">
+        {cards.map((card) => (
+          <section key={card.key} className="flex min-h-[280px] flex-col rounded-3xl bg-white p-6 text-trtcg-ink">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-[20px] font-bold leading-[1.45]">{card.title}</h2>
+              <span className="rounded-full border border-trtcg-badge-border bg-trtcg-badge px-3 py-1 text-[13px] font-bold text-trtcg-header">
+                {card.chip}
+              </span>
+            </div>
+            <p className="mt-3 text-[16px] leading-[1.65] text-trtcg-muted">{card.body}</p>
+            <div className="relative mt-4 flex h-[120px] items-center justify-center overflow-hidden rounded-2xl bg-trtcg-paper text-[13px] text-trtcg-muted">
+              {card.image ? (
+                <Image src={card.image} alt="" fill className="object-cover" unoptimized />
+              ) : (
+                "預覽區"
+              )}
+            </div>
+            <Button type="button" variant="primary" className="mt-5 w-fit" onClick={() => openEditor(card.key)}>
+              編輯內容
+            </Button>
+          </section>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button type="button" variant="quiet" onClick={() => setEditing(false)}>
+          返回內容卡
+        </Button>
         <div className="flex gap-2 border-b border-border">
           {[
             ["home", "首頁 Banner"],
@@ -316,8 +391,8 @@ export function SiteContentManager() {
               className={cn(
                 "border-b-2 px-4 py-2 text-sm transition",
                 activeTab === key
-                  ? "border-pink-500 text-foreground"
-                  : "border-transparent text-muted-foreground hover:text-foreground",
+                  ? "border-trtcg-secondary-border text-trtcg-ink"
+                  : "border-transparent text-trtcg-muted hover:text-trtcg-ink",
               )}
             >
               {label}

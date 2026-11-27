@@ -405,12 +405,7 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
   };
 
   return (
-    <div
-      className={cn(
-        "rounded-xl border border-border bg-card",
-        isPage ? "p-6" : "sticky top-8 p-4",
-      )}
-    >
+    <div className={cn(isPage ? "text-trtcg-ink" : "sticky top-8 rounded-xl border border-border bg-card p-4")}>
       {!isPage && (
         <>
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
@@ -435,10 +430,12 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
               cancelEdit();
             }}
             className={cn(
-              "rounded-lg px-3 py-1.5 text-sm transition",
+              "rounded-full px-3.5 py-2 text-[13px] font-bold leading-[1.6] transition",
               activeKind === kind
-                ? "bg-pink-500/20 text-foreground ring-1 ring-pink-500/30"
-                : "bg-muted/50 text-muted-foreground hover:text-foreground",
+                ? "border border-trtcg-secondary-border bg-trtcg-lavender text-trtcg-header"
+                : isPage
+                  ? "text-trtcg-ink hover:bg-white"
+                  : "bg-muted/50 text-muted-foreground hover:text-foreground",
             )}
           >
             {TAXONOMY_KIND_META[kind].label}
@@ -454,7 +451,10 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
       >
         {activeKind === "CARD_NUMBER" ? (
           <form
-            className="space-y-3 rounded-lg border border-border bg-background/40 p-4"
+            className={cn(
+              "space-y-3 p-4",
+              isPage ? "rounded-3xl bg-white p-6" : "rounded-lg border border-border bg-background/40",
+            )}
             onSubmit={(e) => {
               e.preventDefault();
               void handleBatchGenerate();
@@ -536,7 +536,8 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
 
             <Button
               type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              variant={isPage ? "primary" : "default"}
+              className="w-full"
               disabled={busy || !parentSetCode}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -548,7 +549,10 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
           </form>
         ) : (
           <form
-            className="space-y-3 rounded-lg border border-border bg-background/40 p-4"
+            className={cn(
+              "space-y-3 p-4",
+              isPage ? "rounded-3xl bg-white p-6" : "rounded-lg border border-border bg-background/40",
+            )}
             onSubmit={(e) => {
               e.preventDefault();
               void handleAdd();
@@ -602,7 +606,8 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
 
             <Button
               type="submit"
-              className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+              variant={isPage ? "primary" : "default"}
+              className="w-full"
               disabled={busy}
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -658,8 +663,10 @@ export function TaxonomyManager({ variant = "page" }: TaxonomyManagerProps) {
 
           <div
             className={cn(
-              "overflow-hidden rounded-lg border border-border",
-              isPage ? "max-h-[calc(100vh-320px)] overflow-y-auto" : "max-h-96 overflow-y-auto",
+              "overflow-hidden",
+              isPage
+                ? "max-h-[calc(100vh-320px)] overflow-y-auto rounded-3xl bg-white"
+                : "max-h-96 overflow-y-auto rounded-lg border border-border",
             )}
           >
             {loading && (

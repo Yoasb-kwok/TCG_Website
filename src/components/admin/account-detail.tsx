@@ -135,7 +135,7 @@ export function AccountDetail({ userId }: { userId: string }) {
 
   if (!account) {
     return (
-      <div className="p-8">
+      <div>
         <Link href="/admin/accounts" className="text-sm text-muted-foreground hover:text-foreground">
           ← 返回帳戶名單
         </Link>
@@ -145,17 +145,17 @@ export function AccountDetail({ userId }: { userId: string }) {
   }
 
   return (
-    <div className="p-8">
+    <div>
       <Link href="/admin/accounts" className="text-sm text-muted-foreground hover:text-foreground">
         ← 返回帳戶名單
       </Link>
-      <h1 className="mt-4 text-2xl font-bold">帳戶詳細</h1>
+      <h1 className="mt-4 text-[40px] font-bold leading-[1.3] text-trtcg-ink">帳戶詳細</h1>
       <p className="mt-1 text-sm text-muted-foreground">
         {account.name || "未填姓名"} · {account.email}
       </p>
 
       <div className="mt-8 grid gap-6 lg:grid-cols-2">
-        <section className="rounded-xl border border-border bg-card p-6">
+        <section className="rounded-3xl bg-white text-trtcg-ink p-6">
           <h2 className="font-semibold">基本資料</h2>
           <dl className="mt-4 space-y-3 text-sm">
             <div className="flex justify-between gap-4">
@@ -181,7 +181,7 @@ export function AccountDetail({ userId }: { userId: string }) {
           </dl>
         </section>
 
-        <form onSubmit={save} className="rounded-xl border border-border bg-card p-6">
+        <form onSubmit={save} className="rounded-3xl bg-white text-trtcg-ink p-6">
           <h2 className="font-semibold">會員資料</h2>
           <p className="mt-1 text-sm text-muted-foreground">職員可修改 Pokémon ID 及積分。</p>
           <div className="mt-4 space-y-4">
@@ -228,7 +228,7 @@ export function AccountDetail({ userId }: { userId: string }) {
         </p>
         <div className="mt-4 space-y-4">
           {orders.map((order) => (
-            <article key={order.id} className="rounded-xl border border-border bg-card p-5">
+            <article key={order.id} className="rounded-3xl bg-white text-trtcg-ink p-5">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <p className="font-medium">{STATUS_LABELS[order.status] ?? order.status}</p>
