@@ -1,3 +1,4 @@
+import { ABOUT_CONTACT_BODY, resolveAboutContactBody } from "@/lib/about-contact";
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { HERO_BANNERS, SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
 import { isPlayableMapVideoUrl } from "@/lib/map-video";
@@ -86,8 +87,7 @@ export const DEFAULT_ABOUT_CONTENT: AboutContent = {
   storeMtr: STORE.mtr,
   mapEmbedUrl: getStoreMapEmbedUrl(),
   mapVideoUrl: "",
-  contactBody:
-    "如有商品查詢、預留或賽事報名問題，歡迎透過網站右下角 WhatsApp 按鈕與我們聯絡。\n\n線上訂單一般於 1–2 個工作天內處理；門市自取請待收到「可取貨」通知後前往。",
+  contactBody: ABOUT_CONTACT_BODY,
   showStoreInfo: SHOW_STORE_ADDRESS,
 };
 
@@ -260,7 +260,7 @@ export async function getAboutContent(): Promise<AboutContent> {
       storeMtr: row.storeMtr || DEFAULT_ABOUT_CONTENT.storeMtr,
       mapEmbedUrl,
       mapVideoUrl: row.mapVideoUrl && isPlayableMapVideoUrl(row.mapVideoUrl) ? row.mapVideoUrl : "",
-      contactBody: row.contactBody || DEFAULT_ABOUT_CONTENT.contactBody,
+      contactBody: resolveAboutContactBody(row.contactBody, DEFAULT_ABOUT_CONTENT.contactBody),
       showStoreInfo: legacyAddress ? SHOW_STORE_ADDRESS : row.showStoreInfo,
     };
   } catch {
