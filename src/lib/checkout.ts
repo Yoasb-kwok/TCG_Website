@@ -49,3 +49,17 @@ export function toAbsoluteImageUrl(url: string | undefined, appUrl: string): str
   const base = appUrl.replace(/\/$/, "");
   return `${base}${url.startsWith("/") ? url : `/${url}`}`;
 }
+
+/**
+ * Stripe Managed Payments is the merchant-of-record product for eligible
+ * digital goods. This storefront sells physical cards in HKD and offers
+ * in-store pickup, which that product does not support. Accounts turn it on
+ * by default, and Checkout then rejects price_data line items that have no
+ * eligible digital product tax code. Disable it on each storefront session.
+ *
+ * https://docs.stripe.com/payments/managed-payments/eligibility#product-tax-code-requirements
+ * https://docs.stripe.com/api/checkout/sessions/create#create_checkout_session-managed_payments
+ */
+export function storefrontCheckoutManagedPayments(): { enabled: false } {
+  return { enabled: false };
+}

@@ -6,6 +6,7 @@ import {
   resolveShippingMethod,
   SHIPPING_FEE,
   shippingMethodLabel,
+  storefrontCheckoutManagedPayments,
 } from "./checkout";
 
 test("prepaid shipping charges the local fee under the free-shipping threshold", () => {
@@ -30,6 +31,10 @@ test("resolveShippingMethod accepts pickup, prepaid, and 速遞到付", () => {
   assert.equal(shippingMethodLabel("COD"), "速遞到付");
   assert.equal(shippingMethodLabel("PICKUP"), "門市自取（免運費）");
   assert.equal(shippingMethodLabel("PREPAID"), "本地運費（順豐）");
+});
+
+test("storefront checkout turns Managed Payments off for physical HKD goods", () => {
+  assert.deepEqual(storefrontCheckoutManagedPayments(), { enabled: false });
 });
 
 test("resolveShippingMethod keeps the old pickup flag and rejects an unknown method", () => {

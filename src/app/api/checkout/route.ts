@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import {
   calculateShipping,
   resolveShippingMethod,
+  storefrontCheckoutManagedPayments,
   toAbsoluteImageUrl,
 } from "@/lib/checkout";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
@@ -165,6 +166,9 @@ export async function POST(request: NextRequest) {
     const checkoutSession = await stripe.checkout.sessions.create({
       mode: "payment",
       customer_email: email,
+      // Physical HKD goods are ineligible for Managed Payments. Leaving the
+      // account default on returns 400: product tax code is missing.
+      managed_payments: storefrontCheckoutManagedPayments(),
       line_items: lineItems,
       success_url: `${appUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${appUrl}/checkout/cancel`,
