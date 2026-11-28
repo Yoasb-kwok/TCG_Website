@@ -7,6 +7,7 @@ import {
   createManualSingle,
   describeProductWriteError,
 } from "@/lib/admin-products";
+import { productListOrderBy } from "@/lib/product-list-order";
 import { productSearchOr } from "@/lib/product-search";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import type { ProductSort, ProductType } from "@/lib/types";
@@ -40,12 +41,7 @@ export async function GET(request: NextRequest) {
     if (or.length > 0) where.OR = or;
   }
 
-  const orderBy =
-    sort === "setCode"
-      ? [{ setSortIndex: "asc" as const }, { createdAt: "desc" as const }]
-      : sort === "rarityTier"
-        ? [{ raritySortIndex: "asc" as const }, { createdAt: "desc" as const }]
-        : [{ createdAt: "desc" as const }];
+  const orderBy = productListOrderBy(sort);
 
   const prisma = getPrisma();
   const [products, total] = await Promise.all([

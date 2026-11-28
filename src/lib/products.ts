@@ -5,7 +5,15 @@ import { taxonomyFromCard } from "@/lib/card-taxonomy";
 import { resolveCatalogProductSearch } from "@/lib/catalog-product-search";
 import { productMatchesSearch, productSearchOr } from "@/lib/product-search";
 import { getSortIndexFromMap } from "@/lib/taxonomy-db";
+import {
+  compareMinPrice,
+  compareProductIds,
+  minListedPrice,
+  productListOrderBy,
+  rankProductIdsByMinPrice,
+} from "@/lib/product-list-order";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import type {
   ProductType,
   ProductWithVariants,
@@ -60,27 +68,26 @@ function sortProducts(
         const sa = getSortIndexFromMap(setMap, a.setCode, 999);
         const sb = getSortIndexFromMap(setMap, b.setCode, 999);
         if (sa !== sb) return sa - sb;
-        return a.name.localeCompare(b.name, "zh-HK");
+        const byName = a.name.localeCompare(b.name, "zh-HK");
+        return byName === 0 ? compareProductIds(a.id, b.id) : byName;
       });
     case "rarityTier":
       return list.sort((a, b) => {
         const ra = getSortIndexFromMap(rarityMap, a.rarityTier, 99);
         const rb = getSortIndexFromMap(rarityMap, b.rarityTier, 99);
         if (ra !== rb) return ra - rb;
-        return a.name.localeCompare(b.name, "zh-HK");
+        const byName = a.name.localeCompare(b.name, "zh-HK");
+        return byName === 0 ? compareProductIds(a.id, b.id) : byName;
       });
     case "priceAsc":
-      return list.sort((a, b) => {
-        const pa = Math.min(...a.variants.map((v) => v.price));
-        const pb = Math.min(...b.variants.map((v) => v.price));
-        return pa - pb;
-      });
     case "priceDesc":
-      return list.sort((a, b) => {
-        const pa = Math.min(...a.variants.map((v) => v.price));
-        const pb = Math.min(...b.variants.map((v) => v.price));
-        return pb - pa;
-      });
+      return list.sort((a, b) =>
+        compareMinPrice(
+          { id: a.id, minPrice: minListedPrice(a.variants.map((variant) => variant.price)) },
+          { id: b.id, minPrice: minListedPrice(b.variants.map((variant) => variant.price)) },
+          sort === "priceAsc" ? "asc" : "desc",
+        ),
+      );
     default:
       return list;
   }
@@ -210,15 +217,50 @@ function filterDemoProducts(filters: ProductFilters): ProductsResponse {
   };
 }
 
-function prismaOrderBy(sort: ProductSort = "newest") {
-  switch (sort) {
-    case "setCode":
-      return [{ setSortIndex: "asc" as const }, { createdAt: "desc" as const }];
-    case "rarityTier":
-      return [{ raritySortIndex: "asc" as const }, { createdAt: "desc" as const }];
-    default:
-      return [{ createdAt: "desc" as const }];
-  }
+function productDetailInclude() {
+  return {
+    variants: { orderBy: { price: "asc" as const } },
+    images: { orderBy: { sortOrder: "asc" as const } },
+  };
+}
+
+/**
+ * Price is on variants. Rank the filtered ids first, then load one page in
+ * that order, so skip/take cannot drop a cheap product that shares createdAt
+ * with the rest of the import.
+ */
+async function findProductsOrderedByMinPrice(
+  prisma: ReturnType<typeof getPrisma>,
+  where: Prisma.ProductWhereInput,
+  sort: "priceAsc" | "priceDesc",
+  skip: number,
+  take: number,
+) {
+  const ranked = await prisma.product.findMany({
+    where,
+    select: {
+      id: true,
+      variants: { select: { price: true } },
+    },
+  });
+  const ids = rankProductIdsByMinPrice(
+    ranked.map((product) => ({
+      id: product.id,
+      prices: product.variants.map((variant) => variant.price),
+    })),
+    sort,
+  ).slice(skip, skip + take);
+  if (ids.length === 0) return [];
+
+  const rows = await prisma.product.findMany({
+    where: { id: { in: ids } },
+    include: productDetailInclude(),
+  });
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  return ids.flatMap((id) => {
+    const row = byId.get(id);
+    return row ? [row] : [];
+  });
 }
 
 export async function getProducts(filters: ProductFilters): Promise<ProductsResponse> {
@@ -278,18 +320,18 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
     }
 
     const prisma = getPrisma();
+    const productWhere = where as Prisma.ProductWhereInput;
     const [products, total, allProducts] = await Promise.all([
-      prisma.product.findMany({
-        where,
-        include: {
-          variants: { orderBy: { price: "asc" } },
-          images: { orderBy: { sortOrder: "asc" } },
-        },
-        orderBy: prismaOrderBy(sort),
-        skip,
-        take: pageSize,
-      }),
-      prisma.product.count({ where }),
+      sort === "priceAsc" || sort === "priceDesc"
+        ? findProductsOrderedByMinPrice(prisma, productWhere, sort, skip, pageSize)
+        : prisma.product.findMany({
+            where: productWhere,
+            include: productDetailInclude(),
+            orderBy: productListOrderBy(sort),
+            skip,
+            take: pageSize,
+          }),
+      prisma.product.count({ where: productWhere }),
       prisma.product.findMany({
         select: {
           cardSet: true,
@@ -304,11 +346,7 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
       }),
     ]);
 
-    let mapped = (products as ProductWithVariants[]).map(enrichProduct);
-
-    if (sort === "priceAsc" || sort === "priceDesc") {
-      mapped = sortProducts(mapped, sort);
-    }
+    const mapped = (products as ProductWithVariants[]).map(enrichProduct);
 
     const allMapped = allProducts.map((p) =>
       enrichProduct({
@@ -343,13 +381,6 @@ export async function getProducts(filters: ProductFilters): Promise<ProductsResp
 const STOREFRONT_SLUG_ALIASES: Record<string, string> = {
   "umbreon-vmax-evolving": "demo-umbreon-vmax-evolving",
 };
-
-function productDetailInclude() {
-  return {
-    variants: { orderBy: { price: "asc" as const } },
-    images: { orderBy: { sortOrder: "asc" as const } },
-  };
-}
 
 export async function getProductBySlug(slug: string): Promise<ProductWithVariants | null> {
   const demo = DEMO_PRODUCTS.find((product) => product.slug === slug);
