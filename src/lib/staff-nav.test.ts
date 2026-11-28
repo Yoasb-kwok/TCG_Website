@@ -35,11 +35,19 @@ describe("storefront nav parity", () => {
   it("keeps the shop links the buyback desk reuses", () => {
     assert.deepEqual(
       NAV_ITEMS.map((item) => item.label),
-      ["商品", "最新預訂", "店賽", "關於我們", "送貨方式", "付款方式"],
+      ["商品", "最新預訂", "店賽", "關於我們", "送貨方式", "付款方式", "單卡回收"],
     );
     assert.deepEqual(
       NAV_ITEMS.map((item) => item.href),
-      ["/products", "/products?type=SEALED_BOX", "/tournaments", "/about", "/shipping", "/payment"],
+      [
+        "/products",
+        "/products?type=SEALED_BOX",
+        "/tournaments",
+        "/about",
+        "/shipping",
+        "/payment",
+        "/recycle",
+      ],
     );
   });
 });

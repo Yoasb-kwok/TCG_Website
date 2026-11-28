@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { FoundationButton } from "@/components/foundations/button";
+import { heroUsesBuiltinArtwork } from "@/lib/home-hero";
 import type { HomeBannerItem } from "@/lib/site-content";
 
 const FALLBACK_SLIDE: HomeBannerItem = {
@@ -18,8 +19,61 @@ const FALLBACK_SLIDE: HomeBannerItem = {
 const HERO_ATMOSPHERE =
   "linear-gradient(139deg, rgb(8, 8, 12) 13%, rgb(61, 44, 120) 47%, rgb(224, 163, 40) 84%)";
 
-function isSetHero(title: string): boolean {
-  return title.includes("Scarlet") && title.includes("151");
+function BuiltinHeroArtwork() {
+  return (
+    <>
+      <div className="aspect-[640/530] w-full" />
+      <div
+        className="absolute top-0 left-0 h-[530px] w-[640px] origin-top-left"
+        style={{ transform: "scale(calc(100cqw / 640px))" }}
+      >
+        <Image
+          src="/brand/home/ambient-light.svg"
+          alt=""
+          width={420}
+          height={420}
+          unoptimized
+          preload
+          className="absolute top-[-141px] left-[189px]"
+        />
+        <div className="absolute top-[63.93px] left-[99px] flex h-[371.856px] w-[299.454px] items-center justify-center">
+          <div className="-rotate-12">
+            <Image
+              src="/brand/home/charizard-ex.png"
+              alt=""
+              width={236}
+              height={330}
+              unoptimized
+              preload
+              className="h-[330px] w-[236px] object-contain shadow-trtcg-float"
+            />
+          </div>
+        </div>
+        <div className="absolute top-[77px] left-[276.7px] flex h-[365.968px] w-[289.719px] items-center justify-center">
+          <div className="rotate-[10deg]">
+            <Image
+              src="/brand/home/umbreon-vmax.png"
+              alt=""
+              width={236}
+              height={330}
+              unoptimized
+              preload
+              className="h-[330px] w-[236px] object-contain shadow-trtcg-float"
+            />
+          </div>
+        </div>
+        <Image
+          src="/brand/home/scarlet-violet-151.png"
+          alt=""
+          width={170}
+          height={100}
+          unoptimized
+          preload
+          className="absolute top-[24px] left-[29px] h-[100px] w-[170px] object-contain"
+        />
+      </div>
+    </>
+  );
 }
 
 export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
@@ -34,7 +88,7 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
   return (
     <section className="mx-auto flex w-full max-w-[1280px] flex-col items-start gap-10 px-4 py-[56px] sm:px-6 xl:flex-row xl:items-center xl:gap-[64px] xl:px-0">
       <div className="flex w-full max-w-[576px] shrink-0 flex-col items-start gap-[28px]">
-        {isSetHero(slide.title) ? (
+        {slide.title === "Scarlet & Violet 151" ? (
           <h1
             className="text-[84px] font-medium leading-none text-trtcg-ink"
             style={{ fontFamily: "var(--font-dm), var(--font-sans), sans-serif" }}
@@ -77,59 +131,25 @@ export function HomeHero({ banners }: { banners: HomeBannerItem[] }) {
       </div>
 
       <div
+        key={slide.id}
         className="relative w-full min-w-0 overflow-hidden rounded-[24px] border border-trtcg-badge-border shadow-trtcg-float xl:max-w-[640px] xl:flex-1 [container-type:inline-size]"
         style={{ backgroundImage: HERO_ATMOSPHERE }}
+        aria-label={slide.title}
       >
-        <div className="aspect-[640/530] w-full" />
-        <div
-          className="absolute top-0 left-0 h-[530px] w-[640px] origin-top-left"
-          style={{ transform: "scale(calc(100cqw / 640px))" }}
-        >
-          <Image
-            src="/brand/home/ambient-light.svg"
-            alt=""
-            width={420}
-            height={420}
-            unoptimized
-            preload
-            className="absolute top-[-141px] left-[189px]"
-          />
-          <div className="absolute top-[63.93px] left-[99px] flex h-[371.856px] w-[299.454px] items-center justify-center">
-            <div className="-rotate-12">
-              <Image
-                src="/brand/home/charizard-ex.png"
-                alt=""
-                width={236}
-                height={330}
-                unoptimized
-                preload
-                className="h-[330px] w-[236px] object-contain shadow-trtcg-float"
-              />
-            </div>
+        {heroUsesBuiltinArtwork(slide) ? (
+          <BuiltinHeroArtwork />
+        ) : (
+          <div className="relative aspect-[640/530] w-full">
+            <Image
+              src={slide.image}
+              alt=""
+              fill
+              unoptimized
+              sizes="(min-width: 1280px) 640px, 100vw"
+              className="object-contain p-8 sm:p-12"
+            />
           </div>
-          <div className="absolute top-[77px] left-[276.7px] flex h-[365.968px] w-[289.719px] items-center justify-center">
-            <div className="rotate-[10deg]">
-              <Image
-                src="/brand/home/umbreon-vmax.png"
-                alt=""
-                width={236}
-                height={330}
-                unoptimized
-                preload
-                className="h-[330px] w-[236px] object-contain shadow-trtcg-float"
-              />
-            </div>
-          </div>
-          <Image
-            src="/brand/home/scarlet-violet-151.png"
-            alt="Scarlet & Violet 151"
-            width={170}
-            height={100}
-            unoptimized
-            preload
-            className="absolute top-[24px] left-[29px] h-[100px] w-[170px] object-contain"
-          />
-        </div>
+        )}
       </div>
     </section>
   );

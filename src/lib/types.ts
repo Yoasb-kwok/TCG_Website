@@ -93,6 +93,8 @@ export interface CartItem {
   imageUrl: string | null;
   condition: string;
   isFoil: boolean;
+  /** 用來判斷購物車要不要顯示品相。舊資料可能沒有這欄。 */
+  productType?: string;
   price: number;
   quantity: number;
   stock: number;

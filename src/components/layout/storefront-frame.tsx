@@ -9,18 +9,13 @@ import { isDemoShellPath } from "@/lib/demo-paths";
 import type { ResolvedSocialLink } from "@/lib/social";
 import { cn } from "@/lib/utils";
 
-function WhatsAppButton({ href, canvas }: { href: string; canvas: boolean }) {
+function WhatsAppButton({ href }: { href: string }) {
   return (
     <a
       href={href}
       target="_blank"
       rel="noopener noreferrer"
-      className={cn(
-        "z-50 flex size-12 items-center justify-center rounded-full bg-trtcg-lime shadow-trtcg-card transition hover:bg-trtcg-lime/80",
-        canvas
-          ? "fixed right-4 bottom-6 xl:absolute xl:right-[max(16px,calc((100%-1328px)/2))] xl:bottom-auto xl:top-[818px]"
-          : "fixed right-6 bottom-6",
-      )}
+      className="fixed right-4 bottom-6 z-40 flex size-12 items-center justify-center rounded-full bg-trtcg-lime shadow-trtcg-card transition hover:bg-trtcg-lime/80"
       aria-label="WhatsApp 聯絡"
     >
       <Image src="/brand/home/icon-whatsapp.svg" alt="" width={25} height={25} unoptimized />
@@ -73,7 +68,7 @@ export function StorefrontFrame({
       >
         <SiteFooter socialLinks={socialLinks} inset={surface} />
       </div>
-      {whatsappHref ? <WhatsAppButton href={whatsappHref} canvas={surface} /> : null}
+      {whatsappHref ? <WhatsAppButton href={whatsappHref} /> : null}
     </div>
   );
 }

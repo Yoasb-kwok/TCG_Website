@@ -45,6 +45,7 @@ export function ProductCard({
       imageUrl: imageUrl ?? null,
       condition: variant.condition,
       isFoil: variant.isFoil,
+      productType: product.type,
       price: variant.price,
       stock: variant.stock,
       sku: variant.sku,

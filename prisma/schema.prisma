@@ -111,6 +111,7 @@ model Product {
   variants       ProductVariant[]
   images         Image[]
   featuredEntries HomeFeaturedProduct[]
+  recycleListings RecycleListing[]
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -146,6 +147,33 @@ model MenuBanner {
   href      String   @default("/products")
   title     String   @default("")
   active    Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+
+/** 店主公開的單卡回收。一張單卡一列，數量與回收價由後台設定。 */
+model RecycleListing {
+  id        String   @id @default(uuid())
+  productId String   @unique
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity  Int
+  /** 回收價（HKD） */
+  price     Float
+  active    Boolean  @default(true)
+  sortIndex Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active, sortIndex])
+}
+
+/** 首頁三張服務卡。未建列時前台用程式內的預設標題、內文與寶可夢圖。 */
+model HomeServiceCard {
+  id        String   @id
+  title     String
+  body      String
+  imageUrl  String   @default("")
+  href      String
+  sortIndex Int      @default(0)
   updatedAt DateTime @updatedAt
 }
 

@@ -18,7 +18,8 @@ export async function POST(request: NextRequest) {
   const formData = await request.formData();
   const file = formData.get("file");
   const folderRaw = formData.get("folder");
-  const folder = folderRaw === "banners" ? "banners" : "products";
+  const folder =
+    folderRaw === "banners" || folderRaw === "services" ? folderRaw : "products";
 
   if (!file || !(file instanceof File)) {
     return NextResponse.json({ error: "請選擇圖片檔案" }, { status: 400 });

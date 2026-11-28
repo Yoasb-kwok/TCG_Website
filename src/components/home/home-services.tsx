@@ -1,42 +1,31 @@
 import Image from "next/image";
 import Link from "next/link";
 import { homeCardShadow, homeContainer } from "@/components/home/home-layout";
+import type { HomeServiceCardContent } from "@/lib/home-services";
 
-const SERVICES = [
-  {
-    href: "/products?type=SINGLE",
-    title: "單卡買賣",
-    body: "按系列、稀有度、屬性篩選，支援 NM/LP 等品相標示",
-    icon: "/brand/home/icon-search-service.svg",
-  },
-  {
-    href: "/products?type=SEALED_BOX",
-    title: "封盒預訂",
-    body: "最新 Pokémon 系列封盒及補充包，香港現貨發售",
-    icon: "/brand/home/icon-bag-service.svg",
-  },
-  {
-    href: "/tournaments",
-    title: "店賽報名",
-    body: "標準賽、新手賽 — 店內舉辦",
-    icon: "/brand/home/icon-calendar.svg",
-  },
-] as const;
-
-export function HomeServices() {
+export function HomeServices({ services }: { services: HomeServiceCardContent[] }) {
   return (
     <section className={`${homeContainer} grid grid-cols-1 gap-[24px] pt-16 pb-8 lg:grid-cols-3`}>
-      {SERVICES.map((service) => (
+      {services.map((service) => (
         <Link
-          key={service.href}
+          key={service.id}
           href={service.href}
-          className={`flex flex-col items-start gap-6 rounded-[12px] border border-trtcg-gold/90 bg-white/98 p-8 ${homeCardShadow} transition hover:border-trtcg-gold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold`}
+          className={`flex flex-col overflow-hidden rounded-[12px] border border-trtcg-gold/90 bg-white/98 ${homeCardShadow} transition duration-300 hover:-translate-y-1 hover:shadow-trtcg-float focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-trtcg-gold`}
         >
-          <span className="flex size-16 items-center justify-center rounded-[16px] bg-white">
-            <Image src={service.icon} alt="" width={28} height={28} unoptimized />
+          <span className="relative block h-40 w-full bg-trtcg-lavender">
+            <Image
+              src={service.imageUrl}
+              alt=""
+              fill
+              unoptimized
+              sizes="(min-width: 1024px) 400px, 100vw"
+              className="object-cover"
+            />
           </span>
-          <span className="text-[28px] font-medium leading-[1.4] text-trtcg-ink">{service.title}</span>
-          <span className="text-[16px] leading-[1.65] text-trtcg-muted">{service.body}</span>
+          <span className="flex flex-col items-start gap-4 p-8">
+            <span className="text-[28px] font-medium leading-[1.4] text-trtcg-ink">{service.title}</span>
+            <span className="text-[16px] leading-[1.65] text-trtcg-muted">{service.body}</span>
+          </span>
         </Link>
       ))}
     </section>

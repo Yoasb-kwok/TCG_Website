@@ -1,7 +1,12 @@
 import { ABOUT_CONTACT_BODY, resolveAboutContactBody } from "@/lib/about-contact";
-import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { HERO_BANNERS, SHOW_STORE_ADDRESS, SITE_BRAND, STORE } from "@/lib/constants";
+import {
+  resolveHomeServices,
+  type HomeServiceCardContent,
+} from "@/lib/home-services";
+import { HOME_SHOWCASE_PRODUCTS } from "@/lib/home-showcase";
 import { isPlayableMapVideoUrl } from "@/lib/map-video";
+import { isInStockProduct } from "@/lib/popular-products";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
 import { getStoreMapEmbedUrl } from "@/lib/store-maps";
 import type { ProductWithVariants } from "@/lib/types";
@@ -114,14 +119,143 @@ const productInclude = {
   images: { orderBy: { sortOrder: "asc" as const } },
 };
 
-async function fetchAutoFeaturedProducts(): Promise<ProductWithVariants[]> {
-  const prisma = getPrisma();
-  const products = await prisma.product.findMany({
-    orderBy: { createdAt: "desc" },
-    take: 4,
-    include: productInclude,
-  });
-  return products as ProductWithVariants[];
+const inStockShowcase = HOME_SHOWCASE_PRODUCTS.filter(isInStockProduct).slice(0, 4);
+
+export interface PopularProductSummary {
+  id: string;
+  name: string;
+  purchaseCount: number;
+}
+
+/**
+ * In-stock products only, ranked by units on paid, shipped, or completed orders.
+ * Manual homepage picks are not used while this temporary ranking is in place.
+ */
+export async function loadPopularProducts(): Promise<{
+  products: ProductWithVariants[];
+  summaries: PopularProductSummary[];
+}> {
+  if (!isDatabaseConfigured()) {
+    return {
+      products: inStockShowcase,
+      summaries: inStockShowcase.map((product) => ({
+        id: product.id,
+        name: product.name,
+        purchaseCount: 0,
+      })),
+    };
+  }
+
+  try {
+    const prisma = getPrisma();
+    const rows = await prisma.$queryRaw<Array<{ id: string; purchase_count: number }>>`
+      SELECT p.id,
+             COALESCE(
+               SUM(oi.quantity) FILTER (
+                 WHERE o.status IN (
+                   'PAID'::"OrderStatus",
+                   'SHIPPED'::"OrderStatus",
+                   'COMPLETED'::"OrderStatus"
+                 )
+               ),
+               0
+             )::int AS purchase_count
+      FROM "Product" p
+      JOIN "ProductVariant" v ON v."productId" = p.id
+      LEFT JOIN "OrderItem" oi ON oi."variantId" = v.id
+      LEFT JOIN "Order" o ON o.id = oi."orderId"
+      WHERE EXISTS (
+        SELECT 1 FROM "ProductVariant" s
+        WHERE s."productId" = p.id AND s.stock > 0
+      )
+      GROUP BY p.id, p."createdAt"
+      ORDER BY purchase_count DESC, p."createdAt" DESC
+      LIMIT 4
+    `;
+    const ids = rows.map((row) => row.id);
+    if (!ids.length) return { products: [], summaries: [] };
+
+    const found = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      include: productInclude,
+    });
+    const order = new Map(ids.map((id, index) => [id, index]));
+    const counts = new Map(rows.map((row) => [row.id, Number(row.purchase_count) || 0]));
+    const products = (found as ProductWithVariants[])
+      .filter(isInStockProduct)
+      .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+    return {
+      products,
+      summaries: products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        purchaseCount: counts.get(product.id) ?? 0,
+      })),
+    };
+  } catch {
+    return {
+      products: inStockShowcase,
+      summaries: inStockShowcase.map((product) => ({
+        id: product.id,
+        name: product.name,
+        purchaseCount: 0,
+      })),
+    };
+  }
+}
+
+export async function getHomeServices(): Promise<HomeServiceCardContent[]> {
+  if (!isDatabaseConfigured()) return resolveHomeServices([]);
+  try {
+    const rows = await getPrisma().homeServiceCard.findMany({
+      orderBy: { sortIndex: "asc" },
+    });
+    return resolveHomeServices(rows);
+  } catch {
+    return resolveHomeServices([]);
+  }
+}
+
+export interface PublicRecycleListing {
+  id: string;
+  productId: string;
+  name: string;
+  slug: string;
+  imageUrl: string | null;
+  setCode: string | null;
+  cardNumber: string | null;
+  quantity: number;
+  price: number;
+}
+
+export async function getPublicRecycleListings(): Promise<PublicRecycleListing[]> {
+  if (!isDatabaseConfigured()) return [];
+  try {
+    const rows = await getPrisma().recycleListing.findMany({
+      where: { active: true, quantity: { gt: 0 } },
+      orderBy: [{ sortIndex: "asc" }, { createdAt: "asc" }],
+      include: {
+        product: {
+          include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
+        },
+      },
+    });
+    return rows
+      .filter((row) => row.product.type === "SINGLE")
+      .map((row) => ({
+        id: row.id,
+        productId: row.productId,
+        name: row.product.name,
+        slug: row.product.slug,
+        imageUrl: row.product.images[0]?.url ?? null,
+        setCode: row.product.setCode,
+        cardNumber: row.product.cardNumber,
+        quantity: row.quantity,
+        price: row.price,
+      }));
+  } catch {
+    return [];
+  }
 }
 
 function normalizeSections(raw: unknown): AboutSectionItem[] {
@@ -172,11 +306,11 @@ function normalizeMapEmbedUrl(raw: string | null | undefined): string {
 
 export async function getHomeContent(): Promise<HomeContent> {
   const defaultBanners = getDefaultHomeBanners();
-  const demoFeatured = DEMO_PRODUCTS.slice(0, 4);
+  const popular = await loadPopularProducts();
 
   const fallback: HomeContent = {
     banners: defaultBanners,
-    featuredProducts: demoFeatured,
+    featuredProducts: popular.products,
     fallback: true,
     featuredAuto: true,
   };
@@ -185,16 +319,10 @@ export async function getHomeContent(): Promise<HomeContent> {
 
   try {
     const prisma = getPrisma();
-    const [bannerRows, featuredRows] = await Promise.all([
-      prisma.homeBanner.findMany({
-        where: { active: true },
-        orderBy: [{ sortIndex: "asc" }, { createdAt: "asc" }],
-      }),
-      prisma.homeFeaturedProduct.findMany({
-        orderBy: { sortIndex: "asc" },
-        include: { product: { include: productInclude } },
-      }),
-    ]);
+    const bannerRows = await prisma.homeBanner.findMany({
+      where: { active: true },
+      orderBy: [{ sortIndex: "asc" }, { createdAt: "asc" }],
+    });
 
     const usingDefaultBanners = bannerRows.length === 0;
     const banners: HomeBannerItem[] = usingDefaultBanners
@@ -210,22 +338,11 @@ export async function getHomeContent(): Promise<HomeContent> {
           sortIndex: item.sortIndex,
         }));
 
-    let featuredProducts: ProductWithVariants[];
-    let featuredAuto = false;
-
-    if (featuredRows.length) {
-      featuredProducts = featuredRows.map((row) => row.product as ProductWithVariants);
-    } else {
-      featuredAuto = true;
-      const autoProducts = await fetchAutoFeaturedProducts();
-      featuredProducts = autoProducts.length ? autoProducts : demoFeatured;
-    }
-
     return {
       banners,
-      featuredProducts,
-      fallback: usingDefaultBanners || featuredAuto,
-      featuredAuto,
+      featuredProducts: popular.products,
+      fallback: usingDefaultBanners,
+      featuredAuto: true,
     };
   } catch {
     return fallback;

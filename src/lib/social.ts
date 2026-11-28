@@ -34,7 +34,7 @@ export const SOCIAL_LINK_SLOTS: readonly SocialLinkSlot[] = [
     id: "instagram",
     label: "Instagram",
     accessibleName: "前往 Instagram",
-    href: "",
+    href: "https://www.instagram.com/tr_tcg_hk/",
     icon: "instagram",
     envVar: "SOCIAL_INSTAGRAM_URL",
   },

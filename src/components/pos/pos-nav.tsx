@@ -18,7 +18,7 @@ export function PosShell({
 }: {
   current: PosTabId;
   children: React.ReactNode;
-  /** 收卡沿用網店導覽：商品、最新預訂、店賽、關於我們、送貨、付款。 */
+  /** 收卡沿用網店導覽，包括付款方式旁的單卡回收。 */
   storefrontNav?: boolean;
   /** Public demo register. Tabs stay under /pos/demo and skip auth. */
   demo?: boolean;

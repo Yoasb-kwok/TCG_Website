@@ -57,6 +57,7 @@ export const NAV_ITEMS: {
   { label: "關於我們", href: "/about" },
   { label: "送貨方式", href: "/shipping" },
   { label: "付款方式", href: "/payment" },
+  { label: "單卡回收", href: "/recycle" },
 ];
 
 /**
@@ -94,8 +95,7 @@ export const HERO_BANNERS = [
     id: "2",
     title: "店賽報名",
     subtitle: "每週舉辦 Pokémon 標準賽",
-    image:
-      "https://images.pokemontcg.io/sv1/logo.png",
+    image: "/brand/home/pikachu-151.png",
     href: "/tournaments",
     gradient: "from-blue-900/80 via-indigo-900/60 to-black/90",
   },

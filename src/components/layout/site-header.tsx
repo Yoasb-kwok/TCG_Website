@@ -54,7 +54,7 @@ function SiteHeaderView({
   const { data: session } = useSession();
   const pathname = usePathname();
   const preorderCurrent = preorder && pathname === "/products";
-  const { itemCount } = useCart();
+  const { itemCount, isOpen, setIsOpen } = useCart();
   const cartLabel = itemCount > 0 ? `購物車，${itemCount} 件商品` : "購物車";
   const instagram = socialLinks.find((link) => link.id === "instagram") ?? null;
   const whatsapp = socialLinks.find((link) => link.id === "whatsapp") ?? null;
@@ -224,11 +224,13 @@ function SiteHeaderView({
               }
             }}
           />
-          <Link
-            href="/cart"
+          <button
+            type="button"
             className={cn(iconButton, "relative")}
             aria-label={cartLabel}
-            aria-current={pathname === "/cart" ? "page" : undefined}
+            aria-expanded={isOpen}
+            aria-controls="storefront-cart"
+            onClick={() => setIsOpen(true)}
           >
             <Image src="/brand/home/icon-bag.svg" alt="" width={22} height={22} unoptimized />
             {itemCount > 0 && (
@@ -239,7 +241,7 @@ function SiteHeaderView({
                 {itemCount}
               </span>
             )}
-          </Link>
+          </button>
           <button
             type="button"
             className={cn(iconButton, "xl:hidden")}

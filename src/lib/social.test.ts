@@ -41,6 +41,15 @@ test("http(s) profile URLs are kept, and a bare host gets https", () => {
   assert.equal(resolveSocialHref("http://facebook.com/tcghk"), "http://facebook.com/tcghk");
 });
 
+test("the shop Instagram profile is the default link and Facebook stays unset", () => {
+  const links = resolveSocialLinks({ env: {}, whatsappHref: null });
+  assert.deepEqual(
+    links.map((link) => link.id),
+    ["instagram"],
+  );
+  assert.equal(links[0]?.href, "https://www.instagram.com/tr_tcg_hk/");
+});
+
 test("empty config shows no Instagram or Facebook links", () => {
   const links = resolveSocialLinks({
     env: { SOCIAL_INSTAGRAM_URL: "", SOCIAL_FACEBOOK_URL: undefined },

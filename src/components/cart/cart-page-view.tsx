@@ -13,12 +13,14 @@ import {
   type ShippingMethod,
 } from "@/lib/checkout";
 import { formatPrice } from "@/lib/format";
+import { cartLineShowsCondition } from "@/lib/product-condition";
 import { useCart } from "@/providers/cart-provider";
+import { Trash2 } from "lucide-react";
 
 const PAGE_SHIPPING: ShippingMethod[] = ["PICKUP", "PREPAID", "COD"];
 
 export function CartPageView() {
-  const { items, itemCount, subtotal, updateQuantity, clearCart } = useCart();
+  const { items, itemCount, subtotal, updateQuantity, removeItem, clearCart } = useCart();
   const { data: session } = useSession();
   const [email, setEmail] = useState<string | null>(null);
   const emailValue = email ?? session?.user?.email ?? "";
@@ -98,7 +100,7 @@ export function CartPageView() {
           <div className="flex flex-col gap-7 rounded-[24px] bg-trtcg-surface p-6 sm:p-8">
             <ul className="flex flex-col gap-8">
               {items.map((item) => (
-                <li key={item.variantId} className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+                <li key={item.variantId} className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
                   <div className="relative h-[168px] w-[120px] shrink-0 overflow-hidden">
                     {item.imageUrl ? (
                       <Image
@@ -113,10 +115,12 @@ export function CartPageView() {
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col gap-4">
                     <p className="text-[28px] font-medium leading-[1.4]">{item.name}</p>
-                    <p className="text-[13px] leading-[1.6] text-trtcg-muted">
-                      {item.condition}
-                      {item.isFoil ? " · 閃卡" : ""}
-                    </p>
+                    {cartLineShowsCondition(item) ? (
+                      <p className="text-[13px] leading-[1.6] text-trtcg-muted">
+                        {item.condition}
+                        {item.isFoil ? " · 閃卡" : ""}
+                      </p>
+                    ) : null}
                     <p className="text-[24px] font-medium leading-[1.2]">{formatPrice(item.price)}</p>
                     <div className="flex items-center gap-5">
                       <FoundationButton
@@ -140,6 +144,14 @@ export function CartPageView() {
                       </FoundationButton>
                     </div>
                   </div>
+                  <button
+                    type="button"
+                    aria-label={`移除 ${item.name}`}
+                    onClick={() => removeItem(item.variantId)}
+                    className="inline-flex size-12 shrink-0 items-center justify-center self-end rounded-[12px] border border-trtcg-line bg-white text-trtcg-ink transition hover:border-trtcg-gold hover:bg-trtcg-quiet sm:self-center"
+                  >
+                    <Trash2 className="size-5" aria-hidden="true" />
+                  </button>
                 </li>
               ))}
             </ul>

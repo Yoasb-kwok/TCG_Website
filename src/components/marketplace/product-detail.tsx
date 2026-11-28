@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { usePublicTaxonomy } from "@/hooks/use-public-taxonomy";
 import { homeContainer } from "@/components/home/home-layout";
 import { formatPrice } from "@/lib/format";
+import { showsProductCondition } from "@/lib/product-condition";
 import { getProductTypeDisplayLabel } from "@/lib/product-type-display";
 import type { ProductWithVariants } from "@/lib/types";
 import { useCart } from "@/providers/cart-provider";
@@ -49,6 +50,7 @@ export function ProductDetail({
   const image = product.images[imageIndex] ?? product.images[0];
   const variant =
     product.variants.find((item) => item.id === variantId) ?? product.variants[0];
+  const showCondition = showsProductCondition(product.type);
   const inStock = Boolean(variant && variant.stock > 0);
   const purchasable = Boolean(variant && variant.stock > 0 && variant.price > 0);
 
@@ -68,6 +70,7 @@ export function ProductDetail({
       imageUrl: product.images[0]?.url ?? null,
       condition: variant.condition,
       isFoil: variant.isFoil,
+      productType: product.type,
       price: variant.price,
       stock: variant.stock,
       sku: variant.sku,
@@ -169,7 +172,11 @@ export function ProductDetail({
 
             {variant ? (
               <div className="flex flex-col gap-4">
-                <p className="text-[14px] font-medium leading-[1.45] text-trtcg-ink">品相</p>
+                {showCondition ? (
+                  <p className="text-[14px] font-medium leading-[1.45] text-trtcg-ink">品相</p>
+                ) : (
+                  <p className="sr-only">購買選項</p>
+                )}
                 <div className="flex flex-col gap-3">
                   {product.variants.map((item) => {
                     const selected = item.id === variant.id;
@@ -185,11 +192,13 @@ export function ProductDetail({
                         aria-pressed={selected}
                       >
                         <span>
-                          <span className="block text-[14px] font-medium leading-[1.45] text-trtcg-ink">
-                            {item.condition}
-                            {item.isFoil ? " · 閃卡" : ""}
-                          </span>
-                          <span className="mt-1 block text-[13px] leading-[1.6] text-trtcg-muted">
+                          {showCondition ? (
+                            <span className="block text-[14px] font-medium leading-[1.45] text-trtcg-ink">
+                              {item.condition}
+                              {item.isFoil ? " · 閃卡" : ""}
+                            </span>
+                          ) : null}
+                          <span className={cn("block text-[13px] leading-[1.6] text-trtcg-muted", showCondition && "mt-1")}>
                             {item.stock > 0 ? `庫存 ${item.stock}` : "缺貨"}
                           </span>
                         </span>
@@ -314,7 +323,11 @@ export function ProductDetail({
 
           {variant ? (
             <div className="mt-6 space-y-3">
-              <p className="text-sm font-medium text-foreground">品相</p>
+              {showCondition ? (
+                <p className="text-sm font-medium text-foreground">品相</p>
+              ) : (
+                <p className="sr-only">購買選項</p>
+              )}
               <div className="grid gap-2">
                 {product.variants.map((item) => {
                   const selected = item.id === variant.id;
@@ -332,9 +345,13 @@ export function ProductDetail({
                       aria-pressed={selected}
                     >
                       <span>
-                        {item.condition}
-                        {item.isFoil ? " · 閃卡" : ""}
-                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                        {showCondition ? (
+                          <>
+                            {item.condition}
+                            {item.isFoil ? " · 閃卡" : ""}
+                          </>
+                        ) : null}
+                        <span className={cn("block text-xs text-muted-foreground", showCondition && "mt-0.5")}>
                           {item.stock > 0 ? `庫存 ${item.stock}` : "缺貨"}
                         </span>
                       </span>

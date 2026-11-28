@@ -49,6 +49,7 @@ export function HomeProductCard({ product }: { product: ProductWithVariants }) {
       imageUrl: imageUrl ?? null,
       condition: sellable.condition,
       isFoil: sellable.isFoil,
+      productType: product.type,
       price: sellable.price,
       stock: sellable.stock,
       sku: sellable.sku,

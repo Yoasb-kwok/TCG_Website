@@ -67,6 +67,9 @@ export function SiteFooter({
             <Link href="/payment" className={columnLink}>
               付款方式
             </Link>
+            <Link href="/recycle" className={columnLink}>
+              單卡回收
+            </Link>
             <Link href="/tournaments" className={columnLink}>
               店賽日程
             </Link>

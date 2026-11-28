@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-server";
 import { DEMO_PRODUCTS } from "@/lib/demo-products";
 import { getPrisma, isDatabaseConfigured } from "@/lib/prisma";
-import { getDefaultHomeBanners } from "@/lib/site-content";
+import { getDefaultHomeBanners, loadPopularProducts } from "@/lib/site-content";
 
 interface HomeBannerInput {
   title: string;
@@ -21,12 +21,14 @@ export async function GET() {
   const defaultBanners = getDefaultHomeBanners();
 
   if (!isDatabaseConfigured()) {
+    const popular = await loadPopularProducts();
     return NextResponse.json({
       banners: defaultBanners,
       featuredProductIds: [],
       featuredProducts: [],
       featuredAuto: true,
       featuredPreview: DEMO_PRODUCTS.slice(0, 4),
+      popularProducts: popular.summaries,
       fallback: true,
     });
   }
@@ -65,6 +67,8 @@ export async function GET() {
       : (DEMO_PRODUCTS.slice(0, 4) as typeof featuredPreview);
   }
 
+  const popular = await loadPopularProducts();
+
   return NextResponse.json({
     banners: banners.length
       ? banners.map((item) => ({
@@ -83,6 +87,7 @@ export async function GET() {
     featuredAuto,
     featuredPreview,
     bannersUsingDefaults: banners.length === 0,
+    popularProducts: popular.summaries,
     fallback: banners.length === 0,
   });
 }

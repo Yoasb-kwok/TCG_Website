@@ -26,6 +26,7 @@ import {
 import { demoCtaClass } from "@/components/demo/demo-look";
 import { DEMO_STORE_PATH } from "@/lib/demo-paths";
 import { formatPrice } from "@/lib/format";
+import { cartLineShowsCondition } from "@/lib/product-condition";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/providers/cart-provider";
 
@@ -52,18 +53,13 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
     clearCart,
   } = useCart();
   const { data: session } = useSession();
-  const [email, setEmail] = useState("");
+  const [emailOverride, setEmailOverride] = useState<string | null>(null);
+  const email = emailOverride ?? session?.user?.email ?? "";
   const [shippingMethod, setShippingMethod] = useState<ShippingMethod>("PREPAID");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [stripeReady, setStripeReady] = useState<boolean | null>(null);
   const [stripeMessage, setStripeMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (session?.user?.email && !email) {
-      setEmail(session.user.email);
-    }
-  }, [session?.user?.email, email]);
 
   useEffect(() => {
     if (demo) return;
@@ -122,9 +118,12 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetContent className="flex w-full flex-col sm:max-w-md">
+      <SheetContent
+        id="storefront-cart"
+        className="flex w-full flex-col rounded-l-[24px] border-l border-trtcg-gold/50 bg-trtcg-paper text-trtcg-ink sm:max-w-md"
+      >
         <SheetHeader>
-          <SheetTitle>購物車 ({items.length})</SheetTitle>
+          <SheetTitle className="text-[22px] font-medium text-trtcg-ink">購物車 ({items.length})</SheetTitle>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto py-4">
@@ -133,8 +132,8 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
           ) : (
             <ul className="space-y-4">
               {items.map((item) => (
-                <li key={item.variantId} className="flex gap-3">
-                  <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded bg-muted">
+                <li key={item.variantId} className="flex gap-3 rounded-[16px] bg-white p-3 shadow-trtcg-card">
+                  <div className="relative h-20 w-14 shrink-0 overflow-hidden rounded-[10px] bg-trtcg-lavender">
                     {item.imageUrl && (
                       <Image
                         src={item.imageUrl}
@@ -146,18 +145,31 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
                     )}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.condition}
-                      {item.isFoil ? " · 閃卡" : ""}
-                    </p>
+                    <div className="flex items-start gap-2">
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium">{item.name}</p>
+                      <button
+                        type="button"
+                        className="inline-flex size-8 shrink-0 items-center justify-center rounded-[10px] border border-trtcg-line text-trtcg-ink transition hover:border-trtcg-gold hover:bg-trtcg-quiet"
+                        aria-label={`移除 ${item.name}`}
+                        onClick={() => removeItem(item.variantId)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                    {cartLineShowsCondition(item) ? (
+                      <p className="text-xs text-trtcg-muted">
+                        {item.condition}
+                        {item.isFoil ? " · 閃卡" : ""}
+                      </p>
+                    ) : null}
                     <p className="text-sm font-semibold">
                       {formatPrice(item.price)}
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <button
                         type="button"
-                        className="rounded border border-border p-1 hover:bg-muted"
+                        className="rounded-[10px] border border-trtcg-secondary-border bg-trtcg-lavender p-1 text-trtcg-header transition hover:bg-trtcg-lavender/80"
+                        aria-label={`減少 ${item.name}`}
                         onClick={() =>
                           updateQuantity(item.variantId, item.quantity - 1)
                         }
@@ -167,20 +179,14 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
                       <span className="w-6 text-center text-sm">{item.quantity}</span>
                       <button
                         type="button"
-                        className="rounded border border-border p-1 hover:bg-muted"
+                        className="rounded-[10px] border border-trtcg-secondary-border bg-trtcg-lavender p-1 text-trtcg-header transition hover:bg-trtcg-lavender/80 disabled:opacity-40"
+                        aria-label={`增加 ${item.name}`}
                         onClick={() =>
                           updateQuantity(item.variantId, item.quantity + 1)
                         }
                         disabled={item.quantity >= item.stock}
                       >
                         <Plus className="h-3 w-3" />
-                      </button>
-                      <button
-                        type="button"
-                        className="ml-auto p-1 text-muted-foreground hover:text-red-400"
-                        onClick={() => removeItem(item.variantId)}
-                      >
-                        <Trash2 className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
@@ -236,7 +242,7 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
                     value={method}
                     checked={shippingMethod === method}
                     onChange={() => setShippingMethod(method)}
-                    className="size-4 accent-pink-500"
+                    className="size-4 accent-trtcg-header"
                   />
                   {SHIPPING_METHOD_LABELS[method]}
                 </label>
@@ -250,7 +256,7 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
                 type="email"
                 placeholder="your@email.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setEmailOverride(e.target.value)}
                 className="border-border bg-background"
                 autoComplete="email"
               />
@@ -292,6 +298,9 @@ export function CartSheet({ demo = false }: { demo?: boolean }) {
                 <p className="mt-2 text-center text-[11px] text-muted-foreground">
                   由 Stripe 安全處理 · 支援信用卡及 Apple Pay
                 </p>
+                <Link href="/cart" onClick={() => setIsOpen(false)} className="mt-2 block text-center text-sm text-trtcg-ink underline-offset-4 hover:underline">
+                  查看購物車頁
+                </Link>
               </>
             )}
             <Button

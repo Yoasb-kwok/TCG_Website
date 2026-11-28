@@ -2,15 +2,16 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ExternalLink, Plus, Trash2, Upload } from "lucide-react";
+import { HomeServicesEditor } from "@/components/admin/home-services-editor";
 import { MapVideoEditor } from "@/components/admin/map-video-editor";
 import { MenuBannerEditor } from "@/components/admin/menu-banner-editor";
+import { RecycleListingsEditor } from "@/components/admin/recycle-listings-editor";
+import { BUILTIN_HERO_ARTWORK, heroUsesBuiltinArtwork } from "@/lib/home-hero";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
-import { SearchInput } from "@/components/ui/search-input";
-import { fetchAllAdminProducts } from "@/lib/fetch-catalog-products";
 import { cn } from "@/lib/utils";
 
 interface BannerFormItem {
@@ -27,15 +28,6 @@ interface SectionFormItem {
   id: string;
   title: string;
   body: string;
-}
-
-interface FeaturedProductOption {
-  id: string;
-  name: string;
-  cardNumber?: string | null;
-  setCode?: string | null;
-  images: { url: string }[];
-  variants: { price: number; sku?: string }[];
 }
 
 const EMPTY_BANNER: BannerFormItem = {
@@ -63,17 +55,13 @@ async function parseJsonResponse<T = Record<string, unknown>>(res: Response): Pr
 }
 
 export function SiteContentManager() {
-  const [activeTab, setActiveTab] = useState<"home" | "menu" | "featured" | "about">("home");
+  const [activeTab, setActiveTab] = useState<"home" | "menu" | "featured" | "services" | "recycle" | "about">("home");
   const [banners, setBanners] = useState<BannerFormItem[]>([]);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
-  const [featuredProducts, setFeaturedProducts] = useState<FeaturedProductOption[]>([]);
-  const [featuredPreview, setFeaturedPreview] = useState<FeaturedProductOption[]>([]);
-  const [featuredAuto, setFeaturedAuto] = useState(true);
+  const [popularProducts, setPopularProducts] = useState<{ id: string; name: string; purchaseCount: number }[]>([]);
   const [bannersUsingDefaults, setBannersUsingDefaults] = useState(false);
   const [aboutFallback, setAboutFallback] = useState(false);
   const bannerFileInputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const [productSearch, setProductSearch] = useState("");
-  const [productResults, setProductResults] = useState<FeaturedProductOption[]>([]);
 
   const [pageTitle, setPageTitle] = useState("");
   const [pageSubtitle, setPageSubtitle] = useState("");
@@ -91,11 +79,7 @@ export function SiteContentManager() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const featuredSet = useMemo(() => new Set(featuredProductIds), [featuredProductIds]);
-
   const loadContent = async () => {
-    setLoading(true);
-    setError(null);
     try {
       const [homeRes, aboutRes] = await Promise.all([
         fetch("/api/admin/content/home"),
@@ -105,9 +89,7 @@ export function SiteContentManager() {
       const homeData = await parseJsonResponse<{
         banners?: BannerFormItem[];
         featuredProductIds?: string[];
-        featuredProducts?: FeaturedProductOption[];
-        featuredPreview?: FeaturedProductOption[];
-        featuredAuto?: boolean;
+        popularProducts?: { id: string; name: string; purchaseCount: number }[];
         bannersUsingDefaults?: boolean;
         fallback?: boolean;
         error?: string;
@@ -129,12 +111,11 @@ export function SiteContentManager() {
 
       if (!homeRes.ok) throw new Error(homeData.error ?? "讀取首頁內容失敗");
       if (!aboutRes.ok) throw new Error(aboutData.error ?? "讀取關於我們失敗");
+      setError(null);
 
       setBanners((homeData.banners ?? []).map((item: BannerFormItem) => ({ ...item })));
       setFeaturedProductIds(homeData.featuredProductIds ?? []);
-      setFeaturedProducts(homeData.featuredProducts ?? []);
-      setFeaturedPreview(homeData.featuredPreview ?? []);
-      setFeaturedAuto(Boolean(homeData.featuredAuto));
+      setPopularProducts(homeData.popularProducts ?? []);
       setBannersUsingDefaults(Boolean(homeData.bannersUsingDefaults ?? homeData.fallback));
 
       setPageTitle(aboutData.pageTitle ?? "");
@@ -156,25 +137,10 @@ export function SiteContentManager() {
   };
 
   useEffect(() => {
-    void loadContent();
+    void (async () => {
+      await loadContent();
+    })();
   }, []);
-
-  useEffect(() => {
-    const keyword = productSearch.trim();
-    if (!keyword) {
-      setProductResults([]);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      try {
-        const data = await fetchAllAdminProducts<FeaturedProductOption>(keyword);
-        setProductResults(data.products);
-      } catch {
-        // ignore search errors
-      }
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [productSearch]);
 
   const moveItem = <T,>(list: T[], index: number, direction: -1 | 1): T[] => {
     const target = index + direction;
@@ -204,7 +170,7 @@ export function SiteContentManager() {
         banners: banners.map((item) => ({
           title: item.title,
           subtitle: item.subtitle,
-          image: item.image,
+          image: item.image.trim() || BUILTIN_HERO_ARTWORK,
           href: item.href,
           gradient: item.gradient,
           active: item.active,
@@ -259,44 +225,6 @@ export function SiteContentManager() {
     }
   };
 
-  const saveFeaturedPreview = async () => {
-    const ids = featuredPreview.map((product) => product.id).filter(Boolean);
-    if (!ids.length) {
-      setError("沒有可儲存的預覽商品");
-      return;
-    }
-    setFeaturedProductIds(ids);
-    setSaving(true);
-    setMessage(null);
-    setError(null);
-    try {
-      const payload = {
-        banners: banners.map((item) => ({
-          title: item.title,
-          subtitle: item.subtitle,
-          image: item.image,
-          href: item.href,
-          gradient: item.gradient,
-          active: item.active,
-        })),
-        featuredProductIds: ids,
-      };
-      const res = await fetch("/api/admin/content/home", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await parseJsonResponse<{ error?: string }>(res);
-      if (!res.ok) throw new Error(data.error ?? "儲存熱門商品失敗");
-      setMessage("熱門商品已儲存至資料庫");
-      await loadContent();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "儲存失敗");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   if (loading) return <div className="text-sm text-muted-foreground">載入中...</div>;
 
   return (
@@ -307,12 +235,14 @@ export function SiteContentManager() {
             ["home", "首頁 Banner"],
             ["menu", "商品選單"],
             ["featured", "熱門商品"],
+            ["services", "首頁服務卡"],
+            ["recycle", "單卡回收"],
             ["about", "關於我們"],
           ].map(([key, label]) => (
             <button
               key={key}
               type="button"
-              onClick={() => setActiveTab(key as "home" | "menu" | "featured" | "about")}
+              onClick={() => setActiveTab(key as "home" | "menu" | "featured" | "services" | "recycle" | "about")}
               className={cn(
                 "border-b-2 px-4 py-2 text-sm transition",
                 activeTab === key
@@ -360,6 +290,9 @@ export function SiteContentManager() {
 
       {activeTab === "home" && (
         <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            左右切換時，標題、副標題與右側圖片會一起更換。Scarlet & Violet 151 若仍用預設系列圖，右側會顯示店內卡圖組合；上傳或貼上圖片後改為顯示該圖。
+          </p>
           {banners.map((banner, index) => (
             <div key={`${banner.id || "new"}-${index}`} className="rounded-lg border border-border p-4">
               <div className="mb-3 flex items-center justify-between">
@@ -376,6 +309,12 @@ export function SiteContentManager() {
               <div className="grid gap-3 md:grid-cols-2">
                 <Input value={banner.title} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, title: v } : item)))} placeholder="標題" />
                 <Input value={banner.subtitle} onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, subtitle: v } : item)))} placeholder="副標題" />
+                <Input
+                  value={banner.image === BUILTIN_HERO_ARTWORK ? "" : banner.image}
+                  onValueChange={(v) => setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, image: v } : item)))}
+                  placeholder="右側圖片網址，留空可按下方改回預設卡圖"
+                  className="md:col-span-2"
+                />
                 <div className="md:col-span-2 flex flex-wrap items-center gap-3">
                   <input
                     ref={(el) => {
@@ -415,11 +354,24 @@ export function SiteContentManager() {
                     <span className="text-sm">啟用</span>
                   </div>
                 </div>
-                {banner.image && (
+                {banner.image && !heroUsesBuiltinArtwork(banner) && (
                   <div className="relative h-24 w-64 overflow-hidden rounded border border-border">
                     <Image src={banner.image} alt={banner.title || "banner"} fill className="object-cover" unoptimized />
                   </div>
                 )}
+                {heroUsesBuiltinArtwork(banner) && (
+                  <p className="text-sm text-muted-foreground md:col-span-2">右側顯示預設 151 卡圖組合。</p>
+                )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    setBanners((prev) => prev.map((item, i) => (i === index ? { ...item, image: BUILTIN_HERO_ARTWORK } : item)))
+                  }
+                >
+                  右側改回預設 151 卡圖
+                </Button>
               </div>
             </div>
           ))}
@@ -437,85 +389,28 @@ export function SiteContentManager() {
 
       {activeTab === "featured" && (
         <div className="space-y-4">
-          {featuredAuto && (
-            <p className="rounded-md border border-blue-400/30 bg-blue-500/10 p-3 text-sm text-blue-200">
-              尚未自訂熱門商品。前台目前顯示以下預覽（最新上架商品）：
-            </p>
+          <p className="rounded-md border border-blue-400/30 bg-blue-500/10 p-3 text-sm text-blue-100">
+            熱門商品暫時不顯示缺貨，並按已完成購買件數（已付款、已出貨或已完成訂單）排前 4。手動名單不會改前台。
+          </p>
+          {popularProducts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">目前沒有有貨商品。</p>
+          ) : (
+            <ol className="space-y-2">
+              {popularProducts.map((product, index) => (
+                <li key={product.id} className="flex items-center justify-between rounded-lg border border-border p-3 text-sm">
+                  <span>
+                    {index + 1}. {product.name}
+                  </span>
+                  <span className="text-muted-foreground">已完成購買 {product.purchaseCount} 件</span>
+                </li>
+              ))}
+            </ol>
           )}
-          {featuredAuto && featuredPreview.length > 0 && (
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                {featuredPreview.map((product) => (
-                  <div key={product.id} className="rounded-lg border border-border p-3 text-sm">
-                    <p className="font-medium line-clamp-2">{product.name}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {product.variants[0] ? `HK$${product.variants[0].price}` : "未設定價格"}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <Button type="button" onClick={() => void saveFeaturedPreview()} disabled={saving}>
-                將以上預覽商品儲存至資料庫
-              </Button>
-            </div>
-          )}
-
-          <SearchInput
-            value={productSearch}
-            onValueChange={setProductSearch}
-            placeholder="搜尋名稱、卡號、系列或 SKU"
-            className="max-w-md"
-          />
-          <div className="grid gap-3 md:grid-cols-2">
-            {productResults.map((product) => (
-              <div key={product.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                <div>
-                  <p className="text-sm font-medium">{product.name}</p>
-                  {(product.cardNumber || product.setCode) && (
-                    <p className="text-xs text-muted-foreground">
-                      {[product.setCode, product.cardNumber].filter(Boolean).join(" · ")}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    {product.variants[0] ? `HK$${product.variants[0].price}` : "未設定價格"}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={featuredSet.has(product.id) || featuredProductIds.length >= 8}
-                  onClick={() =>
-                    setFeaturedProductIds((prev) => (prev.includes(product.id) ? prev : [...prev, product.id]))
-                  }
-                >
-                  加入
-                </Button>
-              </div>
-            ))}
-          </div>
-
-          <div className="space-y-2 rounded-lg border border-border p-4">
-            <p className="text-sm font-medium">目前熱門商品（{featuredProductIds.length}/8）</p>
-            {featuredProductIds.map((productId, index) => {
-              const product = featuredProducts.find((item) => item.id === productId);
-              return (
-                <div key={productId} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
-                  <span>{product?.name ?? productId}</span>
-                  <div className="flex gap-2">
-                    <Button type="button" size="sm" variant="outline" onClick={() => setFeaturedProductIds((prev) => moveItem(prev, index, -1))}>上移</Button>
-                    <Button type="button" size="sm" variant="outline" onClick={() => setFeaturedProductIds((prev) => moveItem(prev, index, 1))}>下移</Button>
-                    <Button type="button" size="sm" variant="outline" onClick={() => setFeaturedProductIds((prev) => prev.filter((id) => id !== productId))}>移除</Button>
-                  </div>
-                </div>
-              );
-            })}
-            <Button type="button" onClick={() => void saveHome()} disabled={saving}>
-              儲存熱門商品
-            </Button>
-          </div>
         </div>
       )}
+
+      {activeTab === "services" && <HomeServicesEditor />}
+      {activeTab === "recycle" && <RecycleListingsEditor />}
 
       {activeTab === "about" && (
         <div className="space-y-3">

@@ -5,20 +5,18 @@ import { HomeHero } from "@/components/home/home-hero";
 import { homeContainer } from "@/components/home/home-layout";
 import { HomeProductCard } from "@/components/home/home-product-card";
 import { HomeServices } from "@/components/home/home-services";
-import { HOME_SHOWCASE_PRODUCTS, isGenericDemoFeatured } from "@/lib/home-showcase";
 import { loadPublicTournamentView } from "@/lib/public-tournament-view";
 import { cancelRegistrationRefusal } from "@/lib/tournament-registrations";
-import { getHomeContent } from "@/lib/site-content";
+import { getHomeContent, getHomeServices } from "@/lib/site-content";
 
 export default async function HomePage() {
-  const [homeContent, tournamentView] = await Promise.all([
+  const [homeContent, tournamentView, services] = await Promise.all([
     getHomeContent(),
     loadPublicTournamentView(),
+    getHomeServices(),
   ]);
   const { tournaments, namesBySlug, registeredSlugs, ownedSlugs, isAdmin } = tournamentView;
-  const featured = isGenericDemoFeatured(homeContent.featuredProducts)
-    ? HOME_SHOWCASE_PRODUCTS
-    : homeContent.featuredProducts.slice(0, 4);
+  const featured = homeContent.featuredProducts.slice(0, 4);
 
   return (
     <>
@@ -31,11 +29,15 @@ export default async function HomePage() {
             查看全部 →
           </FoundationButton>
         </div>
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
-          {featured.map((product) => (
-            <HomeProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        {featured.length === 0 ? (
+          <p className="text-[16px] text-trtcg-muted">暫無有貨的熱門商品</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-4">
+            {featured.map((product) => (
+              <HomeProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </section>
 
       <section className={`${homeContainer} flex flex-col gap-8 pt-16 pb-8`}>
@@ -68,7 +70,7 @@ export default async function HomePage() {
         )}
       </section>
 
-      <HomeServices />
+      <HomeServices services={services} />
     </>
   );
 }
